@@ -24,19 +24,19 @@ export const categories: Category[] = [
 
 export const templates: Template[] = [
   {
-    name: 'Weekly groceries',
+    name: 'Еженедельные продукты',
     items: [
-      { name: 'Milk', quantity: 1 },
-      { name: 'Bread', quantity: 1 },
-      { name: 'Eggs', quantity: 12 },
+      { name: 'Молоко', quantity: 1 },
+      { name: 'Хлеб', quantity: 1 },
+      { name: 'Яйца', quantity: 12 },
     ],
   },
   {
-    name: 'Party supplies',
+    name: 'Принадлежности для вечеринки',
     items: [
-      { name: 'Chips', quantity: 2 },
-      { name: 'Soda', quantity: 6 },
-      { name: 'Plastic cups', quantity: 20 },
+      { name: 'Чипсы', quantity: 2 },
+      { name: 'Сода', quantity: 6 },
+      { name: 'Пластиковые стаканчики', quantity: 20 },
     ],
   },
 ];

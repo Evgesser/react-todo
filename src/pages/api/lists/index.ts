@@ -4,7 +4,7 @@ import { ObjectId } from 'mongodb';
 
 export interface ShoppingList {
   _id: ObjectId;
-  password: string;
+  userId: string;
   name: string;
   completed: boolean;
   createdAt: Date;
@@ -19,30 +19,29 @@ export default async function handler(
   const client = await clientPromise;
   const db = client.db();
   const lists = db.collection('lists');
-  const items = db.collection('todos'); // items stay in same collection
+  const items = db.collection('todos');
 
   if (req.method === 'GET') {
-    const { password } = req.query;
-    if (!password || typeof password !== 'string') {
-      res.status(400).json({ error: 'Password query parameter is required' });
+    const { userId } = req.query;
+    if (!userId || typeof userId !== 'string') {
+      res.status(400).json({ error: 'userId query parameter is required' });
       return;
     }
-    let existingLists = await lists.find({ password }).toArray();
-    if (existingLists.length === 0) {
-      // if there are orphan items they could be reparented later when a
-      // list is created; for now simply return an empty array so the client
-      // can prompt the user to name a first list.
-    }
+    // Disable caching for this endpoint
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    let existingLists = await lists.find({ userId }).toArray();
 
     res.status(200).json(existingLists);
   } else if (req.method === 'POST') {
-    const { password, name, defaultColor } = req.body as {
-      password?: unknown;
+    const { userId, name, defaultColor } = req.body as {
+      userId?: unknown;
       name?: unknown;
       defaultColor?: unknown;
     };
-    if (!password || typeof password !== 'string') {
-      res.status(400).json({ error: 'Password is required' });
+    if (!userId || typeof userId !== 'string') {
+      res.status(400).json({ error: 'userId is required' });
       return;
     }
     if (!name || typeof name !== 'string') {
@@ -50,7 +49,7 @@ export default async function handler(
       return;
     }
     const newList: any = {
-      password,
+      userId,
       name,
       completed: false,
       createdAt: new Date(),

@@ -16,6 +16,11 @@ export default async function handler(
       res.status(400).json({ error: 'listId query parameter is required' });
       return;
     }
+    // Disable caching for this endpoint
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     const todos = await collection
       .find({ listId: new ObjectId(listId) })
       .sort({ order: 1 })

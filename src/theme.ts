@@ -5,10 +5,11 @@ export function getTheme(mode: PaletteMode) {
   const palette: ThemeOptions['palette'] = {
     mode,
     primary: {
-      main: mode === 'dark' ? '#26a69a' : '#80cbc4', // teal tones
+      // user-requested main color
+      main: '#2196f3',
     },
     secondary: {
-      main: mode === 'dark' ? '#ff7043' : '#ffab91', // soft orange
+      main: '#4dabf5',
     },
     background: mode === 'dark'
       ? {
