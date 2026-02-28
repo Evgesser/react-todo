@@ -1,14 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import clientPromise from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+import type { User } from '@/types/user';
 import crypto from 'crypto';
-
-interface User {
-  _id: ObjectId;
-  username: string;
-  passwordHash: string;
-  createdAt: Date;
-}
+import { checkBruteForce, recordFailedAttempt, clearAttempts, getClientIp } from '@/lib/bruteForceProtection';
 
 interface LoginResponse {
   userId: string;
@@ -53,6 +47,15 @@ export default async function handler(
     return;
   }
 
+  // Check brute force protection
+  const clientIp = getClientIp(req);
+  const bruteForceCheck = await checkBruteForce(clientIp, username.trim().toLowerCase());
+
+  if (!bruteForceCheck.allowed) {
+    res.status(429).json({ error: `Too many login attempts. Try again later.` });
+    return;
+  }
+
   try {
     const client = await clientPromise;
     const db = client.db();
@@ -66,15 +69,20 @@ export default async function handler(
 
     if (!user) {
       // User doesn't exist
+      await recordFailedAttempt(clientIp, normalizedUsername);
       res.status(404).json({ error: 'User not found' });
       return;
     }
 
     // User exists, verify password
     if (user.passwordHash !== passwordHash) {
+      await recordFailedAttempt(clientIp, normalizedUsername);
       res.status(401).json({ error: 'Invalid username or password' });
       return;
     }
+
+    // Success - clear attempts
+    await clearAttempts(clientIp, normalizedUsername);
 
     res.status(200).json({
       userId: user._id.toString(),

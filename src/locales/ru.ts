@@ -28,6 +28,8 @@ export const ru = {
   // Header
   header: {
     title: 'Список покупок',
+    profile: 'Профиль',
+    logout: 'Выход',
   },
   
   // Lists
@@ -158,6 +160,30 @@ export const ru = {
   contrast: {
     good: 'Контраст хороший',
     warning: 'Внимание: средний контраст',
+  },
+  
+  // Profile
+  profile: {
+    title: 'Профиль',
+    email: 'Email',
+    bio: 'О себе',
+    avatar: 'Аватар',
+    changeAvatar: 'Изменить аватар',
+    editProfile: 'Редактировать профиль',
+    saveChanges: 'Сохранить изменения',
+    memberSince: 'Участник с',
+    notSet: 'Не указано',
+    profileUpdated: 'Профиль обновлён',
+    passwordChanged: 'Пароль изменён',
+    accountDeleted: 'Аккаунт удалён',
+    changePassword: 'Изменить пароль',
+    currentPassword: 'Текущий пароль',
+    newPassword: 'Новый пароль',
+    confirmPassword: 'Подтвердите пароль',
+    deleteAccount: 'Удалить аккаунт',
+    deleteWarning: 'Это действие необнеобратимо. Все ваши данные будут удалены навсегда.',
+    enterPasswordToConfirm: 'Введите пароль для подтверждения',
+    passwordsDoNotMatch: 'Пароли не совпадают',
   },
 };
 

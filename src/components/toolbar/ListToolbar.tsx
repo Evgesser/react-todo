@@ -30,7 +30,6 @@ interface ListToolbarProps {
   toggleForm: () => void;
   bulkMode: boolean;
   toggleBulkMode: () => void;
-  handleExit: () => void;
   menuAnchor: HTMLElement | null;
   openMenu: (e: React.MouseEvent<HTMLElement>) => void;
   closeMenu: () => void;
@@ -54,7 +53,6 @@ export default function ListToolbar({
   toggleForm,
   bulkMode,
   toggleBulkMode,
-  handleExit,
   menuAnchor,
   openMenu,
   closeMenu,
@@ -153,9 +151,6 @@ export default function ListToolbar({
                 </Button>
         <Button onClick={() => toggleBulkMode()} sx={{ minWidth: 100 }}>
           {bulkMode ? t.lists.bulkCancel : t.lists.bulkMode}
-        </Button>
-        <Button onClick={handleExit} sx={{ minWidth: 96 }}>
-          {t.lists.logout}
         </Button>
         <IconButton onClick={openMenu} size="small">
           <MoreVertIcon />

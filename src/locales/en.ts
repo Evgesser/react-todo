@@ -30,6 +30,8 @@ export const en: TranslationKeys = {
   // Header
   header: {
     title: 'Shopping List',
+    profile: 'Profile',
+    logout: 'Logout',
   },
   
   // Lists
@@ -160,5 +162,29 @@ export const en: TranslationKeys = {
   contrast: {
     good: 'Good contrast',
     warning: 'Warning: medium contrast',
+  },
+  
+  // Profile
+  profile: {
+    title: 'Profile',
+    email: 'Email',
+    bio: 'Bio',
+    avatar: 'Avatar',
+    changeAvatar: 'Change Avatar',
+    editProfile: 'Edit Profile',
+    saveChanges: 'Save Changes',
+    memberSince: 'Member since',
+    notSet: 'Not set',
+    profileUpdated: 'Profile updated successfully',
+    passwordChanged: 'Password changed successfully',
+    accountDeleted: 'Account deleted successfully',
+    changePassword: 'Change Password',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    confirmPassword: 'Confirm Password',
+    deleteAccount: 'Delete Account',
+    deleteWarning: 'This action cannot be undone. All your data will be permanently deleted.',
+    enterPasswordToConfirm: 'Enter your password to confirm',
+    passwordsDoNotMatch: 'Passwords do not match',
   },
 };

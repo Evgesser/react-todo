@@ -62,6 +62,9 @@ interface UseTodosReturn {
   onDragStart: (e: React.DragEvent, index: number) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, dropIndex: number) => void;
+  onTouchStart: (e: React.TouchEvent, index: number) => void;
+  onTouchMove: (e: React.TouchEvent) => void;
+  onTouchEnd: (e: React.TouchEvent, dropIndex: number) => void;
   startInlineEdit: (todo: Todo) => void;
   finishInlineEdit: (todo: Todo) => Promise<void>;
 }
@@ -95,6 +98,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
 
   // UI state
   const [lastAdded, setLastAdded] = React.useState<string | null>(null);
+  const [touchDragIndex, setTouchDragIndex] = React.useState<number | null>(null);
 
   // Handle click outside inline edit
   React.useEffect(() => {
@@ -284,6 +288,39 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     });
   };
 
+  // Touch drag and drop handlers
+  const onTouchStart = (e: React.TouchEvent, index: number) => {
+    setTouchDragIndex(index);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    // Prevent default scrolling while dragging
+    if (touchDragIndex !== null) {
+      e.preventDefault();
+    }
+  };
+
+  const onTouchEnd = (e: React.TouchEvent, dropIndex: number) => {
+    if (touchDragIndex === null || touchDragIndex === dropIndex) {
+      setTouchDragIndex(null);
+      return;
+    }
+
+    setTodos((prev) => {
+      const copy = [...prev];
+      const [moved] = copy.splice(touchDragIndex, 1);
+      copy.splice(dropIndex, 0, moved);
+      // Persist order to server
+      if (currentListId) {
+        copy.forEach((t, idx) => {
+          apiUpdateTodo(t._id, { listId: currentListId, order: idx });
+        });
+      }
+      return copy;
+    });
+    setTouchDragIndex(null);
+  };
+
   // Start inline editing
   const startInlineEdit = (todo: Todo) => {
     setInlineEditId(todo._id);
@@ -350,6 +387,9 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     onDragStart,
     onDragOver,
     onDrop,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
     startInlineEdit,
     finishInlineEdit,
   };

@@ -42,7 +42,7 @@ import { useTheme } from '@mui/material/styles';
 import { useFormAutoCollapse } from '../hooks/useFormAutoCollapse';
 import { useTodos } from '../hooks/useTodos';
 import { useLists } from '../hooks/useLists';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
 // UI components
@@ -146,12 +146,15 @@ export default function Home() {
     }
   }, [auth.userId, loadPersonalization]);
 
-  const handleRegisterSuccess = React.useCallback((userId: string, username: string) => {
+  const handleRegisterSuccess = React.useCallback(async (userId: string, username: string) => {
     // Close register dialog first
     setRegisterDialogOpen(false);
     
     // Set auth data directly without calling login API again
     auth.setAuthData(userId, username);
+    
+    // Try to load avatar (may not exist for new user, but try anyway)
+    await auth.loadAvatar(userId);
     
     // Clear login form
     setLoginUsername('');
@@ -255,13 +258,6 @@ export default function Home() {
     setNewListDialogOpen(true);
   };
 
-  // logout/exit the current list and return to the login screen
-  const handleExit = () => {
-    auth.logout();
-    listActions.clearAllLists();
-    todoActions.setTodos([]);
-  };
-
   return (
     <Container maxWidth="sm" sx={{ mt: 4, mb: 4 }}>
       <Head>
@@ -344,7 +340,6 @@ export default function Home() {
             toggleForm={() => setFormOpen((v) => !v)}
             bulkMode={todoActions.bulkMode}
             toggleBulkMode={() => todoActions.setBulkMode(!todoActions.bulkMode)}
-            handleExit={handleExit}
             menuAnchor={menuAnchor}
             openMenu={openMenu}
             closeMenu={closeMenu}
@@ -547,12 +542,16 @@ export default function Home() {
                     onDragStart={(e) => todoActions.onDragStart(e, index)}
                     onDragOver={todoActions.onDragOver}
                     onDrop={(e) => todoActions.onDrop(e, index)}
+                    onTouchStart={(e) => todoActions.onTouchStart(e, index)}
+                    onTouchMove={todoActions.onTouchMove}
+                    onTouchEnd={(e) => todoActions.onTouchEnd(e, index)}
                     sx={{
                       mb: 1,
                       backgroundColor: itemBg || 'inherit',
                       transition: 'background-color 0.3s ease',
                       color: itemTextColor,
                       cursor: !listActions.viewingHistory ? 'move' : 'auto',
+                      touchAction: 'none',
                     }}
                     elevation={1}
                   >

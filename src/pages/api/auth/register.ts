@@ -2,13 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
-
-interface User {
-  _id: ObjectId;
-  username: string;
-  passwordHash: string;
-  createdAt: Date;
-}
+import { checkBruteForce, recordFailedAttempt, clearAttempts, getClientIp } from '@/lib/bruteForceProtection';
+import type { User } from '@/types/user';
 
 interface RegisterResponse {
   userId: string;
@@ -61,6 +56,15 @@ export default async function handler(
     return;
   }
 
+  // Check brute force protection
+  const clientIp = getClientIp(req);
+  const bruteForceCheck = await checkBruteForce(clientIp, username.trim().toLowerCase());
+
+  if (!bruteForceCheck.allowed) {
+    res.status(429).json({ error: `Too many registration attempts. Try again later.` });
+    return;
+  }
+
   // Verify captcha (stored in session or calculated based on username)
   // For simplicity, we'll calculate it based on the username hash
   const captchaHash = crypto.createHash('md5').update(username.toLowerCase()).digest('hex');
@@ -69,6 +73,7 @@ export default async function handler(
   const expectedAnswer = num1 + num2;
 
   if (captchaAnswer !== expectedAnswer) {
+    await recordFailedAttempt(clientIp, username.trim().toLowerCase());
     res.status(400).json({ error: 'Incorrect captcha answer' });
     return;
   }
@@ -84,6 +89,7 @@ export default async function handler(
     // Check if user already exists
     const existingUser = await users.findOne({ username: normalizedUsername });
     if (existingUser) {
+      await recordFailedAttempt(clientIp, normalizedUsername);
       res.status(409).json({ error: 'User already exists' });
       return;
     }
@@ -96,6 +102,9 @@ export default async function handler(
       createdAt: new Date(),
     };
     const result = await users.insertOne(newUser);
+
+    // Success - clear attempts
+    await clearAttempts(clientIp, normalizedUsername);
 
     res.status(201).json({
       userId: result.insertedId.toString(),

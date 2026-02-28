@@ -1,15 +1,12 @@
 import * as React from 'react';
 import { login as apiLogin, fetchUserProfile } from '@/lib/api';
 
-interface UseAuthReturn {
-  // State
+interface AuthContextType {
   userId: string | null;
   username: string | null;
   avatar: string | null;
   isLoading: boolean;
   error: string | null;
-
-  // Methods
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   setAuthData: (userId: string, username: string, avatar?: string) => void;
   loadAvatar: (userId: string) => Promise<void>;
@@ -17,7 +14,9 @@ interface UseAuthReturn {
   clearError: () => void;
 }
 
-export function useAuth(): UseAuthReturn {
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserId] = React.useState<string | null>(null);
   const [username, setUsername] = React.useState<string | null>(null);
   const [avatar, setAvatar] = React.useState<string | null>(null);
@@ -123,16 +122,29 @@ export function useAuth(): UseAuthReturn {
     setError(null);
   }, []);
 
-  return {
-    userId,
-    username,
-    avatar,
-    isLoading,
-    error,
-    login,
-    setAuthData,
-    loadAvatar,
-    logout,
-    clearError,
-  };
+  const value = React.useMemo(
+    () => ({
+      userId,
+      username,
+      avatar,
+      isLoading,
+      error,
+      login,
+      setAuthData,
+      loadAvatar,
+      logout,
+      clearError,
+    }),
+    [userId, username, avatar, isLoading, error, login, setAuthData, loadAvatar, logout, clearError]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = React.useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

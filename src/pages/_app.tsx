@@ -7,6 +7,7 @@ import { ThemeProvider, CssBaseline, PaletteMode } from "@mui/material";
 import { getTheme } from "@/theme";
 import createEmotionCache from "@/createEmotionCache";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 // context to toggle color mode
 export const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
@@ -49,14 +50,16 @@ export default function MyApp(props: MyAppProps) {
       <Head>
         <meta name="viewport" content="initial-scale=1, width=device-width" />
       </Head>
-      <LanguageProvider>
-        <ColorModeContext.Provider value={colorMode}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <Component {...pageProps} />
-          </ThemeProvider>
-        </ColorModeContext.Provider>
-      </LanguageProvider>
+      <AuthProvider>
+        <LanguageProvider>
+          <ColorModeContext.Provider value={colorMode}>
+            <ThemeProvider theme={theme}>
+              <CssBaseline />
+              <Component {...pageProps} />
+            </ThemeProvider>
+          </ColorModeContext.Provider>
+        </LanguageProvider>
+      </AuthProvider>
     </CacheProvider>
   );
 }

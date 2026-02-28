@@ -136,3 +136,68 @@ export async function savePersonalization(
   return res.json();
 }
 
+// --- user profile ---------------------------------------------------
+export interface UserProfile {
+  userId: string;
+  username: string;
+  email?: string;
+  avatar?: string;
+  bio?: string;
+  createdAt: string;
+}
+
+export async function fetchUserProfile(userId: string): Promise<UserProfile> {
+  const res = await fetch(`${BASE}/user/${encodeURIComponent(userId)}`);
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to load profile');
+  }
+  return res.json();
+}
+
+export async function updateUserProfile(
+  userId: string,
+  profile: { email?: string; bio?: string; avatar?: string }
+): Promise<UserProfile> {
+  const res = await fetch(`${BASE}/user/${encodeURIComponent(userId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to update profile');
+  }
+  return res.json();
+}
+
+export async function changePassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<{ message: string }> {
+  const res = await fetch(`${BASE}/user/change-password?userId=${encodeURIComponent(userId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to change password');
+  }
+  return res.json();
+}
+
+export async function deleteUserAccount(userId: string, password: string): Promise<{ message: string }> {
+  const res = await fetch(`${BASE}/user/delete?userId=${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to delete account');
+  }
+  return res.json();
+}
+
