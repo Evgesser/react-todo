@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemButton, ListItemText, Grow } from '@mui/material';
 import { List as ListType } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface HistoryDialogProps {
   open: boolean;
@@ -10,9 +11,10 @@ interface HistoryDialogProps {
 }
 
 export default function HistoryDialog({ open, lists, onSelect, onClose }: HistoryDialogProps) {
+  const { t, language } = useLanguage();
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
-      <DialogTitle>История списков</DialogTitle>
+      <DialogTitle>{t.dialogs.history.title}</DialogTitle>
       <DialogContent>
         <List>
           {lists
@@ -29,7 +31,7 @@ export default function HistoryDialog({ open, lists, onSelect, onClose }: Histor
                       primary={l.name}
                       secondary={
                         l.finishedAt
-                          ? new Date(l.finishedAt).toLocaleString('ru-RU', {
+                          ? new Date(l.finishedAt).toLocaleString(language === 'en' ? 'en-US' : 'ru-RU', {
                               day: '2-digit',
                               month: '2-digit',
                               year: 'numeric',
@@ -46,7 +48,7 @@ export default function HistoryDialog({ open, lists, onSelect, onClose }: Histor
         </List>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Закрыть</Button>
+        <Button onClick={onClose}>{t.dialogs.history.close}</Button>
       </DialogActions>
     </Dialog>
   );

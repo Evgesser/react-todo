@@ -9,8 +9,12 @@ import {
   Button,
   Box,
   Alert,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
+import ClearIcon from '@mui/icons-material/Clear';
 import { Template } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface NewListDialogProps {
   open: boolean;
@@ -26,6 +30,7 @@ export default function NewListDialog({
   availableTemplates,
   onCreate,
 }: NewListDialogProps) {
+    const { t } = useLanguage();
   const [name, setName] = React.useState('');
   const [templateName, setTemplateName] = React.useState('');
   const [errorMsg, setErrorMsg] = React.useState<string>('');
@@ -41,10 +46,10 @@ export default function NewListDialog({
         setErrorMsg('');
         onClose();
       } else {
-        setErrorMsg('Не удалось создать список');
+        setErrorMsg(t.dialogs.newList.error);
       }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Ошибка при создании';
+      const msg = e instanceof Error ? e.message : t.messages.createError;
       setErrorMsg(msg);
     }
   };
@@ -58,7 +63,7 @@ export default function NewListDialog({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
-      <DialogTitle>Новый список</DialogTitle>
+      <DialogTitle>{t.dialogs.newList.title}</DialogTitle>
       <DialogContent>
         {errorMsg && (
           <Box sx={{ mb: 2 }}>
@@ -66,32 +71,45 @@ export default function NewListDialog({
           </Box>
         )}
         <TextField
-          label="Название"
+          label={t.dialogs.newList.name}
           value={name}
           onChange={(e) => setName(e.target.value)}
           fullWidth
           autoFocus
           sx={{ mb: 2 }}
+          InputProps={{
+            endAdornment: name ? (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={() => setName('')}
+                  edge="end"
+                >
+                  <ClearIcon />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
         />
         <TextField
           select
-          label="Шаблон"
+          label={t.dialogs.newList.template}
           value={templateName}
           onChange={(e) => setTemplateName(e.target.value)}
           fullWidth
         >
-          <MenuItem value="">(нет)</MenuItem>
-          {availableTemplates.map((t) => (
-            <MenuItem key={t.name} value={t.name}>
-              {t.name}
+          <MenuItem value="">{t.dialogs.newList.noTemplate}</MenuItem>
+          {availableTemplates.map((tmpl) => (
+            <MenuItem key={tmpl.name} value={tmpl.name}>
+              {tmpl.name}
             </MenuItem>
           ))}
         </TextField>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Отмена</Button>
+        <Button onClick={onClose}>{t.dialogs.newList.cancel}</Button>
         <Button variant="contained" onClick={handleCreate} disabled={!name.trim()}>
-          Создать
+          {t.dialogs.newList.create}
         </Button>
       </DialogActions>
     </Dialog>

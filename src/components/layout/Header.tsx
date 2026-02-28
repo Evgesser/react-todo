@@ -4,6 +4,8 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useTheme } from '@mui/material/styles';
 import { ColorModeContext } from '@/pages/_app';
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageSwitcher from '../LanguageSwitcher';
 
 interface HeaderProps {
   headerColor: string;
@@ -13,6 +15,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor }) => {
   const theme = useTheme();
   const colorMode = React.useContext(ColorModeContext);
+    const { t } = useLanguage();
   return (
     <Box sx={{ mb: 1 }}>
       <Box
@@ -44,28 +47,31 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor }
                 : '0 1px 2px rgba(0,0,0,0.06)',
           }}
         >
-          Список покупок
+          {t.header.title}
         </Typography>
-        <IconButton
-          onClick={() => colorMode.toggleColorMode()}
-          sx={{
-            color: effectiveHeaderTextColor,
-            bgcolor:
-              theme.palette.mode === 'dark'
-                ? 'rgba(255,255,255,0.06)'
-                : 'rgba(0,0,0,0.04)',
-            borderRadius: '50%',
-            p: 1,
-            '&:hover': {
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <LanguageSwitcher />
+          <IconButton
+            onClick={() => colorMode.toggleColorMode()}
+            sx={{
+              color: effectiveHeaderTextColor,
               bgcolor:
                 theme.palette.mode === 'dark'
-                  ? 'rgba(255,255,255,0.1)'
-                  : 'rgba(0,0,0,0.06)',
-            },
-          }}
-        >
-          {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-        </IconButton>
+                  ? 'rgba(255,255,255,0.06)'
+                  : 'rgba(0,0,0,0.04)',
+              borderRadius: '50%',
+              p: 1,
+              '&:hover': {
+                bgcolor:
+                  theme.palette.mode === 'dark'
+                    ? 'rgba(255,255,255,0.1)'
+                    : 'rgba(0,0,0,0.06)',
+              },
+            }}
+          >
+            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+        </Box>
       </Box>
     </Box>
   );

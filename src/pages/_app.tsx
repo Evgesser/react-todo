@@ -6,6 +6,7 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import { ThemeProvider, CssBaseline, PaletteMode } from "@mui/material";
 import { getTheme } from "@/theme";
 import createEmotionCache from "@/createEmotionCache";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 // context to toggle color mode
 export const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
@@ -48,12 +49,14 @@ export default function MyApp(props: MyAppProps) {
       <Head>
         <meta name="viewport" content="initial-scale=1, width=device-width" />
       </Head>
-      <ColorModeContext.Provider value={colorMode}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <Component {...pageProps} />
-        </ThemeProvider>
-      </ColorModeContext.Provider>
+      <LanguageProvider>
+        <ColorModeContext.Provider value={colorMode}>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Component {...pageProps} />
+          </ThemeProvider>
+        </ColorModeContext.Provider>
+      </LanguageProvider>
     </CacheProvider>
   );
 }

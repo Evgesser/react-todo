@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box } from '@mui/material';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface QuantityDialogProps {
   open: boolean;
@@ -9,11 +10,12 @@ interface QuantityDialogProps {
 }
 
 export default function QuantityDialog({ open, value, onChange, onClose }: QuantityDialogProps) {
+    const { t } = useLanguage();
   const [temp, setTemp] = React.useState<number>(value || 1);
   React.useEffect(() => setTemp(value || 1), [value]);
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Количество</DialogTitle>
+      <DialogTitle>{t.dialogs.quantity.title}</DialogTitle>
       <DialogContent>
         {/* numeric keypad as 3×4 grid with backspace/clear */}
         <Box
@@ -59,7 +61,7 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
           ))}
         </Box>
         <TextField
-          label="Количество"
+          label={t.dialogs.quantity.title}
           type="number"
           autoFocus
           value={temp}
@@ -69,7 +71,7 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Отмена</Button>
+        <Button onClick={onClose}>{t.dialogs.quantity.cancel}</Button>
         <Button
           onClick={() => {
             onChange(temp || 1);
@@ -77,7 +79,7 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
           }}
           variant="contained"
         >
-          Сохранить
+          {t.dialogs.quantity.save}
         </Button>
       </DialogActions>
     </Dialog>

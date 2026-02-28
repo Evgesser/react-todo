@@ -5,10 +5,12 @@ import {
   deleteList as apiDeleteList,
   updateList as apiUpdateList,
 } from '@/lib/api';
+import { TranslationKeys } from '@/locales/ru';
 
 interface UseListsParams {
   userId: string | null;
   onSnackbar: (message: string) => void;
+  t: TranslationKeys;
 }
 
 interface UseListsReturn {
@@ -35,7 +37,7 @@ interface UseListsReturn {
   clearAllLists: () => void;
 }
 
-export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn {
+export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsReturn {
   const [lists, setLists] = React.useState<ListType[]>([]);
   const [currentListId, setCurrentListId] = React.useState<string | null>(null);
   const [currentList, setCurrentList] = React.useState<ListType | null>(null);
@@ -75,10 +77,10 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
 
       return data;
     } catch {
-      onSnackbar('Failed to load lists');
+      onSnackbar(t.messages.loadListsError);
       return null;
     }
-  }, [userId, currentListId, onSnackbar]);
+  }, [userId, currentListId, onSnackbar, t]);
 
   const selectList = React.useCallback(
     async (id: string) => {
@@ -114,12 +116,12 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
             setViewingHistory(false);
           }
         }
-        onSnackbar('List deleted');
+        onSnackbar(t.messages.listDeleted);
       } catch {
-        onSnackbar('Failed to delete list');
+        onSnackbar(t.messages.deleteListError);
       }
     },
-    [lists, currentListId, onSnackbar]
+    [lists, currentListId, onSnackbar, t]
   );
 
   const updateListColor = React.useCallback(
@@ -133,12 +135,12 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
           setListDefaultColor(color);
           setCurrentList(updated.find((l) => l._id === id) || null);
         }
-        onSnackbar('Color updated');
+        onSnackbar(t.messages.colorSaved);
       } catch {
-        onSnackbar('Failed to update color');
+        onSnackbar(t.messages.colorUpdateError);
       }
     },
-    [lists, currentListId, onSnackbar]
+    [lists, currentListId, onSnackbar, t]
   );
 
   const completeList = React.useCallback(
@@ -162,12 +164,12 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
             setViewingHistory(true);
           }
         }
-        onSnackbar('List completed');
+        onSnackbar(t.messages.listCompleted);
       } catch {
-        onSnackbar('Failed to complete list');
+        onSnackbar(t.messages.completeListError);
       }
     },
-    [lists, currentListId, onSnackbar]
+    [lists, currentListId, onSnackbar, t]
   );
 
   const clearAllLists = React.useCallback(() => {

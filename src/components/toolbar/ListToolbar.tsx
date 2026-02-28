@@ -15,6 +15,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getLuminance } from '@/utils/color';
 import { List as ListType } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ListToolbarProps {
   lists: ListType[];
@@ -63,6 +64,7 @@ export default function ListToolbar({
   openPersonalDialog,
   completeCurrentList,
 }: ListToolbarProps) {
+    const { t } = useLanguage();
   return (
     <Box
       sx={{
@@ -76,7 +78,7 @@ export default function ListToolbar({
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <TextField
           select
-          label="Список"
+          label={t.lists.selectList}
           value={currentListId || ''}
           onChange={(e) => onSelectList(e.target.value)}
           fullWidth
@@ -118,8 +120,8 @@ export default function ListToolbar({
           <Tooltip
             title={(() => {
               const lum = getLuminance(listDefaultColor);
-              if (lum < 0.2 || lum > 0.8) return 'Контраст хороший';
-              return 'Внимание: средний контраст';
+              if (lum < 0.2 || lum > 0.8) return t.contrast.good;
+              return t.contrast.warning;
             })()}
           >
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -134,26 +136,26 @@ export default function ListToolbar({
         </Box>
 
         <TextField
-          label="Цвет списка"
+          label={t.lists.listColor}
           type="color"
           value={listDefaultColor}
           onChange={(e) => setListDefaultColor(e.target.value)}
           sx={{ width: 64 }}
         />
-        <Button onClick={saveListColor} sx={{ minWidth: 120 }}>
-          Сохранить цвет
-        </Button>
-        <Button onClick={openNewListDialog} sx={{ minWidth: 120 }}>
-          Новый список
-        </Button>
-        <Button onClick={() => setHistoryOpen(true)} disabled={!lists.some((l) => l.completed)} sx={{ minWidth: 96 }}>
-          История
-        </Button>
+                <Button onClick={saveListColor} sx={{ minWidth: 120 }}>
+                  {t.lists.saveColor}
+                </Button>
+                <Button onClick={openNewListDialog} sx={{ minWidth: 120 }}>
+                  {t.lists.newList}
+                </Button>
+                <Button onClick={() => setHistoryOpen(true)} disabled={!lists.some((l) => l.completed)} sx={{ minWidth: 96 }}>
+                  {t.lists.history}
+                </Button>
         <Button onClick={() => toggleBulkMode()} sx={{ minWidth: 100 }}>
-          {bulkMode ? 'Отмена мн. выбора' : 'Мн. выбор'}
+          {bulkMode ? t.lists.bulkCancel : t.lists.bulkMode}
         </Button>
         <Button onClick={handleExit} sx={{ minWidth: 96 }}>
-          Выйти
+          {t.lists.logout}
         </Button>
         <IconButton onClick={openMenu} size="small">
           <MoreVertIcon />
@@ -165,7 +167,7 @@ export default function ListToolbar({
               openPersonalDialog();
             }}
           >
-            Настройки персонализации
+            {t.buttons.personalize}
           </MenuItem>
           <MenuItem
             onClick={() => {
@@ -173,11 +175,11 @@ export default function ListToolbar({
               if (!currentListId) return;
               const link = `${window.location.origin}/?listId=${currentListId}`;
               navigator.clipboard.writeText(link);
-              setSnackbarMsg('Ссылка скопирована');
+              setSnackbarMsg(t.lists.linkCopied);
               setSnackbarOpen(true);
             }}
           >
-            Поделиться
+            {t.lists.share}
           </MenuItem>
           <MenuItem
             onClick={() => {
@@ -185,7 +187,7 @@ export default function ListToolbar({
               completeCurrentList();
             }}
           >
-            Завершить
+            {t.lists.completeList}
           </MenuItem>
         </Menu>
       </Box>

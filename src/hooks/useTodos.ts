@@ -6,11 +6,13 @@ import {
   updateTodo as apiUpdateTodo,
   deleteTodo as apiDeleteTodo,
 } from '@/lib/api';
+import { TranslationKeys } from '@/locales/ru';
 
 interface UseTodosParams {
   currentListId: string | null;
   listDefaultColor: string;
   onSnackbar: (message: string) => void;
+  t: TranslationKeys;
 }
 
 interface UseTodosReturn {
@@ -65,7 +67,7 @@ interface UseTodosReturn {
 }
 
 export function useTodos(params: UseTodosParams): UseTodosReturn {
-  const { currentListId, listDefaultColor, onSnackbar } = params;
+  const { currentListId, listDefaultColor, onSnackbar, t } = params;
 
   // Todo list state
   const [todos, setTodos] = React.useState<Todo[]>([]);
@@ -201,7 +203,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       setCategory('');
       setEditingId(null);
       setLastAdded(addedName);
-      onSnackbar(editingId ? 'Item updated' : 'Item added');
+      onSnackbar(editingId ? t.messages.itemUpdated : t.messages.itemAdded);
       if (currentListId) {
         await fetchTodos(currentListId);
       }

@@ -9,12 +9,14 @@ import {
   Typography,
   Box,
   IconButton,
+  InputAdornment,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ClearIcon from '@mui/icons-material/Clear';
 import { Template } from '@/types';
-import { categories as defaultCategories } from '@/constants';
+import { categories as defaultCategories, Category } from '@/constants';
 import { savePersonalization, StoredCategory } from '@/lib/api';
-import { Category } from '@/constants';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PersonalizationDialogProps {
   open: boolean;
@@ -23,7 +25,7 @@ interface PersonalizationDialogProps {
   availableCategories: Category[];
   setAvailableCategories: (cats: Category[]) => void;
   availableTemplates: Template[];
-  setAvailableTemplates: (t: Template[]) => void;
+  setAvailableTemplates: (templates: Template[]) => void;
   setSnackbarMsg: (msg: string) => void;
   setSnackbarOpen: (open: boolean) => void;
 }
@@ -39,198 +41,283 @@ export default function PersonalizationDialog({
   setSnackbarMsg,
   setSnackbarOpen,
 }: PersonalizationDialogProps) {
+  const { t } = useLanguage();
   const [editingCategories, setEditingCategories] = React.useState<StoredCategory[]>([]);
   const [editingTemplates, setEditingTemplates] = React.useState<Template[]>([]);
 
   React.useEffect(() => {
-    if (open) {
-      // initialize editing copies from current values
-      setEditingCategories(
-        availableCategories.map((c) => ({ value: c.value, label: c.label }))
-      );
-      setEditingTemplates(availableTemplates.map((t) => ({ ...t, items: [...t.items] })));
-    }
+    if (!open) return;
+    setEditingCategories(availableCategories.map((category) => ({ value: category.value, label: category.label })));
+    setEditingTemplates(availableTemplates.map((template) => ({ ...template, items: [...template.items] })));
   }, [open, availableCategories, availableTemplates]);
 
   const handleSave = async () => {
     if (!userId) {
-      setSnackbarMsg('User not authenticated');
+      setSnackbarMsg(t.messages.notAuthenticated);
       setSnackbarOpen(true);
       return;
     }
+
     try {
-      const saved = await savePersonalization(
-        userId,
-        editingCategories,
-        editingTemplates
-      );
-      if (saved) {
-        if (Array.isArray(saved.categories)) {
-          const merged: Category[] = saved.categories.map((c: StoredCategory) => {
-            const found = defaultCategories.find((d) => d.value === c.value);
-            return { value: c.value, label: c.label, icon: found?.icon || null };
-          });
-          setAvailableCategories(merged);
-        }
-        if (Array.isArray(saved.templates)) {
-          setAvailableTemplates(saved.templates);
-        }
-        setSnackbarMsg('Настройки сохранены');
-        setSnackbarOpen(true);
-        onClose();
+      const saved = await savePersonalization(userId, editingCategories, editingTemplates);
+      if (Array.isArray(saved.categories)) {
+        const merged: Category[] = saved.categories.map((category) => {
+          const found = defaultCategories.find((item) => item.value === category.value);
+          return { value: category.value, label: category.label, icon: found?.icon || null };
+        });
+        setAvailableCategories(merged);
       }
+
+      if (Array.isArray(saved.templates)) {
+        setAvailableTemplates(saved.templates);
+      }
+
+      setSnackbarMsg(t.messages.personalizationSaved);
+      setSnackbarOpen(true);
+      onClose();
     } catch {
-      setSnackbarMsg('Ошибка при сохранении');
+      setSnackbarMsg(t.messages.personalizationSaveError);
       setSnackbarOpen(true);
     }
   };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>Настройки персонализации</DialogTitle>
+      <DialogTitle>{t.dialogs.personalization.title}</DialogTitle>
       <DialogContent>
         <Typography variant="subtitle1" sx={{ mt: 1, mb: 1 }}>
-          Категории
+          {t.dialogs.personalization.categories}
         </Typography>
-        {editingCategories.map((cat, idx) => (
-          <Box key={idx} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+
+        {editingCategories.map((category, categoryIndex) => (
+          <Box key={`${category.value}-${categoryIndex}`} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <TextField
-              label="Значение"
-              value={cat.value}
-              onChange={(e) => {
-                const v = e.target.value;
+              label={t.dialogs.personalization.categoryValue}
+              value={category.value}
+              onChange={(event) => {
+                const nextValue = event.target.value;
                 setEditingCategories((prev) => {
-                  const arr = [...prev];
-                  arr[idx] = { ...arr[idx], value: v };
-                  return arr;
+                  const next = [...prev];
+                  next[categoryIndex] = { ...next[categoryIndex], value: nextValue };
+                  return next;
                 });
               }}
               sx={{ mr: 1 }}
+              InputProps={{
+                endAdornment: category.value ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setEditingCategories((prev) => {
+                          const next = [...prev];
+                          next[categoryIndex] = { ...next[categoryIndex], value: '' };
+                          return next;
+                        });
+                      }}
+                      edge="end"
+                    >
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              }}
             />
+
             <TextField
-              label="Метка"
-              value={cat.label}
-              onChange={(e) => {
-                const v = e.target.value;
+              label={t.dialogs.personalization.categoryLabel}
+              value={category.label}
+              onChange={(event) => {
+                const nextValue = event.target.value;
                 setEditingCategories((prev) => {
-                  const arr = [...prev];
-                  arr[idx] = { ...arr[idx], label: v };
-                  return arr;
+                  const next = [...prev];
+                  next[categoryIndex] = { ...next[categoryIndex], label: nextValue };
+                  return next;
                 });
               }}
               sx={{ mr: 1 }}
+              InputProps={{
+                endAdornment: category.label ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setEditingCategories((prev) => {
+                          const next = [...prev];
+                          next[categoryIndex] = { ...next[categoryIndex], label: '' };
+                          return next;
+                        });
+                      }}
+                      edge="end"
+                    >
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              }}
             />
-            <IconButton
-              onClick={() =>
-                setEditingCategories((prev) => prev.filter((_, i) => i !== idx))
-              }
-            >
+
+            <IconButton onClick={() => setEditingCategories((prev) => prev.filter((_, index) => index !== categoryIndex))}>
               <DeleteIcon />
             </IconButton>
           </Box>
         ))}
-        <Button
-          size="small"
-          onClick={() =>
-            setEditingCategories((prev) => [...prev, { value: '', label: '' }])
-          }
-        >
-          Добавить категорию
+
+        <Button size="small" onClick={() => setEditingCategories((prev) => [...prev, { value: '', label: '' }])}>
+          {t.dialogs.personalization.addCategory}
         </Button>
 
         <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
-          Шаблоны
+          {t.dialogs.personalization.templates}
         </Typography>
-        {editingTemplates.map((tmpl, ti) => (
-          <Box
-            key={ti}
-            sx={{ border: '1px solid rgba(0,0,0,0.2)', p: 1, mb: 2 }}
-          >
+
+        {editingTemplates.map((template, templateIndex) => (
+          <Box key={`${template.name}-${templateIndex}`} sx={{ border: '1px solid rgba(0,0,0,0.2)', p: 1, mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <TextField
-                label="Название шаблона"
-                value={tmpl.name}
-                onChange={(e) => {
-                  const v = e.target.value;
+                label={t.dialogs.personalization.templateName}
+                value={template.name}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
                   setEditingTemplates((prev) => {
-                    const arr = [...prev];
-                    arr[ti] = { ...arr[ti], name: v };
-                    return arr;
+                    const next = [...prev];
+                    next[templateIndex] = { ...next[templateIndex], name: nextValue };
+                    return next;
                   });
                 }}
                 fullWidth
                 sx={{ mr: 1 }}
+                InputProps={{
+                  endAdornment: template.name ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setEditingTemplates((prev) => {
+                            const next = [...prev];
+                            next[templateIndex] = { ...next[templateIndex], name: '' };
+                            return next;
+                          });
+                        }}
+                        edge="end"
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
               />
-              <IconButton
-                onClick={() =>
-                  setEditingTemplates((prev) => prev.filter((_, i) => i !== ti))
-                }
-              >
+
+              <IconButton onClick={() => setEditingTemplates((prev) => prev.filter((_, index) => index !== templateIndex))}>
                 <DeleteIcon />
               </IconButton>
             </Box>
+
             <Typography variant="body2" sx={{ mb: 1 }}>
-              Пункты
+              {t.dialogs.personalization.items}
             </Typography>
-            {tmpl.items.map((item, ii) => (
-              <Box
-                key={ii}
-                sx={{ display: 'flex', alignItems: 'center', mb: 1 }}
-              >
+
+            {template.items.map((item, itemIndex) => (
+              <Box key={`${item.name}-${itemIndex}`} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 <TextField
-                  label="Название"
+                  label={t.dialogs.personalization.itemName}
                   value={item.name}
-                  onChange={(e) => {
-                    const v = e.target.value;
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
                     setEditingTemplates((prev) => {
-                      const arr = [...prev];
-                      const itms = [...arr[ti].items];
-                      itms[ii] = { ...itms[ii], name: v };
-                      arr[ti] = { ...arr[ti], items: itms };
-                      return arr;
+                      const next = [...prev];
+                      const nextItems = [...next[templateIndex].items];
+                      nextItems[itemIndex] = { ...nextItems[itemIndex], name: nextValue };
+                      next[templateIndex] = { ...next[templateIndex], items: nextItems };
+                      return next;
                     });
                   }}
                   sx={{ mr: 1 }}
+                  InputProps={{
+                    endAdornment: item.name ? (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setEditingTemplates((prev) => {
+                              const next = [...prev];
+                              const nextItems = [...next[templateIndex].items];
+                              nextItems[itemIndex] = { ...nextItems[itemIndex], name: '' };
+                              next[templateIndex] = { ...next[templateIndex], items: nextItems };
+                              return next;
+                            });
+                          }}
+                          edge="end"
+                        >
+                          <ClearIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  }}
                 />
+
                 <TextField
-                  label="Кол-во"
+                  label={t.dialogs.personalization.itemQuantity}
                   type="number"
                   value={item.quantity || ''}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value, 10) || 0;
+                  onChange={(event) => {
+                    const nextValue = parseInt(event.target.value, 10) || 0;
                     setEditingTemplates((prev) => {
-                      const arr = [...prev];
-                      const itms = [...arr[ti].items];
-                      itms[ii] = { ...itms[ii], quantity: v };
-                      arr[ti] = { ...arr[ti], items: itms };
-                      return arr;
+                      const next = [...prev];
+                      const nextItems = [...next[templateIndex].items];
+                      nextItems[itemIndex] = { ...nextItems[itemIndex], quantity: nextValue };
+                      next[templateIndex] = { ...next[templateIndex], items: nextItems };
+                      return next;
                     });
                   }}
                   sx={{ mr: 1, width: 80 }}
                 />
+
                 <TextField
-                  label="Категория"
+                  label={t.dialogs.personalization.itemCategory}
                   value={item.category || ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
                     setEditingTemplates((prev) => {
-                      const arr = [...prev];
-                      const itms = [...arr[ti].items];
-                      itms[ii] = { ...itms[ii], category: v };
-                      arr[ti] = { ...arr[ti], items: itms };
-                      return arr;
+                      const next = [...prev];
+                      const nextItems = [...next[templateIndex].items];
+                      nextItems[itemIndex] = { ...nextItems[itemIndex], category: nextValue };
+                      next[templateIndex] = { ...next[templateIndex], items: nextItems };
+                      return next;
                     });
                   }}
                   sx={{ mr: 1 }}
+                  InputProps={{
+                    endAdornment: item.category ? (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setEditingTemplates((prev) => {
+                              const next = [...prev];
+                              const nextItems = [...next[templateIndex].items];
+                              nextItems[itemIndex] = { ...nextItems[itemIndex], category: '' };
+                              next[templateIndex] = { ...next[templateIndex], items: nextItems };
+                              return next;
+                            });
+                          }}
+                          edge="end"
+                        >
+                          <ClearIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  }}
                 />
+
                 <IconButton
                   onClick={() => {
                     setEditingTemplates((prev) => {
-                      const arr = [...prev];
-                      const itms = [...arr[ti].items];
-                      itms.splice(ii, 1);
-                      arr[ti] = { ...arr[ti], items: itms };
-                      return arr;
+                      const next = [...prev];
+                      const nextItems = [...next[templateIndex].items];
+                      nextItems.splice(itemIndex, 1);
+                      next[templateIndex] = { ...next[templateIndex], items: nextItems };
+                      return next;
                     });
                   }}
                 >
@@ -238,33 +325,34 @@ export default function PersonalizationDialog({
                 </IconButton>
               </Box>
             ))}
+
             <Button
               size="small"
               onClick={() => {
                 setEditingTemplates((prev) => {
-                  const arr = [...prev];
-                  const itms = [...arr[ti].items, { name: '', quantity: 1 }];
-                  arr[ti] = { ...arr[ti], items: itms };
-                  return arr;
+                  const next = [...prev];
+                  next[templateIndex] = {
+                    ...next[templateIndex],
+                    items: [...next[templateIndex].items, { name: '', quantity: 1, category: '' }],
+                  };
+                  return next;
                 });
               }}
             >
-              Добавить пункт
+              {t.dialogs.personalization.addItem}
             </Button>
           </Box>
         ))}
-        <Button
-          onClick={() =>
-            setEditingTemplates((prev) => [...prev, { name: '', items: [] }])
-          }
-        >
-          Добавить шаблон
+
+        <Button onClick={() => setEditingTemplates((prev) => [...prev, { name: '', items: [] }])}>
+          {t.dialogs.personalization.addTemplate}
         </Button>
       </DialogContent>
+
       <DialogActions>
-        <Button onClick={onClose}>Отмена</Button>
+        <Button onClick={onClose}>{t.buttons.cancel}</Button>
         <Button variant="contained" onClick={handleSave}>
-          Сохранить
+          {t.dialogs.personalization.save}
         </Button>
       </DialogActions>
     </Dialog>

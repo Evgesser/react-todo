@@ -9,7 +9,8 @@ interface UseAuthReturn {
   error: string | null;
 
   // Methods
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  setAuthData: (userId: string, username: string) => void;
   logout: () => void;
   clearError: () => void;
 }
@@ -34,7 +35,7 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
-  const login = React.useCallback(async (username: string, password: string): Promise<boolean> => {
+  const login = React.useCallback(async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -43,11 +44,11 @@ export function useAuth(): UseAuthReturn {
       setUsername(data.username);
       // Persist to localStorage
       localStorage.setItem('auth', JSON.stringify(data));
-      return true;
+      return { success: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);
-      return false;
+      return { success: false, error: message };
     } finally {
       setIsLoading(false);
     }
@@ -60,6 +61,12 @@ export function useAuth(): UseAuthReturn {
     localStorage.removeItem('auth');
   }, []);
 
+  const setAuthData = React.useCallback((userId: string, username: string) => {
+    setUserId(userId);
+    setUsername(username);
+    localStorage.setItem('auth', JSON.stringify({ userId, username }));
+  }, []);
+
   const clearError = React.useCallback(() => {
     setError(null);
   }, []);
@@ -70,6 +77,7 @@ export function useAuth(): UseAuthReturn {
     isLoading,
     error,
     login,
+    setAuthData,
     logout,
     clearError,
   };

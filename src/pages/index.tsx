@@ -19,6 +19,7 @@ import {
   Collapse,
   Snackbar,
   Alert,
+  InputAdornment,
 } from '@mui/material';
 
 // shared types, constants and helpers
@@ -34,6 +35,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
+import ClearIcon from '@mui/icons-material/Clear';
 import { useTheme } from '@mui/material/styles';
 
 // Custom hooks
@@ -41,6 +43,7 @@ import { useFormAutoCollapse } from '../hooks/useFormAutoCollapse';
 import { useTodos } from '../hooks/useTodos';
 import { useLists } from '../hooks/useLists';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // UI components
 import Header from '../components/layout/Header';
@@ -49,11 +52,13 @@ import CollapseHandle from '../components/layout/CollapseHandle';
 import QuantityDialog from '../components/dialogs/QuantityDialog';
 import HistoryDialog from '../components/dialogs/HistoryDialog';
 import NewListDialog from '../components/dialogs/NewListDialog';
-import PersonalizationDialog from '../components/dialogs/PersonalizationDialog';
+import PersonalizationDialog from '@/components/dialogs/PersonalizationDialog';
 import ListToolbar from '../components/toolbar/ListToolbar';
+import RegisterDialog from '../components/dialogs/RegisterDialog';
 
 
 export default function Home() {
+  const { t } = useLanguage();
 
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
   const openMenu = (e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
@@ -67,6 +72,7 @@ export default function Home() {
   const auth = useAuth();
   const [loginUsername, setLoginUsername] = React.useState('');
   const [loginPassword, setLoginPassword] = React.useState('');
+  const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false);
 
   // List management hook
   const listActions = useLists({
@@ -75,6 +81,7 @@ export default function Home() {
       setSnackbarMsg(msg);
       setSnackbarOpen(true);
     },
+    t,
   });
   const [formOpen, setFormOpen] = React.useState(true);
   const [quantityDialogOpen, setQuantityDialogOpen] = React.useState(false);
@@ -97,6 +104,7 @@ export default function Home() {
       setSnackbarMsg(msg);
       setSnackbarOpen(true);
     },
+    t,
   });
 
   const handleListChange = React.useCallback(
@@ -138,16 +146,37 @@ export default function Home() {
     }
   }, [auth.userId, loadPersonalization]);
 
+  const handleRegisterSuccess = React.useCallback((userId: string, username: string) => {
+    // Close register dialog first
+    setRegisterDialogOpen(false);
+    
+    // Set auth data directly without calling login API again
+    auth.setAuthData(userId, username);
+    
+    // Clear login form
+    setLoginUsername('');
+    setLoginPassword('');
+    
+    // Show success message
+    setSnackbarMsg(t.register.success);
+    setSnackbarOpen(true);
+  }, [auth, t]);
+
   const handleLogin = React.useCallback(async () => {
     auth.clearError();
-    const success = await auth.login(loginUsername, loginPassword);
-    if (success) {
+    const result = await auth.login(loginUsername, loginPassword);
+    if (result.success) {
       setLoginUsername('');
       setLoginPassword('');
       // auth.userId change will trigger useEffect to load lists
     } else {
-      setSnackbarMsg(auth.error || 'Login failed');
-      setSnackbarOpen(true);
+      // Check if user not found
+      if (result.error && result.error.includes('User not found')) {
+        setRegisterDialogOpen(true);
+      } else {
+        setSnackbarMsg(result.error || 'Login failed');
+        setSnackbarOpen(true);
+      }
     }
   }, [loginUsername, loginPassword, auth]);
 
@@ -236,7 +265,7 @@ export default function Home() {
   return (
     <Container maxWidth="sm" sx={{ mt: 4, mb: 4 }}>
       <Head>
-        <title>Список покупок</title>
+        <title>{t.header.title}</title>
       </Head>
       <Header headerColor={headerColor} effectiveHeaderTextColor={effectiveHeaderTextColor} />
       {!auth.userId ? (
@@ -247,18 +276,31 @@ export default function Home() {
             </Alert>
           )}
           <TextField
-            label="Пользователь"
-            placeholder="Введите имя пользователя"
+            label={t.auth.username}
+            placeholder={t.auth.usernamePlaceholder}
             value={loginUsername}
             onChange={(e) => setLoginUsername(e.target.value)}
             fullWidth
             onKeyPress={(e) => {
               if (e.key === 'Enter') handleLogin();
             }}
+            InputProps={{
+              endAdornment: loginUsername ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => setLoginUsername('')}
+                    edge="end"
+                  >
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            }}
           />
           <TextField
-            label="Пароль"
-            placeholder="Введите пароль"
+            label={t.auth.password}
+            placeholder={t.auth.passwordPlaceholder}
             value={loginPassword}
             onChange={(e) => setLoginPassword(e.target.value)}
             fullWidth
@@ -266,9 +308,22 @@ export default function Home() {
             onKeyPress={(e) => {
               if (e.key === 'Enter') handleLogin();
             }}
+            InputProps={{
+              endAdornment: loginPassword ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => setLoginPassword('')}
+                    edge="end"
+                  >
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            }}
           />
           <Button variant="contained" onClick={handleLogin} disabled={auth.isLoading}>
-            {auth.isLoading ? 'Загрузка...' : 'Вход'}
+            {auth.isLoading ? t.auth.loading : t.auth.login}
           </Button>
         </Box>
       ) : (
@@ -318,28 +373,54 @@ export default function Home() {
             <Paper sx={{ p: 2, mb: 2, width: '100%' }} elevation={3}>
               {/* form header with collapse button */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="h6">Добавить / редактировать</Typography>
+                <Typography variant="h6">{t.todos.addEdit}</Typography>
                 <IconButton size="small" onClick={() => setFormOpen(false)}>
                   <ExpandMoreIcon sx={{ transform: 'rotate(-90deg)' }} />
                 </IconButton>
               </Box>
               <Stack spacing={2}>
                 <TextField
-                  label="Название"
-                  placeholder="Что купить?"
+                  label={t.todos.name}
+                  placeholder={t.todos.namePlaceholder}
                   value={todoActions.name}
                   onChange={(e) => todoActions.setName(e.target.value)}
                   fullWidth
+                  InputProps={{
+                    endAdornment: todoActions.name ? (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => todoActions.setName('')}
+                          edge="end"
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  }}
                 />
                 <TextField
-                  label="Описание"
-                  placeholder="Дополнительная информация"
+                  label={t.todos.description}
+                  placeholder={t.todos.descriptionPlaceholder}
                   value={todoActions.description}
                   onChange={(e) => todoActions.setDescription(e.target.value)}
                   fullWidth
+                  InputProps={{
+                    endAdornment: todoActions.description ? (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => todoActions.setDescription('')}
+                          edge="end"
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  }}
                 />
                 <TextField
-                  label="Количество"
+                  label={t.todos.quantity}
                   type="number"
                   value={todoActions.quantity}
                   onClick={() => {
@@ -358,14 +439,27 @@ export default function Home() {
                   fullWidth
                 />
                 <TextField
-                  label="Комментарий"
-                  placeholder="Заметки к товару"
+                  label={t.todos.comment}
+                  placeholder={t.todos.commentPlaceholder}
                   value={todoActions.comment}
                   onChange={(e) => todoActions.setComment(e.target.value)}
                   fullWidth
+                  InputProps={{
+                    endAdornment: todoActions.comment ? (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => todoActions.setComment('')}
+                          edge="end"
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  }}
                 />
                 <TextField
-                  label="Цвет"
+                  label={t.todos.color}
                   type="color"
                   value={todoActions.color}
                   onChange={(e) => todoActions.setColor(e.target.value)}
@@ -373,7 +467,7 @@ export default function Home() {
                 />
                 <TextField
                   select
-                  label="Категория"
+                  label={t.todos.category}
                   value={todoActions.category}
                   onChange={(e) => todoActions.setCategory(e.target.value)}
                   fullWidth
@@ -389,7 +483,7 @@ export default function Home() {
                 </TextField>
                 <Stack direction="row" spacing={2}>
                   <Button variant="contained" onClick={todoActions.addItem}>
-                    {todoActions.editingId ? 'Сохранить' : 'Добавить'}
+                    {todoActions.editingId ? t.todos.save : t.todos.add}
                   </Button>
                   {todoActions.editingId && (
                     <Button
@@ -403,7 +497,7 @@ export default function Home() {
                         todoActions.setColor(listActions.listDefaultColor);
                       }}
                     >
-                      Отменить
+                      {t.todos.cancel}
                     </Button>
                   )}
                 </Stack>
@@ -508,12 +602,38 @@ export default function Home() {
                                 fullWidth
                                 variant="standard"
                                 autoFocus
+                                InputProps={{
+                                  endAdornment: todoActions.inlineName ? (
+                                    <InputAdornment position="end">
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => todoActions.setInlineName('')}
+                                        edge="end"
+                                      >
+                                        <ClearIcon fontSize="small" />
+                                      </IconButton>
+                                    </InputAdornment>
+                                  ) : null,
+                                }}
                               />
                               <TextField
                                 value={todoActions.inlineDescription}
                                 onChange={(e) => todoActions.setInlineDescription(e.target.value)}
                                 fullWidth
                                 variant="standard"
+                                InputProps={{
+                                  endAdornment: todoActions.inlineDescription ? (
+                                    <InputAdornment position="end">
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => todoActions.setInlineDescription('')}
+                                        edge="end"
+                                      >
+                                        <ClearIcon fontSize="small" />
+                                      </IconButton>
+                                    </InputAdornment>
+                                  ) : null,
+                                }}
                               />
                               <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
                                 <Button
@@ -521,14 +641,14 @@ export default function Home() {
                                   variant="contained"
                                   onClick={() => todoActions.finishInlineEdit(todo)}
                                 >
-                                  Сохранить
+                                  {t.todos.save}
                                 </Button>
                                 <Button
                                   size="small"
                                   variant="outlined"
                                   onClick={() => todoActions.setInlineEditId(null)}
                                 >
-                                  Отменить
+                                  {t.todos.cancel}
                                 </Button>
                               </Stack>
                             </Stack>
@@ -555,7 +675,7 @@ export default function Home() {
                           <Stack direction="row" spacing={1}>
                             <IconButton
                               edge="end"
-                              aria-label="редактировать"
+                              aria-label={t.todos.edit}
                               sx={{ color: itemTextColor }}
                               onClick={() => {
                                 todoActions.setEditingId(todo._id);
@@ -571,7 +691,7 @@ export default function Home() {
                             </IconButton>
                             <IconButton
                               edge="end"
-                              aria-label="удалить"
+                              aria-label={t.todos.delete}
                               sx={{ color: itemTextColor }}
                               onClick={() => todoActions.deleteTodo(todo._id)}
                             >
@@ -615,6 +735,10 @@ export default function Home() {
                   }
                 }
                 await listActions.loadLists();
+                await listActions.selectList(created._id);
+                todoActions.setColor(created.defaultColor || '#ffffff');
+                setFormOpen(true);
+                await todoActions.fetchTodos(created._id);
                 return true;
               }
               return false;
@@ -632,6 +756,7 @@ export default function Home() {
             setSnackbarMsg={setSnackbarMsg}
             setSnackbarOpen={setSnackbarOpen}
           />
+
           <QuantityDialog
             open={quantityDialogOpen}
             value={tempQuantity}
@@ -653,6 +778,15 @@ export default function Home() {
           </Snackbar>
         </Box>
       )}
+
+      {/* RegisterDialog must be outside auth.userId condition */}
+      <RegisterDialog
+        open={registerDialogOpen}
+        username={loginUsername}
+        password={loginPassword}
+        onClose={() => setRegisterDialogOpen(false)}
+        onRegisterSuccess={handleRegisterSuccess}
+      />
     </Container>
   );
 }
