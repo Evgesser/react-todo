@@ -2,7 +2,11 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import DevicesIcon from '@mui/icons-material/Devices';
 import CheckroomIcon from '@mui/icons-material/Checkroom';
 import { Template, TemplateItem } from './types';
-import { SvgIconComponent } from '@mui/material/utils';
+import { OverridableComponent } from '@mui/material/OverridableComponent';
+import { SvgIconTypeMap } from '@mui/material/SvgIcon';
+
+// convenience alias matching how MUI exports its icons
+export type SvgIconComponent = OverridableComponent<SvgIconTypeMap>;
 
 export interface Category {
   value: string;
