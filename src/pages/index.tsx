@@ -7,14 +7,11 @@ import {
   Button,
   List,
   ListItem,
-  ListItemButton,
-  ListItemText,
   Checkbox,
   IconButton,
   Box,
   Paper,
   Stack,
-  Grid,
   MenuItem,
   Card,
   CardContent,
@@ -29,64 +26,44 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
+
+// shared types, constants and helpers
+import { Todo, List as ListType, Template } from '@/types';
+import { getTextColor, getLuminance } from '@/utils/color';
+import { categories as defaultCategories, templates as defaultTemplates, Category } from '@/constants';
+import {
+  fetchTodos as apiFetchTodos,
+  createTodo as apiCreateTodo,
+  updateTodo as apiUpdateTodo,
+  deleteTodo as apiDeleteTodo,
+  fetchLists as apiFetchLists,
+  updateList as apiUpdateList,
+  createList as apiCreateList,
+  createTodosBulk,
+  deleteList,
+  fetchPersonalization,
+  savePersonalization,
+  StoredCategory,
+} from '@/lib/api';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import { useTheme } from '@mui/material/styles';
-import { ColorModeContext } from '@/pages/_app';
 
-interface Todo {
-  _id: string;
-  name: string;
-  description: string;
-  quantity: number;
-  completed: boolean;
-  comment?: string;
-  color?: string;
-}
+// UI components
+import Header from '../components/Header';
+import SearchBulk from '../components/SearchBulk';
+import CollapseHandle from '../components/CollapseHandle';
+import QuantityDialog from '../components/QuantityDialog';
+import HistoryDialog from '../components/HistoryDialog';
 
-interface List {
-  _id: string;
-  name: string;
-  completed: boolean;
-  finishedAt?: string;
-  defaultColor?: string;
-}
 
 export default function Home() {
-  // Utility: calculate luminance of a hex color to determine if text should be dark or light
-  const getTextColor = (hexColor: string) => {
-    if (!hexColor || hexColor === 'inherit') return 'inherit';
-    try {
-      const hex = hexColor.replace('#', '');
-      const r = parseInt(hex.substr(0, 2), 16);
-      const g = parseInt(hex.substr(2, 2), 16);
-      const b = parseInt(hex.substr(4, 2), 16);
-      // Calculate luminance using relative luminance formula
-      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      // If luminance > 0.5, background is light, use dark text
-      return luminance > 0.5 ? '#000000' : '#ffffff';
-    } catch {
-      return 'inherit';
-    }
-  };
-  const getLuminance = (hexColor: string) => {
-    if (!hexColor) return 0;
-    try {
-      const hex = hexColor.replace('#', '');
-      const r = parseInt(hex.substr(0, 2), 16);
-      const g = parseInt(hex.substr(2, 2), 16);
-      const b = parseInt(hex.substr(4, 2), 16);
-      return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    } catch {
-      return 0;
-    }
-  };
 
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
   const openMenu = (e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
@@ -99,63 +76,171 @@ export default function Home() {
 
   const [todos, setTodos] = React.useState<Todo[]>([]);
   const theme = useTheme();
-  const colorMode = React.useContext(ColorModeContext);
-  const [lists, setLists] = React.useState<List[]>([]);
+  const [lists, setLists] = React.useState<ListType[]>([]);
   const [currentListId, setCurrentListId] = React.useState<string | null>(null);
-  const [currentList, setCurrentList] = React.useState<List | null>(null);
+  const [currentList, setCurrentList] = React.useState<ListType | null>(null);
   const [viewingHistory, setViewingHistory] = React.useState(false);
   const [listDefaultColor, setListDefaultColor] = React.useState('#ffffff');
   const [formOpen, setFormOpen] = React.useState(true);
+  const formOpenRef = React.useRef(formOpen);
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [quantity, setQuantity] = React.useState(1);
   const [comment, setComment] = React.useState('');
   const [color, setColor] = React.useState('#ffffff');
+  const [category, setCategory] = React.useState('');
+  const [quantityDialogOpen, setQuantityDialogOpen] = React.useState(false);
+  const [tempQuantity, setTempQuantity] = React.useState<number>(1);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [password, setPassword] = React.useState('');
   const [authenticated, setAuthenticated] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
 
+  // personalization password and data
+  const [personalPassword, setPersonalPassword] = React.useState('');
+  const [availableCategories, setAvailableCategories] = React.useState<Category[]>(defaultCategories);
+  const [availableTemplates, setAvailableTemplates] = React.useState<Template[]>(defaultTemplates);
+  const [personalDialogOpen, setPersonalDialogOpen] = React.useState(false);
+  // editing copies used by the dialog
+  const [editingCategories, setEditingCategories] = React.useState<StoredCategory[]>([]);
+  const [editingTemplates, setEditingTemplates] = React.useState<Template[]>([]);
+
+  // new-list dialog state
+  const [newListDialogOpen, setNewListDialogOpen] = React.useState(false);
+  const [newListName, setNewListName] = React.useState('');
+  const [newListTemplateName, setNewListTemplateName] = React.useState('');
+
+  // if there are no lists and dialog closes, reopen it immediately
+  React.useEffect(() => {
+    if (!authenticated) return;
+    const anyActive = lists.some((l) => !l.completed);
+    if (!anyActive && !newListDialogOpen) {
+      setNewListDialogOpen(true);
+    }
+  }, [lists, newListDialogOpen, authenticated]);
+
+  // new states for filtering / bulk / inline editing
+  const [filterText, setFilterText] = React.useState('');
+  const [bulkMode, setBulkMode] = React.useState(false);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [inlineEditId, setInlineEditId] = React.useState<string | null>(null);
+  const [inlineName, setInlineName] = React.useState('');
+  const [inlineDescription, setInlineDescription] = React.useState('');
+
+
   const fetchTodos = async (listId: string) => {
     if (!listId) return;
-    const res = await fetch(`/api/todos?listId=${encodeURIComponent(listId)}`);
-    if (res.ok) {
-      const data: Todo[] = await res.json();
-      setTodos(data);
+    try {
+      const data = await apiFetchTodos(listId);
+      setTodos((prev) =>
+        data.map((t: Todo) => {
+          const incomingColor = typeof t.color === 'string' ? t.color : '';
+          const preservedColor = incomingColor && incomingColor.trim() !== '' ? incomingColor : (prev.find((p) => p._id === t._id)?.color || '');
+          const incomingCat = typeof t.category === 'string' ? t.category : '';
+          const preservedCat = incomingCat && incomingCat.trim() !== '' ? incomingCat : (prev.find((p) => p._id === t._id)?.category || '');
+          return { ...t, color: preservedColor, category: preservedCat } as Todo;
+        })
+      );
+    } catch {
+      // ignore load errors for now
     }
   };
 
-  const loadLists = async (): Promise<List[] | null> => {
+  // load templates/categories using the personalization password
+  const loadPersonalization = React.useCallback(async (pw: string) => {
+    if (!pw.trim()) return;
+    try {
+      const data = await fetchPersonalization(pw);
+      if (data) {
+        if (Array.isArray(data.categories)) {
+          // merge icon information from defaults
+          const merged: Category[] = data.categories.map((c) => {
+            const found = defaultCategories.find((d) => d.value === c.value);
+            return { value: c.value, label: c.label, icon: found?.icon || null };
+          });
+          setAvailableCategories(merged);
+          if (personalDialogOpen) {
+            setEditingCategories(data.categories.map((c) => ({ value: c.value, label: c.label })));
+          }
+        }
+        if (Array.isArray(data.templates)) {
+          setAvailableTemplates(data.templates);
+          if (personalDialogOpen) {
+            setEditingTemplates(data.templates.map((t) => ({ ...t, items: [...t.items] })));
+          }
+        }
+      }
+    } catch {
+      // ignore invalid personalization
+    }
+  }, [personalDialogOpen]);
+
+
+  const loadLists = React.useCallback(async (): Promise<ListType[] | null> => {
     if (!password.trim()) return null;
-    const res = await fetch(`/api/lists?password=${encodeURIComponent(password)}`);
-    if (res.ok) {
-      const data: List[] = await res.json();
+    try {
+      let data = await apiFetchLists(password);
+      // purge any lingering placeholder lists named "Список 1" (default from earlier)
+      const defaultPattern = /^\s*Список\s*1\s*$/i;
+      // repeat until none remain
+      while (data.some((l) => defaultPattern.test(l.name))) {
+        for (const l of data) {
+          if (defaultPattern.test(l.name)) {
+            await deleteList(l._id);
+          }
+        }
+        data = await apiFetchLists(password);
+      }
+      // also filter them out of local data just in case
+      data = data.filter((l) => !defaultPattern.test(l.name));
       setLists(data);
-      if (data.length > 0) {
-        const first = data.find((l) => !l.completed) || data[0];
+      const active = data.filter((l) => !l.completed);
+      setAuthenticated(true); // password is valid regardless of list existence
+      if (active.length === 0) {
+        // require user to create a list when none are active
+        setNewListDialogOpen(true);
+      } else {
+        const preserved = currentListId ? data.find((l) => l._id === currentListId) || null : null;
+        const first = preserved || data.find((l) => !l.completed) || data[0];
         setCurrentListId(first._id);
         setCurrentList(first);
         setListDefaultColor(first.defaultColor || '#ffffff');
         setColor(first.defaultColor || '#ffffff');
-          setViewingHistory(first.completed);
-          setFormOpen(!first.completed);
+        setViewingHistory(first.completed);
+        setFormOpen(!first.completed);
         setAuthenticated(true);
         fetchTodos(first._id);
       }
       return data;
+    } catch {
+      return null;
     }
-    return null;
-  };
+  }, [password, currentListId]);
 
   const handleLoad = () => {
     loadLists();
   };
+
+  const handleLoadPersonal = () => {
+    loadPersonalization(personalPassword);
+  };
+
+  React.useEffect(() => {
+    if (personalDialogOpen) {
+      // when dialog opens, populate editable copies from current values
+      setEditingCategories(
+        availableCategories.map((c) => ({ value: c.value, label: c.label }))
+      );
+      setEditingTemplates(availableTemplates.map((t) => ({ ...t, items: [...t.items] })));
+    }
+  }, [personalDialogOpen, availableCategories, availableTemplates]);
 
   // attempt to read password/listId from URL when component mounts
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const pw = params.get('password');
     const lid = params.get('listId');
+    const ppw = params.get('personalPassword');
     if (pw) {
       setPassword(pw);
       loadLists().then((data) => {
@@ -168,7 +253,11 @@ export default function Home() {
         }
       });
     }
-  }, []);
+    if (ppw) {
+      setPersonalPassword(ppw);
+      loadPersonalization(ppw);
+    }
+  }, [loadLists, loadPersonalization]);
 
   React.useEffect(() => {
     if (viewingHistory) setFormOpen(false);
@@ -208,38 +297,28 @@ export default function Home() {
   }
   // When the menu is open, make header and toggle visually stronger so they stay readable
   const menuActiveHeaderColor = theme.palette.mode === 'light' ? 'rgba(0,0,0,0.87)' : LIGHT_WHITE;
-  const effectiveHeaderTextColor = menuAnchor ? menuActiveHeaderColor : headerTextColor;
+  const effectiveHeaderTextColor = menuAnchor ? menuActiveHeaderColor : headerTextColor; // keep for menu styling
+  // keep ref in sync so scroll handler can read latest value without needing it as a dependency
+  React.useEffect(() => {
+    formOpenRef.current = formOpen;
+    // whenever the form is shown/hidden, reset the scroll baseline
+    prevScroll.current = window.scrollY;
+  }, [formOpen]);
+
   React.useEffect(() => {
     const SCROLL_LOCK_MS = 420;
+    prevScroll.current = window.scrollY;
     const onScroll = () => {
       const now = Date.now();
       if (now < ignoreScrollUntil.current) return;
-      const active = document.activeElement as HTMLElement | null;
-      if (menuAnchor || (active && ['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT'].includes(active.tagName))) {
-        prevScroll.current = window.scrollY;
-        return;
-      }
       const cur = window.scrollY;
       const prev = prevScroll.current || 0;
       const delta = cur - prev;
-      if (delta > 24) {
-        setFormOpen((v) => {
-          if (v) {
-            ignoreScrollUntil.current = now + SCROLL_LOCK_MS;
-            prevScroll.current = cur;
-            return false;
-          }
-          return v;
-        });
-      } else if (delta < -24) {
-        setFormOpen((v) => {
-          if (!v) {
-            ignoreScrollUntil.current = now + SCROLL_LOCK_MS;
-            prevScroll.current = cur;
-            return true;
-          }
-          return v;
-        });
+      // only collapse when scrolling down; manual click required to reopen
+      const collapseThreshold = 48;
+      if (delta > collapseThreshold && formOpenRef.current) {
+        setFormOpen(false);
+        ignoreScrollUntil.current = now + SCROLL_LOCK_MS;
       }
       prevScroll.current = cur;
     };
@@ -248,28 +327,58 @@ export default function Home() {
   }, [menuAnchor]);
   const addItem = async () => {
     if (!name.trim() || !currentListId) return;
-    const payload = { listId: currentListId, name: name.trim(), description: description.trim(), quantity, comment: comment.trim(), color };
-    let res;
+    const payload: Partial<Todo> & { listId: string } = {
+      listId: currentListId,
+      name: name.trim(),
+      description: description.trim(),
+      quantity,
+      comment: comment.trim(),
+      color,
+      category,
+    };
+    let result: Partial<Todo> | null = null;
     if (editingId) {
-      res = await fetch(`/api/todos/${editingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, listId: currentListId }),
-      });
+      const ok = await apiUpdateTodo(editingId, { ...payload, listId: currentListId });
+      if (ok) {
+        // later we'll refresh from server
+      }
     } else {
-      res = await fetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    }
-    if (res.ok) {
+      result = await apiCreateTodo(payload);    }
+    if (editingId || result) {
       const addedName = name.trim();
+      setTodos((prev) => {
+        if (editingId) {
+          return prev.map((t) =>
+            t._id === editingId
+              ? ({
+                  ...t,
+                  ...(result || {}),
+                  color:
+                    typeof result?.color === 'string' && result.color.trim() !== ''
+                      ? result.color
+                      : payload.color || t.color,
+                  category:
+                    typeof result?.category === 'string' && result.category.trim() !== ''
+                      ? result.category
+                      : payload.category || t.category,
+                } as Todo)
+              : t
+          );
+        }
+        const incoming = result as Todo;
+        const newItem: Todo = {
+          ...incoming,
+          color: typeof incoming?.color === 'string' && incoming.color.trim() !== '' ? incoming.color : payload.color || '#ffffff',
+          category: typeof incoming?.category === 'string' && incoming.category.trim() !== '' ? incoming.category : payload.category || '',
+        } as Todo;
+        return [...prev, newItem];
+      });
       setName('');
       setDescription('');
       setQuantity(1);
       setComment('');
-      setColor('#ffffff');
+      setColor(listDefaultColor);
+      setCategory('');
       setEditingId(null);
       setLastAdded(addedName);
       setSnackbarMsg(editingId ? 'Item updated' : 'Item added');
@@ -280,22 +389,100 @@ export default function Home() {
 
   const toggleComplete = async (todo: Todo) => {
     if (!currentListId) return;
-    await fetch(`/api/todos/${todo._id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ listId: currentListId, completed: !todo.completed }),
-    });
+    await apiUpdateTodo(todo._id, { listId: currentListId, completed: !todo.completed });
     fetchTodos(currentListId);
   };
 
   const deleteTodo = async (id: string) => {
     if (!currentListId) return;
-    await fetch(`/api/todos/${id}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ listId: currentListId }),
-    });
+    await apiDeleteTodo(id, currentListId);
     fetchTodos(currentListId);
+  };
+
+  // selection / bulk helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+  const bulkComplete = async () => {
+    if (!currentListId) return;
+    const ids = Array.from(selectedIds);
+    await Promise.all(ids.map((id) => apiUpdateTodo(id, { listId: currentListId, completed: true })));
+    clearSelection();
+    setBulkMode(false);
+    fetchTodos(currentListId);
+  };
+  const bulkDelete = async () => {
+    if (!currentListId) return;
+    const ids = Array.from(selectedIds);
+    await Promise.all(ids.map((id) => apiDeleteTodo(id, currentListId)));
+    clearSelection();
+    setBulkMode(false);
+    fetchTodos(currentListId);
+  };
+
+  // drag & drop handlers
+  const onDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+  const onDragOver = (e: React.DragEvent) => e.preventDefault();
+  const onDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const startIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (isNaN(startIndex)) return;
+    setTodos((prev) => {
+      const copy = [...prev];
+      const [moved] = copy.splice(startIndex, 1);
+      copy.splice(dropIndex, 0, moved);
+      // persist order
+      if (currentListId) {
+        copy.forEach((t, idx) => {
+          apiUpdateTodo(t._id, { listId: currentListId, order: idx });
+        });
+      }
+      return copy;
+    });
+  };
+
+  // inline editing helpers
+  const startInlineEdit = (todo: Todo) => {
+    setInlineEditId(todo._id);
+    setInlineName(todo.name);
+    setInlineDescription(todo.description);
+  };
+  const finishInlineEdit = async (todo: Todo) => {
+    if (!currentListId) return;
+    await apiUpdateTodo(todo._id, { listId: currentListId, name: inlineName, description: inlineDescription });
+    setInlineEditId(null);
+    fetchTodos(currentListId);
+  };
+
+  // handler invoked when user confirms new-list dialog
+  const handleCreateNewList = async () => {
+    const nm = newListName.trim();
+    if (!nm) return;
+    const created = await apiCreateList(password, nm, listDefaultColor);
+    if (created) {
+      if (newListTemplateName) {
+        const tmpl = availableTemplates.find((t) => t.name === newListTemplateName);
+        if (tmpl) {
+          await createTodosBulk(created._id, tmpl.items);
+        }
+      }
+      await loadLists();
+    }
+    setNewListDialogOpen(false);
+    setNewListName('');
+    setNewListTemplateName('');
+  };
+
+  const openNewListDialog = () => {
+    setNewListDialogOpen(true);
   };
 
   return (
@@ -303,43 +490,20 @@ export default function Home() {
       <Head>
         <title>Список покупок</title>
       </Head>
-      <Box sx={{ mb: 1 }}>
-        <Box sx={{ height: 8, borderRadius: 1, bgcolor: headerColor, transition: 'background-color 300ms ease' }} />
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
-          <Typography
-            variant="h4"
-            component="h1"
-            gutterBottom
-            sx={{
-              color: effectiveHeaderTextColor,
-              fontWeight: 500,
-              textShadow: theme.palette.mode === 'dark'
-                ? '0 1px 2px rgba(0,0,0,0.6), 0 0 8px rgba(255,255,255,0.02)'
-                : '0 1px 2px rgba(0,0,0,0.06)',
-            }}
-          >
-            Список покупок
-          </Typography>
-          <IconButton
-            onClick={() => colorMode.toggleColorMode()}
-            sx={{
-              color: effectiveHeaderTextColor,
-              bgcolor: menuAnchor
-                ? (theme.palette.mode === 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)')
-                : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
-              borderRadius: '50%',
-              p: 1,
-              boxShadow: menuAnchor && theme.palette.mode === 'light' ? '0 2px 6px rgba(0,0,0,0.08)' : (theme.palette.mode === 'dark' ? '0 4px 10px rgba(0,0,0,0.45)' : 'none'),
-              '&:hover': {
-                bgcolor: menuAnchor
-                  ? (theme.palette.mode === 'light' ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)')
-                  : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)')
-              }
-            }}
-          >
-            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
-        </Box>
+      <Header headerColor={headerColor} effectiveHeaderTextColor={effectiveHeaderTextColor} />
+
+      <Box sx={{ display: 'flex', mb: 2 }}>
+        <TextField
+          label="Пароль персонализации"
+          placeholder="Введите пароль персонализации"
+          value={personalPassword}
+          onChange={(e) => setPersonalPassword(e.target.value)}
+          fullWidth
+          type="password"
+        />
+        <Button variant="contained" onClick={handleLoadPersonal} sx={{ ml: 1 }}>
+          Загрузить
+        </Button>
       </Box>
 
       {!authenticated ? (
@@ -427,27 +591,14 @@ export default function Home() {
               <Button
                 onClick={() => {
                   if (!currentListId) return;
-                  fetch(`/api/lists/${currentListId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ defaultColor: listDefaultColor }),
-                  }).then(() => loadLists());
+                  apiUpdateList(currentListId!, { defaultColor: listDefaultColor }).then(() => loadLists());
                 }}
                 sx={{ minWidth: 120 }}
               >
                 Сохранить цвет
               </Button>
               <Button
-                onClick={() => {
-                  const newName = prompt('Название нового списка');
-                  if (newName && newName.trim()) {
-                    fetch('/api/lists', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ password, name: newName.trim(), defaultColor: listDefaultColor }),
-                    }).then(() => loadLists());
-                  }
-                }}
+                onClick={openNewListDialog}
                 sx={{ minWidth: 120 }}
               >
                 Новый список
@@ -455,11 +606,22 @@ export default function Home() {
               <Button onClick={() => setHistoryOpen(true)} disabled={!lists.some((l) => l.completed)} sx={{ minWidth: 96 }}>
                 История
               </Button>
+              <Button onClick={() => setBulkMode((v) => !v)} sx={{ minWidth: 100 }}>
+                {bulkMode ? 'Отмена мн. выбора' : 'Мн. выбор'}
+              </Button>
               <IconButton onClick={openMenu} size="small">
                 <MoreVertIcon />
               </IconButton>
               <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
                 <MenuItem
+                  onClick={() => {
+                    closeMenu();
+                    setPersonalDialogOpen(true);
+                  }}
+                >
+                  Настройки персонализации
+                </MenuItem>
+              <MenuItem
                   onClick={() => {
                     closeMenu();
                     if (!currentListId) return;
@@ -475,11 +637,7 @@ export default function Home() {
                   onClick={() => {
                     closeMenu();
                     if (!currentListId) return;
-                      fetch(`/api/lists/${currentListId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ completed: true }),
-                      }).then(() => {
+                      apiUpdateList(currentListId!, { completed: true }).then(() => {
                         loadLists();
                         setTodos([]);
                         setSnackbarMsg('List completed');
@@ -492,8 +650,27 @@ export default function Home() {
               </Menu>
             </Box>
           </Box>
+
+          {/* search field and optional bulk toolbar */}
+          <SearchBulk
+            filterText={filterText}
+            onFilterChange={setFilterText}
+            bulkMode={bulkMode}
+            selectedCount={selectedIds.size}
+            onBulkComplete={bulkComplete}
+            onBulkDelete={bulkDelete}
+            onCancelBulk={() => { setBulkMode(false); clearSelection(); }}
+          />
+
           <Collapse in={!viewingHistory && formOpen} timeout={400}>
             <Paper sx={{ p: 2, mb: 2, width: '100%' }} elevation={3}>
+              {/* form header with collapse button */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="h6">Добавить / редактировать</Typography>
+                <IconButton size="small" onClick={() => setFormOpen(false)}>
+                  <ExpandMoreIcon sx={{ transform: 'rotate(-90deg)' }} />
+                </IconButton>
+              </Box>
               <Stack spacing={2}>
                 <TextField
                   label="Название"
@@ -513,7 +690,18 @@ export default function Home() {
                   label="Количество"
                   type="number"
                   value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                  onClick={() => {
+                    setTempQuantity(quantity || 1);
+                    setQuantityDialogOpen(true);
+                  }}
+                  onFocus={(e) => {
+                    setTempQuantity(quantity || 1);
+                    setQuantityDialogOpen(true);
+                    // remove focus so native focus styles don't cause label clipping
+                    (e.target as HTMLElement).blur();
+                  }}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{ readOnly: true }}
                   inputProps={{ min: 1 }}
                   fullWidth
                 />
@@ -531,6 +719,22 @@ export default function Home() {
                   onChange={(e) => setColor(e.target.value)}
                   sx={{ width: 80 }}
                 />
+                <TextField
+                  select
+                  label="Категория"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  fullWidth
+                >
+                  {availableCategories.map((c) => (
+                    <MenuItem key={c.value} value={c.value} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box component="span" sx={{ mr: '4px', display: 'inline-flex' }}>
+                      {c.icon ? <c.icon fontSize="small" /> : null}
+                    </Box>
+                      {c.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
                 <Stack direction="row" spacing={2}>
                   <Button variant="contained" onClick={addItem}>
                     {editingId ? 'Сохранить' : 'Добавить'}
@@ -544,7 +748,7 @@ export default function Home() {
                         setDescription('');
                         setQuantity(1);
                         setComment('');
-                        setColor('#ffffff');
+                        setColor(listDefaultColor);
                       }}
                     >
                       Отменить
@@ -555,46 +759,147 @@ export default function Home() {
             </Paper>
             </Collapse>
 
-            {!formOpen && lastAdded && (
-              <Grow in timeout={300}>
-                <Paper
-                  sx={{ p: 1, mb: 2, cursor: 'pointer', bgcolor: 'background.paper', color: 'text.primary' }}
-                  elevation={2}
-                  onClick={() => setFormOpen(true)}
-                >
-                  <Typography variant="body2" sx={{ color: 'inherit' }}>
-                    Последний добавленный: {lastAdded}
-                  </Typography>
-                </Paper>
-              </Grow>
+            {/* when the form is collapsed we always render a small row that can be clicked to reopen it.
+                if we have a recently added item we show its name, otherwise a generic hint */}
+            {!formOpen && (
+              <CollapseHandle lastAdded={lastAdded} onClick={() => setFormOpen(true)} />
             )}
 
           {/* always show todos list regardless of history state */}
           <List sx={{ width: '100%' }}>
-            {todos.map((todo) => {
-              const itemBg = todo.completed ? theme.palette.action.disabledBackground : todo.color || undefined;
-              let itemTextColor = todo.color && !todo.completed ? getTextColor(todo.color) : theme.palette.text.primary;
-              // if computed color is hex and too close to page background, fallback to theme text
-              const isHex = typeof itemTextColor === 'string' && itemTextColor.startsWith('#');
-              const itemLum = isHex ? getLuminance(itemTextColor) : null;
-              if (itemLum === null || Math.abs((itemLum || 0) - bgLum) < 0.32) {
-                itemTextColor = theme.palette.text.primary;
+            {todos
+              .filter(
+                (t) =>
+                  t.name.toLowerCase().includes(filterText.toLowerCase()) ||
+                  t.description.toLowerCase().includes(filterText.toLowerCase())
+              )
+              .map((todo, index) => {
+              const itemBg = todo.completed ? theme.palette.action.disabledBackground : (todo.color && todo.color.trim() ? todo.color : undefined);
+              // Determine a readable text color for the row (icons, buttons, text)
+              let itemTextColor = theme.palette.text.primary as string;
+              if (!todo.completed && todo.color && todo.color.trim()) {
+                const bg = todo.color;
+                // compute luminance of the item's background and choose a contrasting text color
+                const itemBgLum = getLuminance(bg);
+                if (!isNaN(itemBgLum)) {
+                  // Prefer a readable theme-like dark text on light backgrounds, and light text on dark backgrounds
+                  itemTextColor = itemBgLum > 0.5 ? 'rgba(0,0,0,0.87)' : (theme.palette.mode === 'dark' ? LIGHT_WHITE : '#ffffff');
+                } else {
+                  // fallback to theme contrast helpers when luminance can't be computed
+                  try {
+                    itemTextColor = theme.palette.getContrastText ? theme.palette.getContrastText(bg) : getTextColor(bg);
+                  } catch {
+                    itemTextColor = theme.palette.text.primary as string;
+                  }
+                }
               }
 
               return (
                 <Grow key={todo._id} in timeout={300}>
                   <Card
+                    draggable={!viewingHistory}
+                    onDragStart={(e) => onDragStart(e, index)}
+                    onDragOver={onDragOver}
+                    onDrop={(e) => onDrop(e, index)}
                     sx={{
                       mb: 1,
                       backgroundColor: itemBg || 'inherit',
                       transition: 'background-color 0.3s ease',
                       color: itemTextColor,
+                      cursor: !viewingHistory ? 'move' : 'auto',
                     }}
                     elevation={1}
                   >
-                    <CardContent sx={{ p: 1 }}>
-                      <ListItem
-                        secondaryAction={!viewingHistory ? (
+                    <CardContent sx={{ p: 1}}>
+                      <ListItem disableGutters>
+                      <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                        {bulkMode && (
+                          <Checkbox
+                            checked={selectedIds.has(todo._id)}
+                            onChange={() => toggleSelect(todo._id)}
+                            icon={<RadioButtonUncheckedIcon />}
+                            checkedIcon={<RadioButtonCheckedIcon />}
+                            sx={{
+                              color: itemTextColor,
+                              '& .MuiSvgIcon-root': { borderRadius: '50%' },
+                            }}
+                          />
+                        )}
+                        <Stack spacing={0.25} alignItems="center">
+                          {todo.category && (
+                            <Box sx={{ fontSize: 16, color: itemTextColor }}>
+  {(() => {
+    const IconComp = availableCategories.find((c) => c.value === todo.category)?.icon;
+    return IconComp ? <IconComp fontSize="small" /> : null;
+  })()}
+</Box>
+                          )}
+                          <Checkbox
+                            checked={todo.completed}
+                            onChange={() => !viewingHistory && toggleComplete(todo)}
+                            disabled={viewingHistory}
+                            icon={<RadioButtonUncheckedIcon />}
+                            checkedIcon={<RadioButtonCheckedIcon />}
+                            sx={{
+                              color: itemTextColor,
+                              '& .MuiSvgIcon-root': { borderRadius: '50%' },
+                            }}
+                          />
+                        </Stack>
+
+                        <Box sx={{ flex: 1 }}> 
+                          {inlineEditId === todo._id ? (
+                            <Stack spacing={1} sx={{ flex: 1 }}>
+                              <TextField
+                                value={inlineName}
+                                onChange={(e) => setInlineName(e.target.value)}
+                                fullWidth
+                                variant="standard"
+                                autoFocus
+                              />
+                              <TextField
+                                value={inlineDescription}
+                                onChange={(e) => setInlineDescription(e.target.value)}
+                                fullWidth
+                                variant="standard"
+                              />
+                              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  onClick={() => finishInlineEdit(todo)}
+                                >
+                                  Сохранить
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => setInlineEditId(null)}
+                                >
+                                  Отменить
+                                </Button>
+                              </Stack>
+                            </Stack>
+                          ) : (
+                            <Box onClick={() => { if (!bulkMode && !viewingHistory) startInlineEdit(todo); }} sx={{ cursor: !bulkMode && !viewingHistory ? 'pointer' : 'default' }}>
+                              <Typography variant="subtitle1" sx={{ color: itemTextColor, fontWeight: 500 }}>
+                                {todo.name}{todo.quantity > 1 ? ` (x${todo.quantity})` : ''}
+                              </Typography>
+                              {todo.description && (
+                                <Typography variant="body2" sx={{ color: itemTextColor, mt: 0.25 }}>
+                                  {todo.description}
+                                </Typography>
+                              )}
+                              {todo.comment && (
+                                <Typography variant="caption" sx={{ color: itemTextColor, opacity: 0.7 }}>
+                                  {todo.comment}
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                        </Box>
+
+                        {!viewingHistory && (
                           <Stack direction="row" spacing={1}>
                             <IconButton
                               edge="end"
@@ -606,7 +911,8 @@ export default function Home() {
                                 setDescription(todo.description);
                                 setQuantity(todo.quantity);
                                 setComment(todo.comment || '');
-                                setColor(todo.color || '#ffffff');
+                                setColor(todo.color || listDefaultColor);
+                                setCategory(todo.category || '');
                               }}
                             >
                               ✏️
@@ -620,26 +926,9 @@ export default function Home() {
                               <DeleteIcon />
                             </IconButton>
                           </Stack>
-                        ) : null}
-                      >
-                        <Checkbox
-                          checked={todo.completed}
-                          onChange={() => !viewingHistory && toggleComplete(todo)}
-                          disabled={viewingHistory}
-                          sx={{ color: itemTextColor }}
-                        />
-                        <ListItemText
-                          primary={todo.name + (todo.quantity > 1 ? ` (x${todo.quantity})` : '')}
-                          secondary={<> {todo.description}<br/>{todo.comment}</>}
-                          sx={{
-                            textDecoration: todo.completed ? 'line-through' : 'none',
-                            color: itemTextColor,
-                            '& .MuiListItemText-secondary': {
-                              color: itemTextColor,
-                            },
-                          }}
-                        />
-                      </ListItem>
+                        )}
+                      </Stack>
+                    </ListItem>
                     </CardContent>
                   </Card>
                 </Grow>
@@ -648,48 +937,292 @@ export default function Home() {
           </List>
 
           {/* history dialog instead of inline section */}
-          <Dialog open={historyOpen} onClose={() => setHistoryOpen(false)} fullWidth>
-            <DialogTitle>История списков</DialogTitle>
+          <HistoryDialog
+            open={historyOpen}
+            lists={lists}
+            onSelect={(l) => {
+              setCurrentListId(l._id);
+              setCurrentList(l);
+              setViewingHistory(true);
+              fetchTodos(l._id);
+              setHistoryOpen(false);
+            }}
+            onClose={() => setHistoryOpen(false)}
+          />
+          <Dialog open={newListDialogOpen} onClose={() => setNewListDialogOpen(false)} fullWidth>
+            <DialogTitle>Новый список</DialogTitle>
             <DialogContent>
-              <List>
-                {lists
-                  .filter((l) => l.completed)
-                  .map((l) => (
-                    <Grow key={l._id} in timeout={300}>
-                      <ListItem>
-                        <ListItemButton
-                          onClick={() => {
-                            setCurrentListId(l._id);
-                            setCurrentList(l);
-                            setViewingHistory(true);
-                            fetchTodos(l._id);
-                            setHistoryOpen(false);
-                          }}
-                        >
-                          <ListItemText
-                            primary={l.name}
-                            secondary={
-                              l.finishedAt
-                                ? new Date(l.finishedAt).toLocaleString('ru-RU', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
-                                : ''
-                            }
-                          />
-                        </ListItemButton>
-                      </ListItem>
-                    </Grow>
-                  ))}
-              </List>
+              <TextField
+                label="Название"
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                fullWidth
+                autoFocus
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                select
+                label="Шаблон"
+                value={newListTemplateName}
+                onChange={(e) => setNewListTemplateName(e.target.value)}
+                fullWidth
+              >
+                <MenuItem value="">(нет)</MenuItem>
+                {availableTemplates.map((t) => (
+                  <MenuItem key={t.name} value={t.name}>{t.name}</MenuItem>
+                ))}
+              </TextField>
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setHistoryOpen(false)}>Закрыть</Button>
+              <Button onClick={() => setNewListDialogOpen(false)}>Отмена</Button>
+              <Button variant="contained" onClick={handleCreateNewList} disabled={!newListName.trim()}>
+                Создать
+              </Button>
             </DialogActions>
           </Dialog>
+
+          <Dialog open={personalDialogOpen} onClose={() => setPersonalDialogOpen(false)} fullWidth maxWidth="md">
+            <DialogTitle>Настройки персонализации</DialogTitle>
+            <DialogContent>
+              <TextField
+                label="Пароль персонализации"
+                value={personalPassword}
+                onChange={(e) => setPersonalPassword(e.target.value)}
+                fullWidth
+                type="password"
+                sx={{ mb: 2 }}
+              />
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => loadPersonalization(personalPassword)}
+                sx={{ mb: 2 }}
+              >
+                Загрузить настройки
+              </Button>
+              <Typography variant="subtitle1" sx={{ mt: 1, mb: 1 }}>
+                Категории
+              </Typography>
+              {editingCategories.map((cat, idx) => (
+                <Box key={idx} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <TextField
+                    label="Значение"
+                    value={cat.value}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setEditingCategories((prev) => {
+                        const arr = [...prev];
+                        arr[idx] = { ...arr[idx], value: v };
+                        return arr;
+                      });
+                    }}
+                    sx={{ mr: 1 }}
+                  />
+                  <TextField
+                    label="Метка"
+                    value={cat.label}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setEditingCategories((prev) => {
+                        const arr = [...prev];
+                        arr[idx] = { ...arr[idx], label: v };
+                        return arr;
+                      });
+                    }}
+                    sx={{ mr: 1 }}
+                  />
+                  <IconButton
+                    onClick={() =>
+                      setEditingCategories((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+              ))}
+              <Button
+                size="small"
+                onClick={() =>
+                  setEditingCategories((prev) => [...prev, { value: '', label: '' }])
+                }
+              >
+                Добавить категорию
+              </Button>
+
+              <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+                Шаблоны
+              </Typography>
+              {editingTemplates.map((tmpl, ti) => (
+                <Box
+                  key={ti}
+                  sx={{ border: '1px solid rgba(0,0,0,0.2)', p: 1, mb: 2 }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <TextField
+                      label="Название шаблона"
+                      value={tmpl.name}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setEditingTemplates((prev) => {
+                          const arr = [...prev];
+                          arr[ti] = { ...arr[ti], name: v };
+                          return arr;
+                        });
+                      }}
+                      fullWidth
+                      sx={{ mr: 1 }}
+                    />
+                    <IconButton
+                      onClick={() =>
+                        setEditingTemplates((prev) => prev.filter((_, i) => i !== ti))
+                      }
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Пункты
+                  </Typography>
+                  {tmpl.items.map((item, ii) => (
+                    <Box
+                      key={ii}
+                      sx={{ display: 'flex', alignItems: 'center', mb: 1 }}
+                    >
+                      <TextField
+                        label="Название"
+                        value={item.name}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setEditingTemplates((prev) => {
+                            const arr = [...prev];
+                            const itms = [...arr[ti].items];
+                            itms[ii] = { ...itms[ii], name: v };
+                            arr[ti] = { ...arr[ti], items: itms };
+                            return arr;
+                          });
+                        }}
+                        sx={{ mr: 1 }}
+                      />
+                      <TextField
+                        label="Кол-во"
+                        type="number"
+                        value={item.quantity || ''}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10) || 0;
+                          setEditingTemplates((prev) => {
+                            const arr = [...prev];
+                            const itms = [...arr[ti].items];
+                            itms[ii] = { ...itms[ii], quantity: v };
+                            arr[ti] = { ...arr[ti], items: itms };
+                            return arr;
+                          });
+                        }}
+                        sx={{ mr: 1, width: 80 }}
+                      />
+                      <TextField
+                        label="Категория"
+                        value={item.category || ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setEditingTemplates((prev) => {
+                            const arr = [...prev];
+                            const itms = [...arr[ti].items];
+                            itms[ii] = { ...itms[ii], category: v };
+                            arr[ti] = { ...arr[ti], items: itms };
+                            return arr;
+                          });
+                        }}
+                        sx={{ mr: 1 }}
+                      />
+                      <IconButton
+                        onClick={() => {
+                          setEditingTemplates((prev) => {
+                            const arr = [...prev];
+                            const itms = [...arr[ti].items];
+                            itms.splice(ii, 1);
+                            arr[ti] = { ...arr[ti], items: itms };
+                            return arr;
+                          });
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  ))}
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setEditingTemplates((prev) => {
+                        const arr = [...prev];
+                        const itms = [...arr[ti].items, { name: '', quantity: 1 }];
+                        arr[ti] = { ...arr[ti], items: itms };
+                        return arr;
+                      });
+                    }}
+                  >
+                    Добавить пункт
+                  </Button>
+                </Box>
+              ))}
+              <Button
+                onClick={() =>
+                  setEditingTemplates((prev) => [...prev, { name: '', items: [] }])
+                }
+              >
+                Добавить шаблон
+              </Button>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setPersonalDialogOpen(false)}>Отмена</Button>
+              <Button
+                variant="contained"
+                onClick={async () => {
+                  try {
+                    const saved = await savePersonalization(
+                      personalPassword,
+                      editingCategories,
+                      editingTemplates
+                    );
+                    if (saved) {
+                      // reload into state
+                      if (Array.isArray(saved.categories)) {
+                        const merged: Category[] = saved.categories.map(
+                          (c: StoredCategory) => {
+                            const found = defaultCategories.find(
+                              (d) => d.value === c.value
+                            );
+                            return {
+                              value: c.value,
+                              label: c.label,
+                              icon: found?.icon || null,
+                            };
+                          }
+                        );
+                        setAvailableCategories(merged);
+                      }
+                      if (Array.isArray(saved.templates)) {
+                        setAvailableTemplates(saved.templates);
+                      }
+                      setSnackbarMsg('Настройки сохранены');
+                      setSnackbarOpen(true);
+                      setPersonalDialogOpen(false);
+                    }
+                  } catch {
+                    setSnackbarMsg('Ошибка при сохранении');
+                    setSnackbarOpen(true);
+                  }
+                }}
+              >
+                Сохранить
+              </Button>
+            </DialogActions>
+          </Dialog>
+          <QuantityDialog
+            open={quantityDialogOpen}
+            value={tempQuantity}
+            onChange={(v) => setQuantity(v)}
+            onClose={() => setQuantityDialogOpen(false)}
+          />
           <Snackbar
             open={snackbarOpen}
             autoHideDuration={3000}

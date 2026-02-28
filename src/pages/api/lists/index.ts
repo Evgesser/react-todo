@@ -29,25 +29,9 @@ export default async function handler(
     }
     let existingLists = await lists.find({ password }).toArray();
     if (existingLists.length === 0) {
-      // migrate old items if any
-      const orphanItems = await items
-        .find({ password, listId: { $exists: false } })
-        .toArray();
-      const newList: any = {
-        password,
-        name: 'Список 1',
-        completed: false,
-        createdAt: new Date(),
-        defaultColor: '#ffffff',
-      };
-      const result = await lists.insertOne(newList);
-      existingLists = [{ ...newList, _id: result.insertedId }];
-      if (orphanItems.length > 0) {
-        await items.updateMany(
-          { password, listId: { $exists: false } },
-          { $set: { listId: result.insertedId } }
-        );
-      }
+      // if there are orphan items they could be reparented later when a
+      // list is created; for now simply return an empty array so the client
+      // can prompt the user to name a first list.
     }
 
     res.status(200).json(existingLists);

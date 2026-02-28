@@ -18,6 +18,7 @@ export default async function handler(
     }
     const todos = await collection
       .find({ listId: new ObjectId(listId) })
+      .sort({ order: 1 })
       .toArray();
     res.status(200).json(todos);
   } else if (req.method === 'POST') {
@@ -28,6 +29,8 @@ export default async function handler(
       quantity,
       comment,
       color,
+      category,
+      order,
     } = req.body as {
       listId?: unknown;
       name?: unknown;
@@ -35,6 +38,8 @@ export default async function handler(
       quantity?: unknown;
       comment?: unknown;
       color?: unknown;
+      category?: unknown;
+      order?: unknown;
     };
 
     if (!listId || typeof listId !== 'string') {
@@ -54,6 +59,8 @@ export default async function handler(
       quantity: typeof quantity === 'number' ? quantity : 1,
       comment: typeof comment === 'string' ? comment : '',
       color: typeof color === 'string' ? color : '',
+      category: typeof category === 'string' ? category : '',
+      order: typeof order === 'number' ? order : 0,
     };
 
     const result = await collection.insertOne(item);

@@ -31,6 +31,8 @@ export default async function handler(
         completed,
         comment,
         color,
+        category,
+        order,
       } = body as {
         listId?: unknown;
         name?: unknown;
@@ -39,6 +41,8 @@ export default async function handler(
         completed?: unknown;
         comment?: unknown;
         color?: unknown;
+        category?: unknown;
+        order?: unknown;
       };
 
       if (!listId || typeof listId !== 'string') {
@@ -53,6 +57,8 @@ export default async function handler(
         completed?: boolean;
         comment?: string;
         color?: string;
+        category?: string;
+        order?: number;
       } = {};
 
       if (typeof name === 'string') update.name = name;
@@ -61,6 +67,8 @@ export default async function handler(
       if (typeof completed === 'boolean') update.completed = completed;
       if (typeof comment === 'string') update.comment = comment;
       if (typeof color === 'string') update.color = color;
+      if (typeof category === 'string') update.category = category;
+      if (typeof order === 'number') update.order = order;
 
       if (Object.keys(update).length === 0) {
         res.status(400).json({ error: 'Nothing to update' });
