@@ -2,15 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
-export interface ShoppingList {
-  _id: ObjectId;
-  userId: string;
-  name: string;
-  completed: boolean;
-  createdAt: Date;
-  finishedAt?: Date;
-  defaultColor?: string;
-}
+import type { ShoppingList } from '@/types';
 
 export default async function handler(
   req: NextApiRequest,

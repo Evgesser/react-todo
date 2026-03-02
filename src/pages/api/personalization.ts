@@ -1,25 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import clientPromise from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
 import { Template } from '@/types';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-export interface StoredCategory {
-  value: string;
-  label: string;
-  icon?: string;
-}
-
-export interface PersonalizationDoc {
-  _id?: ObjectId;
-  userId: string;
-  categories?: StoredCategory[];
-  templates?: Template[];
-  // mapping of item name to preferred category value
-  nameCategoryMap?: Record<string, string>;
-  // list of products user has seen/added
-  products?: { name: string; category?: string }[];
-  updatedAt?: Date;
-}
+import type { PersonalizationDoc, StoredCategory } from '@/types';
 
 export default async function handler(
   req: NextApiRequest,

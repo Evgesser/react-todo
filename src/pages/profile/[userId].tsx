@@ -26,8 +26,8 @@ import {
   updateUserProfile,
   changePassword,
   deleteUserAccount,
-  UserProfile,
 } from '@/lib/api';
+import type { UserProfile } from '@/types';
 
 interface DialogState {
   type: 'delete' | 'changePassword' | null;

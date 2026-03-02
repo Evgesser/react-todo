@@ -29,10 +29,6 @@ import { categories as defaultCategories, templates as defaultTemplates, Categor
 import {
   createList as apiCreateList,
   createTodosBulk,
-  fetchPersonalization,
-  savePersonalization,
-  fetchProducts,
-  saveProduct,
 } from '@/lib/api';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -51,6 +47,7 @@ import { useTodos } from '../hooks/useTodos';
 import { useLists } from '../hooks/useLists';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { usePersonalization } from '../hooks/usePersonalization';
 
 // UI components
 import Header from '../components/layout/Header';
@@ -95,13 +92,20 @@ export default function Home() {
   const [tempQuantity, setTempQuantity] = React.useState<number>(1);
   const [historyOpen, setHistoryOpen] = React.useState(false);
 
-  // personalization password and data
-  const [availableCategories, setAvailableCategories] = React.useState<Category[]>(defaultCategories);
-  const [availableTemplates, setAvailableTemplates] = React.useState<Template[]>(defaultTemplates);
-  const [nameCategoryMap, setNameCategoryMap] = React.useState<Record<string, string>>({});
-  // global catalog of seen products (name + optional category)
-  const [products, setProducts] = React.useState<Array<{ name: string; category?: string; comment?: string; icon?: string }>>([]);
-  const [personalDialogOpen, setPersonalDialogOpen] = React.useState(false);
+  // personalization state (categories, templates, products, etc.)
+  const {
+    availableCategories,
+    setAvailableCategories,
+    availableTemplates,
+    setAvailableTemplates,
+    nameCategoryMap,
+    setNameCategoryMap,
+    products,
+    setProducts,
+    personalDialogOpen,
+    setPersonalDialogOpen,
+    updateNameCategory,
+  } = usePersonalization(auth.userId, t);
 
   // new-list dialog state
   const [newListDialogOpen, setNewListDialogOpen] = React.useState(false);
@@ -250,41 +254,6 @@ export default function Home() {
     }
   }, [todoActions.category, availableCategories]);
 
-  // update global name->category mapping and persist
-  const updateNameCategory = React.useCallback(
-    async (name: string, category: string, comment?: string) => {
-      const n = name.trim();
-      if (!n) return;
-      setProducts((prev) => {
-        if (prev.find((p) => p.name === n)) return prev;
-        type Prod = { name: string; category?: string; comment?: string; icon?: string };
-        const added: Prod = { name: n };
-        if (category) added.category = category;
-        if (comment) added.comment = comment;
-        return [...prev, added];
-      });
-      if (auth.userId) {
-        // also save product to dedicated collection
-        saveProduct(auth.userId, { name: n, category: category || undefined, comment: comment || undefined }).catch(() => {});
-      }
-      setNameCategoryMap((prev) => {
-        if (prev[n] === category) return prev;
-        const next = { ...prev, [n]: category };
-        if (auth.userId) {
-          // fire and forget; effect will also persist the map (including products via effect below)
-          savePersonalization(
-            auth.userId,
-            availableCategories.map((c) => ({ value: c.value, label: c.label, icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '' })),
-            availableTemplates,
-            next,
-            products // current products list will be captured but we also update below effect
-          ).catch(() => {});
-        }
-        return next;
-      });
-    },
-    [auth.userId, availableCategories, availableTemplates, products]
-  );
   const displayedCategory = React.useMemo(() => {
     if (
       todoActions.category === '' &&
@@ -318,119 +287,6 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [listActions]
   );
-
-  // load templates/categories and products for current user
-  const loadPersonalization = React.useCallback(async () => {
-    if (!auth.userId) return;
-    try {
-      const [data, prods] = await Promise.all([
-        fetchPersonalization(auth.userId),
-        fetchProducts(auth.userId),
-      ]);
-      if (data) {
-        if (Array.isArray(data.categories)) {
-          // start with defaults, override or append from personalization
-          const merged: Category[] = defaultCategories.map((d) => ({ ...d }));
-          data.categories.forEach((c) => {
-            const idx = merged.findIndex((m) => m.value === c.value);
-            const iconFromPersonal = c.icon && iconMap[c.icon] ? iconMap[c.icon] : null;
-            const cat: Category = {
-              value: c.value,
-              label: c.label,
-              icon: iconFromPersonal || merged[idx]?.icon || null,
-            };
-            if (idx !== -1) {
-              merged[idx] = cat;
-            } else {
-              merged.push(cat);
-            }
-          });
-          // also merge any locally stored categories (e.g. added while offline)
-          try {
-            const raw = localStorage.getItem('availCats');
-            if (raw) {
-              const arr = JSON.parse(raw) as Array<{ value: string; label: string; icon?: string }>;
-              if (Array.isArray(arr)) {
-                arr.forEach((c) => {
-                  if (!merged.find((x) => x.value === c.value)) {
-                    const resolvedIcon = c.icon && iconMap[c.icon] ? iconMap[c.icon] : null;
-                    merged.push({ value: c.value, label: c.label, icon: resolvedIcon });
-                  }
-                });
-                localStorage.removeItem('availCats');
-              }
-            }
-          } catch {
-            // ignore malformed local cache
-          }
-          setAvailableCategories(merged);
-        }
-        if (Array.isArray(data.templates)) {
-          setAvailableTemplates(data.templates);
-        }
-        if (data.nameCategoryMap && typeof data.nameCategoryMap === 'object') {
-          setNameCategoryMap(data.nameCategoryMap as Record<string, string>);
-        }
-        if (Array.isArray(data.products)) {
-          const oldProds = data.products as Array<{ name: string; category?: string; comment?: string; icon?: string }>;
-          setProducts(oldProds);
-          // migrate each old product to new collection
-          if (auth.userId) {
-            oldProds.forEach((p) => {
-              saveProduct(auth.userId!, { name: p.name, category: p.category }).catch(() => {});
-            });
-          }
-          // also populate nameCategoryMap from old products
-          setNameCategoryMap((prev) => {
-            const next = { ...prev };
-            oldProds.forEach((p) => {
-              if (p.name && p.category && next[p.name] !== p.category) {
-                next[p.name] = p.category;
-              }
-            });
-            return next;
-          });
-        }
-      }
-      if (Array.isArray(prods)) {
-        // merge server catalog with personalization list
-        setProducts((prev) => {
-          const seen = new Set(prev.map((p) => p.name));
-          const merged = [...prev];
-          prods.forEach((p) => {
-            if (!seen.has(p.name)) merged.push(p);
-          });
-          return merged;
-        });
-      }
-    } catch {
-      // ignore invalid personalization
-    }
-  }, [auth.userId]);
-
-  // Auto-load personalization when user logs in
-  React.useEffect(() => {
-    if (auth.userId) {
-      loadPersonalization();
-    }
-  }, [auth.userId, loadPersonalization]);
-
-  // Persist personalization (categories/templates/name->category map) whenever it changes
-  React.useEffect(() => {
-    if (!auth.userId) return;
-    // fire and forget; we may call this multiple times but that's fine
-    savePersonalization(
-      auth.userId,
-      availableCategories.map((c) => ({
-        value: c.value,
-        label: c.label,
-        icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
-      })),
-      availableTemplates,
-      nameCategoryMap,
-      products
-    ).catch(() => {});
-  }, [auth.userId, availableCategories, availableTemplates, nameCategoryMap, products]);
 
   const handleRegisterSuccess = React.useCallback(async (userId: string, username: string) => {
     // Close register dialog first

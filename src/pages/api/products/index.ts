@@ -2,16 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
-export interface ProductDoc {
-  _id?: ObjectId;
-  userId: string;
-  name: string;
-  category?: string;
-  comment?: string;
-  icon?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import type { ProductDoc } from '@/types';
 
 export default async function handler(
   req: NextApiRequest,

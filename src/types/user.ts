@@ -10,3 +10,13 @@ export interface User {
   createdAt: Date;
   updatedAt?: Date;
 }
+
+// shape returned by /api/user and used on client
+export interface UserProfile {
+  userId: string;
+  username: string;
+  email?: string;
+  avatar?: string;
+  bio?: string;
+  createdAt: string;
+}

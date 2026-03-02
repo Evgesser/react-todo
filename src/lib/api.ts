@@ -1,4 +1,4 @@
-import { Todo, List, TemplateItem, Template } from '../types';
+import { Todo, List, TemplateItem, Template } from '@/types';
 
 const BASE = '/api';
 
@@ -136,11 +136,7 @@ export async function createTodosBulk(listId: string, items: TemplateItem[]) {
 }
 
 // --- personalization ---------------------------------------------------
-export interface StoredCategory {
-  value: string;
-  label: string;
-  icon?: string; // key from constants.iconMap
-}
+import type { StoredCategory } from '@/types';
 
 export async function fetchPersonalization(userId: string): Promise<{
   categories?: StoredCategory[];
@@ -204,14 +200,7 @@ export async function savePersonalization(
 }
 
 // --- user profile ---------------------------------------------------
-export interface UserProfile {
-  userId: string;
-  username: string;
-  email?: string;
-  avatar?: string;
-  bio?: string;
-  createdAt: string;
-}
+import type { UserProfile } from '@/types';
 
 export async function fetchUserProfile(userId: string): Promise<UserProfile> {
   const res = await fetch(`${BASE}/user/${encodeURIComponent(userId)}`);

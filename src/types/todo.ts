@@ -25,19 +25,3 @@ export interface Template {
   name: string;
   items: TemplateItem[];
 }
-
-// global product catalog entry, used for autocomplete across all lists
-export interface StoredProduct {
-  name: string;
-  category?: string;
-}
-
-export interface List {
-  _id: string;
-  name: string;
-  completed: boolean;
-  finishedAt?: string;
-  defaultColor?: string;
-  // random token used for password‑less sharing
-  shareToken?: string;
-}

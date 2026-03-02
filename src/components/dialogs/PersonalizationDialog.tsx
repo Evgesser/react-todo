@@ -16,7 +16,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear';
 import { Template } from '@/types';
 import { categories as defaultCategories, Category, iconChoices, iconMap } from '@/constants';
-import { savePersonalization, StoredCategory } from '@/lib/api';
+import { savePersonalization } from '@/lib/api';
+import type { StoredCategory } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PersonalizationDialogProps {
