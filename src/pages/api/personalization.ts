@@ -6,6 +6,7 @@ import { Template } from '@/types';
 export interface StoredCategory {
   value: string;
   label: string;
+  icon?: string;
 }
 
 export interface PersonalizationDoc {
@@ -13,6 +14,8 @@ export interface PersonalizationDoc {
   userId: string;
   categories?: StoredCategory[];
   templates?: Template[];
+  // mapping of item name to preferred category value
+  nameCategoryMap?: Record<string, string>;
   updatedAt?: Date;
 }
 
@@ -42,10 +45,11 @@ export default async function handler(
     }
     res.status(200).json(doc);
   } else if (req.method === 'POST') {
-    const { userId, categories, templates } = req.body as {
+    const { userId, categories, templates, nameCategoryMap } = req.body as {
       userId?: unknown;
       categories?: unknown;
       templates?: unknown;
+      nameCategoryMap?: unknown;
     };
     if (!userId || typeof userId !== 'string') {
       res.status(400).json({ error: 'userId is required' });
@@ -55,19 +59,28 @@ export default async function handler(
       updatedAt: new Date(),
     };
     if (Array.isArray(categories)) {
-      // filter elements so they have value/label strings
+      // filter elements so they have value/label (and optionally icon) strings
       update.categories = categories
         .filter(
           (c: unknown): c is StoredCategory => {
             if (typeof c !== 'object' || c === null) return false;
             const o = c as { [key: string]: unknown };
-            return typeof o.value === 'string' && typeof o.label === 'string';
+            if (typeof o.value !== 'string' || typeof o.label !== 'string') return false;
+            if (o.icon !== undefined && typeof o.icon !== 'string') return false;
+            return true;
           }
         )
-        .map((c) => ({ value: c.value, label: c.label }));
+        .map((c) => ({ value: c.value, label: c.label, icon: c.icon }));
     }
     if (Array.isArray(templates)) {
       update.templates = templates as Template[];
+    }
+    if (nameCategoryMap && typeof nameCategoryMap === 'object' && !Array.isArray(nameCategoryMap)) {
+      update.nameCategoryMap = Object.fromEntries(
+        Object.entries(nameCategoryMap).filter(
+          ([k, v]) => typeof k === 'string' && typeof v === 'string'
+        )
+      );
     }
 
     if (Object.keys(update).length === 1) {

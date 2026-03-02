@@ -10,11 +10,12 @@ import {
   Box,
   IconButton,
   InputAdornment,
+  MenuItem,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear';
 import { Template } from '@/types';
-import { categories as defaultCategories, Category } from '@/constants';
+import { categories as defaultCategories, Category, iconChoices, iconMap } from '@/constants';
 import { savePersonalization, StoredCategory } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -47,7 +48,13 @@ export default function PersonalizationDialog({
 
   React.useEffect(() => {
     if (!open) return;
-    setEditingCategories(availableCategories.map((category) => ({ value: category.value, label: category.label })));
+    setEditingCategories(
+      availableCategories.map((category) => ({
+        value: category.value,
+        label: category.label,
+        icon: Object.keys(iconMap).find((k) => iconMap[k] === category.icon) || '',
+      }))
+    );
     setEditingTemplates(availableTemplates.map((template) => ({ ...template, items: [...template.items] })));
   }, [open, availableCategories, availableTemplates]);
 
@@ -63,7 +70,8 @@ export default function PersonalizationDialog({
       if (Array.isArray(saved.categories)) {
         const merged: Category[] = saved.categories.map((category) => {
           const found = defaultCategories.find((item) => item.value === category.value);
-          return { value: category.value, label: category.label, icon: found?.icon || null };
+          const iconComp = category.icon && iconMap[category.icon] ? iconMap[category.icon] : null;
+          return { value: category.value, label: category.label, icon: iconComp || found?.icon || null };
         });
         setAvailableCategories(merged);
       }
@@ -102,7 +110,7 @@ export default function PersonalizationDialog({
                   return next;
                 });
               }}
-              sx={{ mr: 1 }}
+              sx={{ mr: 1, width: 120 }}
               InputProps={{
                 endAdornment: category.value ? (
                   <InputAdornment position="end">
@@ -135,7 +143,7 @@ export default function PersonalizationDialog({
                   return next;
                 });
               }}
-              sx={{ mr: 1 }}
+              sx={{ mr: 1, width: 120 }}
               InputProps={{
                 endAdornment: category.label ? (
                   <InputAdornment position="end">
@@ -157,13 +165,38 @@ export default function PersonalizationDialog({
               }}
             />
 
+            <TextField
+              select
+              label={t.dialogs.personalization.categoryIcon}
+              value={category.icon || ''}
+              onChange={(event) => {
+                const iconValue = event.target.value;
+                setEditingCategories((prev) => {
+                  const next = [...prev];
+                  next[categoryIndex] = { ...next[categoryIndex], icon: iconValue };
+                  return next;
+                });
+              }}
+              sx={{ mr: 1, width: 140 }}
+            >
+              <MenuItem value="">{t.dialogs.personalization.noIcon}</MenuItem>
+              {iconChoices.map((ic) => (
+                <MenuItem key={ic.key} value={ic.key} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box component="span" sx={{ mr: 1 }}>
+                    <ic.icon fontSize="small" />
+                  </Box>
+                  {ic.label}
+                </MenuItem>
+              ))}
+            </TextField>
+
             <IconButton onClick={() => setEditingCategories((prev) => prev.filter((_, index) => index !== categoryIndex))}>
               <DeleteIcon />
             </IconButton>
           </Box>
         ))}
 
-        <Button size="small" onClick={() => setEditingCategories((prev) => [...prev, { value: '', label: '' }])}>
+        <Button size="small" onClick={() => setEditingCategories((prev) => [...prev, { value: '', label: '', icon: '' }])}>
           {t.dialogs.personalization.addCategory}
         </Button>
 

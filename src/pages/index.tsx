@@ -12,7 +12,6 @@ import {
   Box,
   Paper,
   Stack,
-  MenuItem,
   Card,
   CardContent,
   Grow,
@@ -20,23 +19,28 @@ import {
   Snackbar,
   Alert,
   InputAdornment,
+  Autocomplete,
 } from '@mui/material';
 
 // shared types, constants and helpers
 import { Template } from '@/types';
 import { getTextColor, getLuminance } from '@/utils/color';
-import { categories as defaultCategories, templates as defaultTemplates, Category } from '@/constants';
+import { categories as defaultCategories, templates as defaultTemplates, Category, iconMap, iconChoices } from '@/constants';
 import {
   createList as apiCreateList,
   createTodosBulk,
   fetchPersonalization,
+  savePersonalization,
 } from '@/lib/api';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import ClearIcon from '@mui/icons-material/Clear';
-import { useTheme } from '@mui/material/styles';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import { useTheme, alpha } from '@mui/material/styles';
 
 // Custom hooks
 import { useFormAutoCollapse } from '../hooks/useFormAutoCollapse';
@@ -91,10 +95,74 @@ export default function Home() {
   // personalization password and data
   const [availableCategories, setAvailableCategories] = React.useState<Category[]>(defaultCategories);
   const [availableTemplates, setAvailableTemplates] = React.useState<Template[]>(defaultTemplates);
+  const [nameCategoryMap, setNameCategoryMap] = React.useState<Record<string, string>>({});
   const [personalDialogOpen, setPersonalDialogOpen] = React.useState(false);
 
   // new-list dialog state
   const [newListDialogOpen, setNewListDialogOpen] = React.useState(false);
+
+  // persist categories locally if unauthenticated
+  React.useEffect(() => {
+    if (auth.userId) return;
+    try {
+      const raw = localStorage.getItem('availCats');
+      if (raw) {
+        const arr = JSON.parse(raw) as Array<{ value: string; label: string; icon?: string }>;
+        if (Array.isArray(arr)) {
+          const cats: Category[] = arr.map((c) => ({
+            value: c.value,
+            label: c.label,
+            icon: c.icon && iconMap[c.icon] ? iconMap[c.icon] : null,
+          }));
+          setAvailableCategories(cats);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [auth.userId]);
+
+  React.useEffect(() => {
+    // only persist when unauthenticated; keep unsaved categories until we merge
+    if (auth.userId) return;
+    try {
+      const toStore = availableCategories.map((c) => ({
+        value: c.value,
+        label: c.label,
+        icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
+      }));
+      localStorage.setItem('availCats', JSON.stringify(toStore));
+    } catch {
+      // ignore
+    }
+  }, [availableCategories, auth.userId]);
+
+  // helper: add a category to personalization if it doesn't already exist
+  // this uses a functional state update so multiple rapid calls merge correctly
+  const ensureCategoryExists = React.useCallback(
+    async (val: string, iconKey?: string) => {
+      const v = val.trim();
+      if (!v) return;
+      setAvailableCategories((prev) => {
+        if (prev.find((c) => c.value === v)) return prev;
+        // choose explicit iconKey if provided, otherwise try guessing
+        let finalKey = iconKey;
+        if (!finalKey) {
+          finalKey = Object.keys(iconMap).find((k) => k.toLowerCase() === v.toLowerCase());
+        }
+        const newCat: Category = {
+          value: v,
+          label: v,
+          icon: finalKey ? iconMap[finalKey] : null,
+        };
+        return [...prev, newCat];
+      });
+      // we no longer save here; instead a dedicated effect handles persistence
+      // but returning a promise keeps the async signature for callers
+      return;
+    },
+    []
+  );
 
   // Todo management hook
   const todoActions = useTodos({
@@ -105,7 +173,112 @@ export default function Home() {
       setSnackbarOpen(true);
     },
     t,
+    nameCategoryMap,
   });
+
+  // compute autocomplete options outside render to avoid conditional hook complaint
+  const nameOptions = React.useMemo(
+    () => Array.from(new Set(todoActions.todos.map((t) => t.name))).filter(Boolean),
+    [todoActions.todos]
+  );
+
+  // category suggestions smart list: categories previously used with the same name
+  // or recorded in the global map
+  const categoryOptions = React.useMemo(() => {
+    const name = todoActions.name.trim().toLowerCase();
+    const priority: Category[] = [];
+    if (name) {
+      const mapped = nameCategoryMap[name];
+      if (mapped !== undefined) {
+        const cat = availableCategories.find((c) => c.value === mapped);
+        if (cat) priority.push(cat);
+      }
+      const matches = todoActions.todos.filter(
+        (t) => t.name.trim().toLowerCase() === name && t.category !== undefined
+      );
+      const seen = new Set<string>(priority.map((c) => c.value));
+      matches.forEach((t) => {
+        const val = t.category || '';
+        if (!seen.has(val)) {
+          seen.add(val);
+          const cat = availableCategories.find((c) => c.value === val);
+          if (cat) priority.push(cat);
+        }
+      });
+    }
+    const full = [...priority];
+    availableCategories.forEach((c) => {
+      if (!full.find((x) => x.value === c.value)) full.push(c);
+    });
+    // if the user has cleared category for current name, hide blank entry
+    if (
+      todoActions.category === '' &&
+      todoActions.clearedForName === name
+    ) {
+      return full.filter((c) => c.value !== '');
+    }
+    return full;
+  }, [todoActions.name, todoActions.todos, availableCategories, nameCategoryMap, todoActions.category, todoActions.clearedForName]);
+
+  // temporary icon selected while typing new category
+  const [tempIconKey, setTempIconKey] = React.useState('');
+
+  // keep tempIconKey in sync when user selects existing category
+  React.useEffect(() => {
+    const exist = availableCategories.find((c) => c.value === todoActions.category);
+    if (exist) {
+      const key = Object.keys(iconMap).find((k) => iconMap[k] === exist.icon) || '';
+      setTempIconKey(key);
+    } else {
+      setTempIconKey('');
+    }
+  }, [todoActions.category, availableCategories]);
+
+  // update global name->category mapping and persist
+  const updateNameCategory = React.useCallback(
+    async (name: string, category: string) => {
+      const n = name.trim();
+      if (!n) return;
+      setNameCategoryMap((prev) => {
+        if (prev[n] === category) return prev;
+        const next = { ...prev, [n]: category };
+        if (auth.userId) {
+          // fire and forget; effect will also persist the map
+          savePersonalization(
+            auth.userId,
+            availableCategories.map((c) => ({ value: c.value, label: c.label, icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '' })),
+            availableTemplates,
+            next
+          ).catch(() => {});
+        }
+        return next;
+      });
+    },
+    [auth.userId, availableCategories, availableTemplates]
+  );
+
+
+  // displayed text in category field should be human-friendly label
+  const displayedCategory = React.useMemo(() => {
+    if (
+      todoActions.category === '' &&
+      todoActions.clearedForName === todoActions.name.trim().toLowerCase()
+    ) {
+      return '';
+    }
+    const found = availableCategories.find(
+      (c) => c.value === todoActions.category
+    );
+    return found ? found.label : todoActions.category;
+  }, [availableCategories, todoActions.category, todoActions.name, todoActions.clearedForName]);
+
+  // wrapper used when user wants to add an item; create category first
+  const handleAdd = React.useCallback(async () => {
+    await ensureCategoryExists(todoActions.category, tempIconKey || undefined);
+    await todoActions.addItem();
+    updateNameCategory(todoActions.name, todoActions.category);
+    setTempIconKey('');
+  }, [ensureCategoryExists, todoActions, tempIconKey, updateNameCategory]);
 
   const handleListChange = React.useCallback(
     async (id: string) => {
@@ -124,14 +297,50 @@ export default function Home() {
       const data = await fetchPersonalization(auth.userId);
       if (data) {
         if (Array.isArray(data.categories)) {
-          const merged: Category[] = data.categories.map((c) => {
-            const found = defaultCategories.find((d) => d.value === c.value);
-            return { value: c.value, label: c.label, icon: found?.icon || null };
+          // start with defaults, override or append from personalization
+          const merged: Category[] = defaultCategories.map((d) => ({ ...d }));
+          data.categories.forEach((c) => {
+            const idx = merged.findIndex((m) => m.value === c.value);
+            const iconFromPersonal = c.icon && iconMap[c.icon] ? iconMap[c.icon] : null;
+            const cat: Category = {
+              value: c.value,
+              label: c.label,
+              icon: iconFromPersonal || merged[idx]?.icon || null,
+            };
+            if (idx !== -1) {
+              merged[idx] = cat;
+            } else {
+              merged.push(cat);
+            }
           });
+          // also merge any locally stored categories (e.g. added while offline)
+          try {
+            const raw = localStorage.getItem('availCats');
+            if (raw) {
+              const arr = JSON.parse(raw) as Array<{ value: string; label: string; icon?: string }>;
+              if (Array.isArray(arr)) {
+                arr.forEach((c) => {
+                  if (!merged.find((x) => x.value === c.value)) {
+                    const resolvedIcon = c.icon && iconMap[c.icon] ? iconMap[c.icon] : null;
+                    merged.push({ value: c.value, label: c.label, icon: resolvedIcon });
+                  }
+                });
+                localStorage.removeItem('availCats');
+              }
+            }
+          } catch {
+            // ignore malformed local cache
+          }
           setAvailableCategories(merged);
         }
         if (Array.isArray(data.templates)) {
           setAvailableTemplates(data.templates);
+        }
+        if (data.nameCategoryMap && typeof data.nameCategoryMap === 'object') {
+          setNameCategoryMap(data.nameCategoryMap as Record<string, string>);
+        }
+        if (data.nameCategoryMap && typeof data.nameCategoryMap === 'object') {
+          setNameCategoryMap(data.nameCategoryMap as Record<string, string>);
         }
       }
     } catch {
@@ -145,6 +354,22 @@ export default function Home() {
       loadPersonalization();
     }
   }, [auth.userId, loadPersonalization]);
+
+  // Persist personalization (categories/templates/name->category map) whenever it changes
+  React.useEffect(() => {
+    if (!auth.userId) return;
+    // fire and forget; we may call this multiple times but that's fine
+    savePersonalization(
+      auth.userId,
+      availableCategories.map((c) => ({
+        value: c.value,
+        label: c.label,
+        icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
+      })),
+      availableTemplates,
+      nameCategoryMap
+    ).catch(() => {});
+  }, [auth.userId, availableCategories, availableTemplates, nameCategoryMap]);
 
   const handleRegisterSuccess = React.useCallback(async (userId: string, username: string) => {
     // Close register dialog first
@@ -358,9 +583,9 @@ export default function Home() {
             filterText={todoActions.filterText}
             onFilterChange={todoActions.setFilterText}
             categories={availableCategories}
-            currentCategory={todoActions.category}
+            currentCategory={todoActions.filterCategory}
             onCategoryChange={async (val: string) => {
-              todoActions.setCategory(val);
+              todoActions.setFilterCategory(val);
               if (listActions.currentListId) await todoActions.fetchTodos(listActions.currentListId, val);
             }}
             bulkMode={todoActions.bulkMode}
@@ -380,25 +605,50 @@ export default function Home() {
                 </IconButton>
               </Box>
               <Stack spacing={2}>
-                <TextField
-                  label={t.todos.name}
-                  placeholder={t.todos.namePlaceholder}
-                  value={todoActions.name}
-                  onChange={(e) => todoActions.setName(e.target.value)}
-                  fullWidth
-                  InputProps={{
-                    endAdornment: todoActions.name ? (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          onClick={() => todoActions.setName('')}
-                          edge="end"
-                        >
-                          <ClearIcon />
-                        </IconButton>
-                      </InputAdornment>
-                    ) : null,
+                {/* name field now provides autocomplete based on existing todo names */}
+                <Autocomplete
+                  freeSolo
+                  options={nameOptions}
+                  inputValue={todoActions.name}
+                  onInputChange={(_, v) => todoActions.setName(v)}
+                  onChange={(_, v) => {
+                    if (typeof v === 'string') {
+                      todoActions.setName(v);
+                    }
                   }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t.todos.name}
+                      placeholder={t.todos.namePlaceholder}
+                      fullWidth
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleAdd();
+                          e.preventDefault();
+                        }
+                      }}
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {todoActions.name ? (
+                              <InputAdornment position="end">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => todoActions.setName('')}
+                                  edge="end"
+                                >
+                                  <ClearIcon />
+                                </IconButton>
+                              </InputAdornment>
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
                 />
                 <TextField
                   label={t.todos.description}
@@ -466,24 +716,80 @@ export default function Home() {
                   onChange={(e) => todoActions.setColor(e.target.value)}
                   sx={{ width: 80 }}
                 />
-                <TextField
-                  select
-                  label={t.todos.category}
-                  value={todoActions.category}
-                  onChange={(e) => todoActions.setCategory(e.target.value)}
-                  fullWidth
-                >
-                  {availableCategories.map((c) => (
-                    <MenuItem key={c.value} value={c.value} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Box component="span" sx={{ mr: '4px', display: 'inline-flex' }}>
-                      {c.icon ? <c.icon fontSize="small" /> : null}
+                <Autocomplete
+                  freeSolo
+                  options={categoryOptions}
+                  getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.label || opt.value)}
+                  value={
+                    // when category was cleared intentionally, don't treat empty as default
+                    todoActions.category === '' && todoActions.clearedForName === todoActions.name.trim().toLowerCase()
+                      ? null
+                      : availableCategories.find((c) => c.value === todoActions.category) ||
+                        (todoActions.category
+                          ? { value: todoActions.category, label: todoActions.category, icon: null }
+                          : null)
+                  }
+                  inputValue={displayedCategory}
+                  onInputChange={(_, v, reason) => {
+                    if (reason === 'input') {
+                      todoActions.setCategoryManual(v);
+                    }
+                  }}
+                  onChange={(_, v) => {
+                    let val = '';
+                    if (typeof v === 'string') {
+                      val = v;
+                    } else if (v && typeof v === 'object') {
+                      val = v.value || '';
+                    }
+                    todoActions.setCategoryManual(val);
+                    ensureCategoryExists(val);
+                  }}
+                  renderOption={(props, option) => (
+                    <li {...props}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {option.icon ? <option.icon fontSize="small" sx={{ mr: 0.5 }} /> : null}
+                        {option.label || option.value}
+                      </Box>
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField {...params} label={t.todos.category} fullWidth />
+                  )}
+                />
+                {todoActions.categoryWarning && (
+                  <Box sx={{ mt: 1 }}>
+                    <Alert severity="warning" onClose={() => todoActions.setCategoryManual(todoActions.category)}>
+                      {todoActions.categoryWarning}
+                    </Alert>
+                  </Box>
+                )}
+                {/* if category text doesn't match existing, allow picking icon */}
+                {todoActions.category &&
+                  !availableCategories.find((c) => c.value === todoActions.category) && (
+                    <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {iconChoices.map((ic) => (
+                        <IconButton
+                          key={ic.key}
+                          size="small"
+                          color={tempIconKey === ic.key ? 'primary' : 'default'}
+                          onClick={() => setTempIconKey(ic.key)}
+                        >
+                          <ic.icon fontSize="small" />
+                        </IconButton>
+                      ))}
+                      <IconButton
+                        size="small"
+                        onClick={() => setTempIconKey('')}
+                        sx={{ ml: 1 }}
+                        title={t.dialogs.personalization.noIcon}
+                      >
+                        ✖️
+                      </IconButton>
                     </Box>
-                      {c.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <Stack direction="row" spacing={2}>
-                  <Button variant="contained" onClick={todoActions.addItem}>
+                  )}
+                <Stack direction="row" spacing="2">
+                  <Button variant="contained" onClick={handleAdd}>
                     {todoActions.editingId ? t.todos.save : t.todos.add}
                   </Button>
                   {todoActions.editingId && (
@@ -521,18 +827,46 @@ export default function Home() {
                   t.description.toLowerCase().includes(todoActions.filterText.toLowerCase())
               );
 
-              const elements: React.JSX.Element[] = [];
-              let lastCategory: string | null = null;
+              // group by category so the header appears once per group.  We want
+              // to respect the manual ordering stored in the `order` field, so sort
+              // the filtered list by `order` instead of alphabetically.  (The old
+              // implementation sorted by category name, which prevented any
+              // category-swapping from having a visible effect.)
+              // Determine category sequence from first appearance in order-sorted list
+              const orderSorted = [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
+              const cats = Array.from(new Set(orderSorted.map((t) => t.category || '')));
+              // now sort by category index then by order
+              const sorted = [...filtered].sort((a, b) => {
+                const ca = cats.indexOf(a.category || '');
+                const cb = cats.indexOf(b.category || '');
+                if (ca !== cb) return ca - cb;
+                return (a.order || 0) - (b.order || 0);
+              });
 
-              filtered.forEach((todo, index) => {
-                const cat = todo.category || '__none';
-                if (cat !== lastCategory) {
+              // precompute list of distinct categories in same sequence for arrow disabling
+              const allSorted = [...todoActions.todos].sort((a, b) => {
+                const ca = cats.indexOf(a.category || '');
+                const cb = cats.indexOf(b.category || '');
+                if (ca !== cb) return ca - cb;
+                return (a.order || 0) - (b.order || 0);
+              });
+              const groupCats = Array.from(new Set(allSorted.map((t) => t.category || '')));
+
+              const elements: React.JSX.Element[] = [];
+              const seenCategories = new Set<string>();
+
+              sorted.forEach((todo, index) => {
+                // sentinel for header grouping (use something unique for blank)
+                const catKey = todo.category || '__none';
+                if (!seenCategories.has(catKey)) {
+                  seenCategories.add(catKey);
+                  const realCat = todo.category || ''; // actual value passed to actions
                   const catObj = availableCategories.find((c) => c.value === todo.category);
                   const IconComp = catObj?.icon || null;
-                  const label = catObj?.label || (todo.category || '');
+                  const label = catObj?.label || realCat;
                   elements.push(
                     <Box
-                      key={`header-${cat}`}
+                      key={`header-${catKey}`}
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
@@ -550,12 +884,50 @@ export default function Home() {
                       <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
                         {label}
                       </Typography>
+                      <Box sx={{ marginLeft: 'auto', display: 'flex', gap: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          onClick={async () => {
+                            console.log('click up', realCat, groupCats);
+                            todoActions.setFilterText('');
+                            todoActions.setFilterCategory('');
+                            await todoActions.moveCategory(realCat, 'up');
+                            console.log('after move todos', todoActions.todos.map(t=>({id:t._id,order:t.order,cat:t.category}))); 
+                          }}
+                          edge="end"
+                          disabled={groupCats.indexOf(realCat) <= 0}
+                        >
+                          <ArrowUpwardIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={async () => {
+                            console.log('click down', realCat, groupCats);
+                            todoActions.setFilterText('');
+                            todoActions.setFilterCategory('');
+                            await todoActions.moveCategory(realCat, 'down');
+                            console.log('after move todos', todoActions.todos.map(t=>({id:t._id,order:t.order,cat:t.category}))); 
+                          }}
+                          edge="end"
+                          disabled={groupCats.indexOf(realCat) === groupCats.length - 1}
+                        >
+                          <ArrowDownwardIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
                     </Box>
                   );
-                  lastCategory = cat;
                 }
 
-                const itemBg = todo.completed ? theme.palette.action.disabledBackground : (todo.color && todo.color.trim() ? todo.color : undefined);
+                let itemBg: string | undefined;
+                if (todo.completed) {
+                  itemBg = theme.palette.action.disabledBackground;
+                } else if (todo.missing) {
+                  // make missing items stand out without being too harsh
+                  itemBg = alpha(theme.palette.error.light, 0.4);
+                } else {
+                  itemBg = todo.color && todo.color.trim() ? todo.color : undefined;
+                }
+
                 let itemTextColor = theme.palette.text.primary as string;
                 if (!todo.completed && todo.color && todo.color.trim()) {
                   const bg = todo.color;
@@ -569,6 +941,10 @@ export default function Home() {
                       itemTextColor = theme.palette.text.primary as string;
                     }
                   }
+                }
+                // if missing, slightly tint text for clarity but keep readability
+                if (todo.missing) {
+                  itemTextColor = theme.palette.text.primary as string;
                 }
 
                 elements.push(
@@ -689,7 +1065,7 @@ export default function Home() {
                               </Stack>
                             ) : (
                               <Box onClick={() => { if (!todoActions.bulkMode && !listActions.viewingHistory) todoActions.startInlineEdit(todo); }} sx={{ cursor: !todoActions.bulkMode && !listActions.viewingHistory ? 'pointer' : 'default' }}>
-                                <Typography variant="subtitle1" sx={{ color: itemTextColor, fontWeight: 500 }}>
+                                <Typography variant="subtitle1" sx={{ color: itemTextColor, fontWeight: 500, textDecoration: todo.missing ? 'line-through' : 'none' }}>
                                   {todo.name}{todo.quantity > 1 ? ` (x${todo.quantity})` : ''}
                                 </Typography>
                                 {todo.description && (
@@ -708,6 +1084,14 @@ export default function Home() {
 
                           {!listActions.viewingHistory && (
                             <Stack direction="row" spacing={1}>
+                              <IconButton
+                                edge="end"
+                                aria-label={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
+                                sx={{ color: todo.missing ? theme.palette.error.main : itemTextColor }}
+                                onClick={() => todoActions.toggleMissing(todo)}
+                              >
+                                <ReportProblemIcon fontSize="small" />
+                              </IconButton>
                               <IconButton
                                 edge="end"
                                 aria-label={t.todos.edit}

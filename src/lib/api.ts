@@ -110,11 +110,13 @@ export async function createTodosBulk(listId: string, items: TemplateItem[]) {
 export interface StoredCategory {
   value: string;
   label: string;
+  icon?: string; // key from constants.iconMap
 }
 
 export async function fetchPersonalization(userId: string): Promise<{
   categories?: StoredCategory[];
   templates?: Template[];
+  nameCategoryMap?: Record<string, string>;
 }> {
   const res = await fetch(`${BASE}/personalization?userId=${encodeURIComponent(userId)}`);
   if (!res.ok) throw new Error('Failed to load personalization');
@@ -124,14 +126,17 @@ export async function fetchPersonalization(userId: string): Promise<{
 export async function savePersonalization(
   userId: string,
   categories?: StoredCategory[],
-  templates?: Template[]
+  templates?: Template[],
+  nameCategoryMap?: Record<string, string>
 ): Promise<{
   categories?: StoredCategory[];
   templates?: Template[];
+  nameCategoryMap?: Record<string, string>;
 }> {
   const body: Record<string, unknown> = { userId };
   if (categories) body.categories = categories;
   if (templates) body.templates = templates;
+  if (nameCategoryMap) body.nameCategoryMap = nameCategoryMap;
   const res = await fetch(`${BASE}/personalization`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -13,6 +13,8 @@ interface UseTodosParams {
   listDefaultColor: string;
   onSnackbar: (message: string) => void;
   t: TranslationKeys;
+  // optional global name->category mapping for inference
+  nameCategoryMap?: Record<string, string>;
 }
 
 interface UseTodosReturn {
@@ -26,12 +28,17 @@ interface UseTodosReturn {
   category: string;
   editingId: string | null;
   filterText: string;
+  filterCategory: string;
   bulkMode: boolean;
   selectedIds: Set<string>;
   inlineEditId: string | null;
   inlineName: string;
   inlineDescription: string;
   lastAdded: string | null;
+  // warning/auxiliaries
+  categoryWarning: string;
+  clearedForName: string | null;
+  // missing flag is stored on individual todos; form doesn't need its own state
 
   // Setters
   setTodos: (todos: Todo[] | ((prev: Todo[]) => Todo[])) => void;
@@ -41,8 +48,10 @@ interface UseTodosReturn {
   setComment: (comment: string) => void;
   setColor: (color: string) => void;
   setCategory: (category: string) => void;
+  setCategoryManual: (category: string) => void;
   setEditingId: (id: string | null) => void;
   setFilterText: (text: string) => void;
+  setFilterCategory: (category: string) => void;
   setBulkMode: (mode: boolean) => void;
   setSelectedIds: (ids: Set<string>) => void;
   setInlineEditId: (id: string | null) => void;
@@ -54,6 +63,7 @@ interface UseTodosReturn {
   fetchTodos: (listId: string, category?: string) => Promise<void>;
   addItem: () => Promise<void>;
   toggleComplete: (todo: Todo) => Promise<void>;
+  toggleMissing: (todo: Todo) => Promise<void>;
   deleteTodo: (id: string) => Promise<void>;
   toggleSelect: (id: string) => void;
   clearSelection: () => void;
@@ -67,10 +77,11 @@ interface UseTodosReturn {
   onTouchEnd: (e: React.TouchEvent, dropIndex: number) => void;
   startInlineEdit: (todo: Todo) => void;
   finishInlineEdit: (todo: Todo) => Promise<void>;
+  moveCategory: (category: string, direction: 'up' | 'down') => Promise<void>;
 }
 
 export function useTodos(params: UseTodosParams): UseTodosReturn {
-  const { currentListId, listDefaultColor, onSnackbar, t } = params;
+  const { currentListId, listDefaultColor, onSnackbar, t, nameCategoryMap } = params;
 
   // Todo list state
   const [todos, setTodos] = React.useState<Todo[]>([]);
@@ -81,11 +92,54 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   const [quantity, setQuantity] = React.useState(1);
   const [comment, setComment] = React.useState('');
   const [color, setColor] = React.useState('#ffffff');
-  const [category, setCategory] = React.useState('');
+  // category selected in add/edit form
+  const [category, setCategoryState] = React.useState('');
+  // remember which name triggered automatic assignment
+  const [autoAssignedFor, setAutoAssignedFor] = React.useState<string | null>(null);
+  const [categoryWarning, setCategoryWarning] = React.useState('');
+  const [clearedForName, setClearedForName] = React.useState<string | null>(null);
   const [editingId, setEditingId] = React.useState<string | null>(null);
+
+  // filter state (used by search toolbar) – kept separate so form changes
+  // don't affect the list filter
+  const [filterCategory, setFilterCategory] = React.useState('');
+
+  // when the name field changes, try to infer a category from existing todos
+  // (only for new items, not when editing an existing one).  this implements:
+  // "если товар уже существует в какой‑то категории, то он сразу подставится".
+  React.useEffect(() => {
+    if (!name.trim()) return;
+    // if user explicitly cleared this name and hasn't changed it yet, do not reassign
+    const lower = name.trim().toLowerCase();
+    if (clearedForName === lower) {
+      return;
+    }
+    if (category && category.trim()) return; // user already picked
+
+    // first check global map
+    if (nameCategoryMap && nameCategoryMap[lower]) {
+      const assigned = nameCategoryMap[lower];
+      setCategoryState(assigned);
+      setAutoAssignedFor(lower);
+      return;
+    }
+
+    const match = todos.find(
+      (t) =>
+        t.name.trim().toLowerCase() === lower &&
+        t.category &&
+        t.category.trim() &&
+        t._id !== editingId // don't match the item we're currently editing
+    );
+    if (match && match.category) {
+      setCategoryState(match.category);
+      setAutoAssignedFor(lower);
+    }
+  }, [name, todos, editingId, category, nameCategoryMap, clearedForName]);
 
   // Search/filter state
   const [filterText, setFilterText] = React.useState('');
+  // note: filterCategory is defined above
 
   // Bulk operations state
   const [bulkMode, setBulkMode] = React.useState(false);
@@ -119,7 +173,9 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   const fetchTodos = async (listId: string, categoryParam?: string) => {
     if (!listId) return;
     try {
-      const cat = typeof categoryParam === 'undefined' ? category : categoryParam;
+      // use explicit parameter first, otherwise fall back to filterCategory (not form
+      // category, which is unrelated to filtering)
+      const cat = typeof categoryParam === 'undefined' ? filterCategory : categoryParam;
       const data = await apiFetchTodos(listId, cat);
       setTodos((prev) =>
         data.map((t: Todo) => {
@@ -153,6 +209,13 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       color,
       category,
     };
+    // when editing, preserve the missing flag if it already existed
+    if (editingId) {
+      const existing = todos.find((t) => t._id === editingId);
+      if (existing && existing.missing) {
+        payload.missing = true;
+      }
+    }
     let result: Partial<Todo> | null = null;
 
     if (editingId) {
@@ -205,7 +268,8 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       setQuantity(1);
       setComment('');
       setColor(listDefaultColor);
-      setCategory('');
+      setCategoryState('');
+    setAutoAssignedFor(null);
       setEditingId(null);
       setLastAdded(addedName);
       onSnackbar(editingId ? t.messages.itemUpdated : t.messages.itemAdded);
@@ -220,6 +284,67 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     if (!currentListId) return;
     await apiUpdateTodo(todo._id, { listId: currentListId, completed: !todo.completed });
     await fetchTodos(currentListId);
+  };
+
+  // Toggle missing/unavailable status
+  const toggleMissing = async (todo: Todo) => {
+    if (!currentListId) return;
+    await apiUpdateTodo(todo._id, { listId: currentListId, missing: !todo.missing });
+    if (todo.missing) {
+      onSnackbar(t.messages.itemUnmarkedMissing || '');
+    } else {
+      onSnackbar(t.messages.itemMarkedMissing || '');
+    }
+    await fetchTodos(currentListId);
+  };
+
+  // Move an entire category block up or down in the ordering.  We recompute a
+  // new order array by swapping the category positions and then persist the
+  // sequential order values back to the server.
+  const moveCategory = async (category: string, direction: 'up' | 'down') => {
+    console.log('moveCategory called', category, direction, { todos });
+    if (!currentListId) {
+      console.warn('no list id');
+      return;
+    }
+    // sort todos by current order
+    const sorted = [...todos].sort((a, b) => (a.order || 0) - (b.order || 0));
+    // form blocks of contiguous same-category items
+    type Block = { category: string; items: Todo[] };
+    const blocks: Block[] = [];
+    sorted.forEach((t) => {
+      const cat = t.category || '';
+      if (blocks.length === 0 || blocks[blocks.length - 1].category !== cat) {
+        blocks.push({ category: cat, items: [t] });
+      } else {
+        blocks[blocks.length - 1].items.push(t);
+      }
+    });
+    console.log('initial blocks', blocks.map((b) => b.category));
+    const blockIdx = blocks.findIndex((b) => b.category === category);
+    if (blockIdx === -1) {
+      console.warn('category block not found', category);
+      return;
+    }
+    const targetIdx = direction === 'up' ? blockIdx - 1 : blockIdx + 1;
+    if (targetIdx < 0 || targetIdx >= blocks.length) {
+      console.warn('block move out of bounds', blockIdx, targetIdx, blocks.length);
+      return;
+    }
+    [blocks[blockIdx], blocks[targetIdx]] = [blocks[targetIdx], blocks[blockIdx]];
+    console.log('blocks after swap', blocks.map((b) => b.category));
+    const newOrder = blocks.flatMap((b) => b.items.slice());
+    newOrder.forEach((t, i) => {
+      t.order = i;
+    });
+    console.log('newOrder sequence', newOrder.map((t) => ({ id: t._id, cat: t.category, order: t.order })));
+    setTodos(newOrder);
+    await Promise.all(
+      newOrder.map((t, i) => apiUpdateTodo(t._id, { listId: currentListId, order: i }))
+    );
+    if (currentListId) {
+      await fetchTodos(currentListId);
+    }
   };
 
   // Delete a todo
@@ -341,6 +466,35 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     await fetchTodos(currentListId);
   };
 
+  const setCategory = (val: string) => {
+    setCategoryState(val);
+  };
+  const setCategoryManual = (val: string) => {
+    setCategoryState(val);
+    setAutoAssignedFor(null);
+    setCategoryWarning('');
+    if (val === '') {
+      // remember that user cleared category for current name
+      setClearedForName(name.trim().toLowerCase() || null);
+    } else {
+      setClearedForName(null);
+    }
+  };
+
+  React.useEffect(() => {
+    if (autoAssignedFor && name.trim().toLowerCase() !== autoAssignedFor) {
+      setCategoryWarning(
+        t.messages.possibleCategoryMismatch || 'Категория может быть неверной'
+      );
+    } else {
+      setCategoryWarning('');
+    }
+    // clear cleared flag when name changes
+    if (clearedForName && name.trim().toLowerCase() !== clearedForName) {
+      setClearedForName(null);
+    }
+  }, [name, autoAssignedFor, clearedForName, t.messages]);
+
   return {
     // State
     todos,
@@ -352,12 +506,15 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     category,
     editingId,
     filterText,
+    filterCategory,
     bulkMode,
     selectedIds,
     inlineEditId,
     inlineName,
     inlineDescription,
     lastAdded,
+    categoryWarning,
+    clearedForName,
 
     // Setters
     setTodos,
@@ -367,19 +524,23 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setComment,
     setColor,
     setCategory,
+    setCategoryManual,
     setEditingId,
     setFilterText,
+    setFilterCategory,
     setBulkMode,
     setSelectedIds,
     setInlineEditId,
     setInlineName,
     setInlineDescription,
     setLastAdded,
+    // warnings
 
     // Methods
     fetchTodos,
     addItem,
     toggleComplete,
+    toggleMissing,
     deleteTodo,
     toggleSelect,
     clearSelection,
@@ -393,5 +554,6 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     onTouchEnd,
     startInlineEdit,
     finishInlineEdit,
+    moveCategory,
   };
 }

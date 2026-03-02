@@ -38,6 +38,7 @@ export default async function handler(
       color,
       category,
       order,
+      missing,
     } = req.body as {
       listId?: unknown;
       name?: unknown;
@@ -47,6 +48,7 @@ export default async function handler(
       color?: unknown;
       category?: unknown;
       order?: unknown;
+      missing?: unknown;
     };
 
     if (!listId || typeof listId !== 'string') {
@@ -62,6 +64,7 @@ export default async function handler(
       listId: new ObjectId(listId),
       name,
       completed: false,
+      missing: typeof missing === 'boolean' ? missing : false,
       description: typeof description === 'string' ? description : '',
       quantity: typeof quantity === 'number' ? quantity : 1,
       comment: typeof comment === 'string' ? comment : '',

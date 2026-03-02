@@ -4,6 +4,8 @@ export interface Todo {
   description: string;
   quantity: number;
   completed: boolean;
+  // mark item as missing / unavailable in the store
+  missing?: boolean;
   comment?: string;
   color?: string;
   category?: string;
