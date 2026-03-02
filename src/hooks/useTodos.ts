@@ -430,47 +430,80 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setDragOverIndex(null);
   };
 
-  const onDrop = (e: React.DragEvent, dropIndex: number) => {
+  const onDrop = (e: React.DragEvent, rawIndex: number) => {
     e.preventDefault();
-    const raw = e.dataTransfer.getData('text/plain');
-    let startIndex = parseInt(raw, 10);
+
+    const data = e.dataTransfer.getData('text/plain');
+    let draggedIndex = parseInt(data, 10);
     try {
-      const parsed = JSON.parse(raw);
-      if (typeof parsed.index === 'number') startIndex = parsed.index;
+      const parsed = JSON.parse(data);
+      if (typeof parsed.index === 'number') draggedIndex = parsed.index;
     } catch {
-      // not JSON, fall back to numeric parse above
+      /* ignore */
     }
-    if (isNaN(startIndex) || startIndex < 0) return;
+    if (isNaN(draggedIndex) || draggedIndex < 0 || draggedIndex >= todos.length) return;
+
+    const draggedItem = todos[draggedIndex];
+    if (!draggedItem) return;
+
+    // Determine drop position based on cursor location
+    let dropAfter = false;
+    const target = e.currentTarget as HTMLElement;
+    if (target) {
+      const { top, height } = target.getBoundingClientRect();
+      dropAfter = e.clientY > top + height / 2;
+    }
+
+    const newIndex = dropAfter ? rawIndex + 1 : rawIndex;
+
+    // Ensure item stays within its category
+    const draggedCat = draggedItem.category || '';
+    const itemsInCategory = todos
+      .map((t, idx) => ({ item: t, idx }))
+      .filter((x) => (x.item.category || '') === draggedCat);
+
+    if (itemsInCategory.length === 0) return;
+
+    // Find the min and max indices of items in the same category
+    const catMinIdx = itemsInCategory[0].idx;
+    const catMaxIdx = itemsInCategory[itemsInCategory.length - 1].idx;
+
+    // Compute constrained position and warn if original intent was outside
+    const constrained =
+      newIndex < catMinIdx
+        ? catMinIdx
+        : newIndex > catMaxIdx + 1
+        ? catMaxIdx + 1
+        : newIndex;
+
+    if (constrained !== newIndex) {
+      onSnackbar(
+        t.messages?.cannotMoveBetweenCategories ||
+          'Cannot move items between categories'
+      );
+    }
+
+    // Don't move if source and target are the same
+    if (constrained === draggedIndex || constrained === draggedIndex + 1) {
+      setDragOverIndex(null);
+      return;
+    }
 
     setTodos((prev) => {
-      const copy = [...prev];
-      const [moved] = copy.splice(startIndex, 1);
-      if (!moved) return prev;
-
-      // determine target category: item at dropIndex (or last item's category when dropping at end)
-      const targetItem = copy[dropIndex] ?? copy[copy.length - 1];
-      const targetCategory = (targetItem && targetItem.category) || '';
-      const movedCategory = moved.category || '';
-
-      // Only allow reordering within the same category
-      if (movedCategory !== targetCategory) {
-        onSnackbar(t.messages?.cannotMoveBetweenCategories || 'Нельзя перемещать элементы между категориями');
-        return prev;
-      }
-
-      copy.splice(dropIndex, 0, moved);
-      // Update in-memory order fields so UI sorts by `order` reflect change
-      copy.forEach((t, idx) => {
-        t.order = idx;
+      const arr = [...prev];
+      const [moved] = arr.splice(draggedIndex, 1);
+      arr.splice(draggedIndex < constrained ? constrained - 1 : constrained, 0, moved);
+      arr.forEach((t, i) => {
+        t.order = i;
       });
-      // Persist order to server (fire-and-forget)
       if (currentListId) {
-        copy.forEach((t, idx) => {
-          apiUpdateTodo(t._id, { listId: currentListId, order: idx });
+        arr.forEach((t, i) => {
+          apiUpdateTodo(t._id, { listId: currentListId, order: i });
         });
       }
-      return copy;
+      return arr;
     });
+
     setDragOverIndex(null);
   };
 
@@ -502,7 +535,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       const movedCategory = moved.category || '';
 
       if (movedCategory !== targetCategory) {
-        onSnackbar(t.messages?.cannotMoveBetweenCategories || 'Нельзя перемещать элементы между категориями');
+        onSnackbar(t.messages?.cannotMoveBetweenCategories || 'Cannot move items between categories');
         return prev;
       }
 
