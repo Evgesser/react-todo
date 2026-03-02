@@ -19,7 +19,7 @@ interface UseTodosParams {
   products?: Array<{ name: string; category?: string }>;
 }
 
-interface UseTodosReturn {
+export interface UseTodosReturn {
   // State
   todos: Todo[];
   name: string;

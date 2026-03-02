@@ -11,6 +11,7 @@ export const en: TranslationKeys = {
     usernamePlaceholder: 'Enter username',
     passwordPlaceholder: 'Enter password',
     userNotFound: 'User not found',
+    loginFailed: 'Login failed',
     createAccount: 'Create account',
   },
 

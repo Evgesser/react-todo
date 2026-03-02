@@ -13,7 +13,7 @@ interface UseListsParams {
   t: TranslationKeys;
 }
 
-interface UseListsReturn {
+export interface UseListsReturn {
   // State
   lists: ListType[];
   currentListId: string | null;

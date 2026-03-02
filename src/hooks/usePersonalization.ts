@@ -21,7 +21,7 @@ export function usePersonalization(
   const [products, setProducts] = React.useState<StoredProduct[]>([]);
   const [personalDialogOpen, setPersonalDialogOpen] = React.useState(false);
 
-  // persist categories locally when unauthenticated (same logic as before)
+  // load any categories the user added while offline (stored locally)
   React.useEffect(() => {
     if (userId) return;
     try {
@@ -39,7 +39,6 @@ export function usePersonalization(
             icon: c.icon && iconMap[c.icon] ? iconMap[c.icon] : null,
           }));
           setAvailableCategories((prev) => {
-            // merge with defaults, avoid duplicates
             const merged: Category[] = defaultCategories.map((d) => ({ ...d }));
             cats.forEach((c) => {
               if (!merged.find((m) => m.value === c.value)) merged.push(c);
@@ -53,6 +52,21 @@ export function usePersonalization(
       /* ignore malformed local cache */
     }
   }, [userId]);
+
+  // persist categories locally when unauthenticated so they survive reloads
+  React.useEffect(() => {
+    if (userId) return;
+    try {
+      const toStore = availableCategories.map((c) => ({
+        value: c.value,
+        label: c.label,
+        icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
+      }));
+      localStorage.setItem('availCats', JSON.stringify(toStore));
+    } catch {
+      // ignore
+    }
+  }, [availableCategories, userId]);
 
   // load personalization from server when user logs in
   const loadPersonalization = React.useCallback(async () => {

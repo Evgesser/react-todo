@@ -5,16 +5,10 @@ import {
   Typography,
   TextField,
   Button,
-  List,
-  ListItem,
-  Checkbox,
   IconButton,
   Box,
   Paper,
   Stack,
-  Card,
-  CardContent,
-  Grow,
   Collapse,
   Snackbar,
   Alert,
@@ -30,15 +24,8 @@ import {
   createList as apiCreateList,
   createTodosBulk,
 } from '@/lib/api';
-import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import ClearIcon from '@mui/icons-material/Clear';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import ReportProblemIcon from '@mui/icons-material/ReportProblem';
-import EditIcon from '@mui/icons-material/Edit';
 import { useTheme, alpha } from '@mui/material/styles';
 
 // Custom hooks
@@ -58,7 +45,8 @@ import HistoryDialog from '../components/dialogs/HistoryDialog';
 import NewListDialog from '../components/dialogs/NewListDialog';
 import PersonalizationDialog from '@/components/dialogs/PersonalizationDialog';
 import ListToolbar from '../components/toolbar/ListToolbar';
-import RegisterDialog from '../components/dialogs/RegisterDialog';
+import TodoList from '../components/TodoList';
+import AuthPanel from '../components/AuthPanel';
 
 
 export default function Home() {
@@ -74,9 +62,6 @@ export default function Home() {
   
   // Authentication hook
   const auth = useAuth();
-  const [loginUsername, setLoginUsername] = React.useState('');
-  const [loginPassword, setLoginPassword] = React.useState('');
-  const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false);
 
   // List management hook
   const listActions = useLists({
@@ -110,41 +95,6 @@ export default function Home() {
   // new-list dialog state
   const [newListDialogOpen, setNewListDialogOpen] = React.useState(false);
 
-  // persist categories locally if unauthenticated
-  React.useEffect(() => {
-    if (auth.userId) return;
-    try {
-      const raw = localStorage.getItem('availCats');
-      if (raw) {
-        const arr = JSON.parse(raw) as Array<{ value: string; label: string; icon?: string }>;
-        if (Array.isArray(arr)) {
-          const cats: Category[] = arr.map((c) => ({
-            value: c.value,
-            label: c.label,
-            icon: c.icon && iconMap[c.icon] ? iconMap[c.icon] : null,
-          }));
-          setAvailableCategories(cats);
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }, [auth.userId]);
-
-  React.useEffect(() => {
-    // only persist when unauthenticated; keep unsaved categories until we merge
-    if (auth.userId) return;
-    try {
-      const toStore = availableCategories.map((c) => ({
-        value: c.value,
-        label: c.label,
-        icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
-      }));
-      localStorage.setItem('availCats', JSON.stringify(toStore));
-    } catch {
-      // ignore
-    }
-  }, [availableCategories, auth.userId]);
 
   // helper: add a category to personalization if it doesn't already exist
   // this uses a functional state update so multiple rapid calls merge correctly
@@ -288,42 +238,6 @@ export default function Home() {
     [listActions]
   );
 
-  const handleRegisterSuccess = React.useCallback(async (userId: string, username: string) => {
-    // Close register dialog first
-    setRegisterDialogOpen(false);
-    
-    // Set auth data directly without calling login API again
-    auth.setAuthData(userId, username);
-    
-    // Try to load avatar (may not exist for new user, but try anyway)
-    await auth.loadAvatar(userId);
-    
-    // Clear login form
-    setLoginUsername('');
-    setLoginPassword('');
-    
-    // Show success message
-    setSnackbarMsg(t.register.success);
-    setSnackbarOpen(true);
-  }, [auth, t]);
-
-  const handleLogin = React.useCallback(async () => {
-    auth.clearError();
-    const result = await auth.login(loginUsername, loginPassword);
-    if (result.success) {
-      setLoginUsername('');
-      setLoginPassword('');
-      // auth.userId change will trigger useEffect to load lists
-    } else {
-      // Check if user not found
-      if (result.error && result.error.includes('User not found')) {
-        setRegisterDialogOpen(true);
-      } else {
-        setSnackbarMsg(result.error || 'Login failed');
-        setSnackbarOpen(true);
-      }
-    }
-  }, [loginUsername, loginPassword, auth]);
 
   // Separate effect to load lists on userId change - avoids circular deps in callbacks
   React.useEffect(() => {
@@ -413,63 +327,7 @@ export default function Home() {
       </Head>
       <Header headerColor={headerColor} effectiveHeaderTextColor={effectiveHeaderTextColor} />
       {!auth.userId ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
-          {auth.error && (
-            <Alert severity="error" onClose={() => auth.clearError()}>
-              {auth.error}
-            </Alert>
-          )}
-          <TextField
-            label={t.auth.username}
-            placeholder={t.auth.usernamePlaceholder}
-            value={loginUsername}
-            onChange={(e) => setLoginUsername(e.target.value)}
-            fullWidth
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') handleLogin();
-            }}
-            InputProps={{
-              endAdornment: loginUsername ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    onClick={() => setLoginUsername('')}
-                    edge="end"
-                  >
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }}
-          />
-          <TextField
-            label={t.auth.password}
-            placeholder={t.auth.passwordPlaceholder}
-            value={loginPassword}
-            onChange={(e) => setLoginPassword(e.target.value)}
-            fullWidth
-            type="password"
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') handleLogin();
-            }}
-            InputProps={{
-              endAdornment: loginPassword ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    onClick={() => setLoginPassword('')}
-                    edge="end"
-                  >
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }}
-          />
-          <Button variant="contained" onClick={handleLogin} disabled={auth.isLoading}>
-            {auth.isLoading ? t.auth.loading : t.auth.login}
-          </Button>
-        </Box>
+        <AuthPanel t={t} onSnackbar={(msg) => { setSnackbarMsg(msg); setSnackbarOpen(true); }} />
       ) : (
         <Box>
           <ListToolbar
@@ -761,327 +619,12 @@ export default function Home() {
             )}
 
           {/* always show todos list regardless of history state */}
-          <List sx={{ width: '100%' }}>
-            {(() => {
-              const filtered = todoActions.todos.filter(
-                (t) =>
-                  t.name.toLowerCase().includes(todoActions.filterText.toLowerCase()) ||
-                  t.description.toLowerCase().includes(todoActions.filterText.toLowerCase())
-              );
-
-              // group by category so the header appears once per group.  We want
-              // to respect the manual ordering stored in the `order` field, so sort
-              // the filtered list by `order` instead of alphabetically.  (The old
-              // implementation sorted by category name, which prevented any
-              // category-swapping from having a visible effect.)
-              // Determine category sequence from first appearance in order-sorted list
-              const orderSorted = [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
-              const cats = Array.from(new Set(orderSorted.map((t) => t.category || '')));
-              // now sort by category index then by order
-              const sorted = [...filtered].sort((a, b) => {
-                const ca = cats.indexOf(a.category || '');
-                const cb = cats.indexOf(b.category || '');
-                if (ca !== cb) return ca - cb;
-                return (a.order || 0) - (b.order || 0);
-              });
-
-              // precompute list of distinct categories in same sequence for arrow disabling
-              const allSorted = [...todoActions.todos].sort((a, b) => {
-                const ca = cats.indexOf(a.category || '');
-                const cb = cats.indexOf(b.category || '');
-                if (ca !== cb) return ca - cb;
-                return (a.order || 0) - (b.order || 0);
-              });
-              const groupCats = Array.from(new Set(allSorted.map((t) => t.category || '')));
-
-              const elements: React.JSX.Element[] = [];
-              const seenCategories = new Set<string>();
-
-              sorted.forEach((todo) => {
-                // sentinel for header grouping (use something unique for blank)
-                const catKey = todo.category || '__none';
-                if (!seenCategories.has(catKey)) {
-                  seenCategories.add(catKey);
-                  const realCat = todo.category || ''; // actual value passed to actions
-                  const catObj = availableCategories.find((c) => c.value === todo.category);
-                  const IconComp = catObj?.icon || null;
-                  const label = catObj?.label || realCat;
-                  elements.push(
-                    <Box
-                      key={`header-${catKey}`}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        mt: 2,
-                        mb: 0.5,
-                        px: 1,
-                        py: 0.5,
-                        bgcolor: theme.palette.action.hover,
-                        borderRadius: 1,
-                        borderBottom: `1px solid ${theme.palette.divider}`,
-                      }}
-                    >
-                      {IconComp ? <IconComp fontSize="small" /> : null}
-                      <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-                        {label}
-                      </Typography>
-                      <Box sx={{ marginLeft: 'auto', display: 'flex', gap: 0.5 }}>
-                        <IconButton
-                          size="small"
-                          onClick={async () => {
-                            console.log('click up', realCat, groupCats);
-                            todoActions.setFilterText('');
-                            todoActions.setFilterCategory('');
-                            await todoActions.moveCategory(realCat, 'up');
-                            console.log('after move todos', todoActions.todos.map(t=>({id:t._id,order:t.order,cat:t.category}))); 
-                          }}
-                          edge="end"
-                          disabled={groupCats.indexOf(realCat) <= 0}
-                        >
-                          <ArrowUpwardIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={async () => {
-                            console.log('click down', realCat, groupCats);
-                            todoActions.setFilterText('');
-                            todoActions.setFilterCategory('');
-                            await todoActions.moveCategory(realCat, 'down');
-                            console.log('after move todos', todoActions.todos.map(t=>({id:t._id,order:t.order,cat:t.category}))); 
-                          }}
-                          edge="end"
-                          disabled={groupCats.indexOf(realCat) === groupCats.length - 1}
-                        >
-                          <ArrowDownwardIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </Box>
-                  );
-                }
-
-                let itemBg: string | undefined;
-                if (todo.completed) {
-                  itemBg = theme.palette.action.disabledBackground;
-                } else if (todo.missing) {
-                  // make missing items stand out without being too harsh
-                  itemBg = alpha(theme.palette.error.light, 0.4);
-                } else {
-                  itemBg = todo.color && todo.color.trim() ? todo.color : undefined;
-                }
-
-                let itemTextColor = theme.palette.text.primary as string;
-                if (!todo.completed && todo.color && todo.color.trim()) {
-                  const bg = todo.color;
-                  const itemBgLum = getLuminance(bg);
-                  if (!isNaN(itemBgLum)) {
-                    itemTextColor = itemBgLum > 0.5 ? 'rgba(0,0,0,0.87)' : (theme.palette.mode === 'dark' ? LIGHT_WHITE : '#ffffff');
-                  } else {
-                    try {
-                      itemTextColor = theme.palette.getContrastText ? theme.palette.getContrastText(bg) : getTextColor(bg);
-                    } catch {
-                      itemTextColor = theme.palette.text.primary as string;
-                    }
-                  }
-                }
-                // if missing, slightly tint text for clarity but keep readability
-                if (todo.missing) {
-                  itemTextColor = theme.palette.text.primary as string;
-                }
-
-                const globalIndex = todoActions.todos.findIndex((t) => t._id === todo._id);
-
-                elements.push(
-                  <Grow key={todo._id} in timeout={300}>
-                    <Card
-                      draggable={!listActions.viewingHistory}
-                      onDragStart={(e) => todoActions.onDragStart(e, globalIndex)}
-                      onDragOver={todoActions.onDragOver}
-                      onDrop={(e) => todoActions.onDrop(e, globalIndex)}
-                      onTouchStart={(e) => todoActions.onTouchStart(e, globalIndex)}
-                      onDragEnter={(e) => todoActions.onDragEnter(e, globalIndex)}
-                      onDragLeave={todoActions.onDragLeave}
-                      onTouchMove={todoActions.onTouchMove}
-                      onTouchEnd={(e) => todoActions.onTouchEnd(e, globalIndex)}
-                      sx={{
-                        mb: 1,
-                        backgroundColor: itemBg || 'inherit',
-                        boxShadow:
-                          todoActions.dragOverIndex === globalIndex
-                            ? '0 0 0 3px rgba(25,118,210,0.12)'
-                            : undefined,
-                        transition: 'background-color 0.3s ease',
-                        color: itemTextColor,
-                        cursor: !listActions.viewingHistory ? 'move' : 'auto',
-                        touchAction: 'none',
-                      }}
-                      elevation={1}
-                    >
-                      <CardContent sx={{ p: 1}}>
-                        <ListItem disableGutters>
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
-                          {todoActions.bulkMode && (
-                            <Checkbox
-                              checked={todoActions.selectedIds.has(todo._id)}
-                              onChange={() => todoActions.toggleSelect(todo._id)}
-                              icon={<RadioButtonUncheckedIcon />}
-                              checkedIcon={<RadioButtonCheckedIcon />}
-                              sx={{
-                                color: itemTextColor,
-                                '& .MuiSvgIcon-root': { borderRadius: '50%' },
-                              }}
-                            />
-                          )}
-                          <Stack spacing={0.25} alignItems="center">
-                            {todo.category && (
-                              <Box sx={{ fontSize: 16, color: itemTextColor }}>
-                {(() => {
-                  const IconComp = availableCategories.find((c) => c.value === todo.category)?.icon;
-                  return IconComp ? <IconComp fontSize="small" /> : null;
-                })()}
-              </Box>
-                            )}
-                            <Checkbox
-                              checked={todo.completed}
-                              onChange={() => !listActions.viewingHistory && todoActions.toggleComplete(todo)}
-                              disabled={listActions.viewingHistory}
-                              icon={<RadioButtonUncheckedIcon />}
-                              checkedIcon={<RadioButtonCheckedIcon />}
-                              sx={{
-                                color: itemTextColor,
-                                '& .MuiSvgIcon-root': { borderRadius: '50%' },
-                              }}
-                            />
-                          </Stack>
-
-                          <Box sx={{ flex: 1 }}> 
-                            {todoActions.inlineEditId === todo._id ? (
-                              <Stack spacing={1} sx={{ flex: 1 }} data-inline-edit-root={todo._id}>
-                                <TextField
-                                  value={todoActions.inlineName}
-                                  onChange={(e) => todoActions.setInlineName(e.target.value)}
-                                  fullWidth
-                                  variant="standard"
-                                  autoFocus
-                                  InputProps={{
-                                    endAdornment: todoActions.inlineName ? (
-                                      <InputAdornment position="end">
-                                        <IconButton
-                                          size="small"
-                                          onClick={() => todoActions.setInlineName('')}
-                                          edge="end"
-                                        >
-                                          <ClearIcon fontSize="small" />
-                                        </IconButton>
-                                      </InputAdornment>
-                                    ) : null,
-                                  }}
-                                />
-                                <TextField
-                                  value={todoActions.inlineDescription}
-                                  onChange={(e) => todoActions.setInlineDescription(e.target.value)}
-                                  fullWidth
-                                  variant="standard"
-                                  InputProps={{
-                                    endAdornment: todoActions.inlineDescription ? (
-                                      <InputAdornment position="end">
-                                        <IconButton
-                                          size="small"
-                                          onClick={() => todoActions.setInlineDescription('')}
-                                          edge="end"
-                                        >
-                                          <ClearIcon fontSize="small" />
-                                        </IconButton>
-                                      </InputAdornment>
-                                    ) : null,
-                                  }}
-                                />
-                                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                                  <Button
-                                    size="small"
-                                    variant="contained"
-                                    onClick={async () => {
-                                      await todoActions.finishInlineEdit(todo);
-                                      updateNameCategory(todoActions.inlineName, todo.category || '', todo.comment);
-                                    }}
-                                  >
-                                    {t.todos.save}
-                                  </Button>
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => todoActions.setInlineEditId(null)}
-                                  >
-                                    {t.todos.cancel}
-                                  </Button>
-                                </Stack>
-                              </Stack>
-                            ) : (
-                              <Box onClick={() => { if (!todoActions.bulkMode && !listActions.viewingHistory) todoActions.startInlineEdit(todo); }} sx={{ cursor: !todoActions.bulkMode && !listActions.viewingHistory ? 'pointer' : 'default' }}>
-                                <Typography variant="subtitle1" sx={{ color: itemTextColor, fontWeight: 500, textDecoration: todo.missing ? 'line-through' : 'none' }}>
-                                  {todo.name}{todo.quantity > 1 ? ` (x${todo.quantity})` : ''}
-                                </Typography>
-                                {todo.description && (
-                                  <Typography variant="body2" sx={{ color: itemTextColor, mt: 0.25 }}>
-                                    {todo.description}
-                                  </Typography>
-                                )}
-                                {todo.comment && (
-                                  <Typography variant="caption" sx={{ color: itemTextColor, opacity: 0.7 }}>
-                                    {todo.comment}
-                                  </Typography>
-                                )}
-                              </Box>
-                            )}
-                          </Box>
-
-                          {!listActions.viewingHistory && (
-                            <Stack direction="row" spacing={1}>
-                              <IconButton
-                                edge="end"
-                                aria-label={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
-                                sx={{ color: todo.missing ? theme.palette.error.main : itemTextColor }}
-                                onClick={() => todoActions.toggleMissing(todo)}
-                              >
-                                <ReportProblemIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                edge="end"
-                                aria-label={t.todos.edit}
-                                sx={{ color: itemTextColor }}
-                                onClick={() => {
-                                  todoActions.setEditingId(todo._id);
-                                  todoActions.setName(todo.name);
-                                  todoActions.setDescription(todo.description);
-                                  todoActions.setQuantity(todo.quantity);
-                                  todoActions.setComment(todo.comment || '');
-                                  todoActions.setColor(todo.color || listActions.listDefaultColor);
-                                  todoActions.setCategory(todo.category || '');
-                                }}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                edge="end"
-                                aria-label={t.todos.delete}
-                                sx={{ color: itemTextColor }}
-                                onClick={() => todoActions.deleteTodo(todo._id)}
-                              >
-                                <DeleteIcon />
-                              </IconButton>
-                            </Stack>
-                          )}
-                        </Stack>
-                      </ListItem>
-                      </CardContent>
-                    </Card>
-                  </Grow>
-                );
-              });
-
-              return elements;
-            })()}
-          </List>
+          <TodoList
+            todoActions={todoActions}
+            listActions={listActions}
+            availableCategories={availableCategories}
+            t={t}
+          />
 
           {/* history dialog instead of inline section */}
           <HistoryDialog
@@ -1154,14 +697,6 @@ export default function Home() {
         </Box>
       )}
 
-      {/* RegisterDialog must be outside auth.userId condition */}
-      <RegisterDialog
-        open={registerDialogOpen}
-        username={loginUsername}
-        password={loginPassword}
-        onClose={() => setRegisterDialogOpen(false)}
-        onRegisterSuccess={handleRegisterSuccess}
-      />
     </Container>
   );
 }

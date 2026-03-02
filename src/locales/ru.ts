@@ -9,6 +9,7 @@ export const ru = {
     usernamePlaceholder: 'Введите имя пользователя',
     passwordPlaceholder: 'Введите пароль',
     userNotFound: 'Пользователь не найден',
+    loginFailed: 'Ошибка входа',
     createAccount: 'Создать аккаунт',
   },
 
