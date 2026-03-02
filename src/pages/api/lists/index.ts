@@ -48,13 +48,25 @@ export default async function handler(
       res.status(400).json({ error: 'Name is required' });
       return;
     }
-    const newList: any = {
+    interface NewList {
+      userId: string;
+      name: string;
+      completed: boolean;
+      createdAt: Date;
+      defaultColor: string;
+      shareToken?: string;
+    }
+    const newList: NewList = {
       userId,
       name,
       completed: false,
       createdAt: new Date(),
       defaultColor: typeof defaultColor === 'string' ? defaultColor : '#ffffff',
     };
+    // allow client to supply an initial shareToken (rare)
+    if (typeof (req.body as any).shareToken === 'string' && (req.body as any).shareToken.trim() !== '') {
+      newList.shareToken = (req.body as any).shareToken.trim();
+    }
     const result = await lists.insertOne(newList);
     res.status(201).json({ _id: result.insertedId, ...newList });
   } else {

@@ -48,6 +48,8 @@ export const en: TranslationKeys = {
     completeList: 'Complete List',
     share: 'Share',
     linkCopied: 'Link copied',
+    linkRevoked: 'Link revoked',
+    revokeLink: 'Revoke link',
     noLists: 'No Lists',
   },
   
@@ -150,7 +152,11 @@ export const en: TranslationKeys = {
     personalizationSaved: 'Settings saved',
     personalizationSaveError: 'Failed to save settings',
     possibleCategoryMismatch: 'Warning: category may be incorrect',
+    cannotMoveBetweenCategories: 'Cannot move items between categories',
     createError: 'Creation error',
+    invalidLink: 'Invalid link',
+    loading: 'Loading...',
+    saveError: 'Save failed',
     error: 'Error',
   },
   

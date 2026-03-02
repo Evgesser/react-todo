@@ -16,6 +16,8 @@ export interface PersonalizationDoc {
   templates?: Template[];
   // mapping of item name to preferred category value
   nameCategoryMap?: Record<string, string>;
+  // list of products user has seen/added
+  products?: { name: string; category?: string }[];
   updatedAt?: Date;
 }
 
@@ -45,11 +47,12 @@ export default async function handler(
     }
     res.status(200).json(doc);
   } else if (req.method === 'POST') {
-    const { userId, categories, templates, nameCategoryMap } = req.body as {
+    const { userId, categories, templates, nameCategoryMap, products } = req.body as {
       userId?: unknown;
       categories?: unknown;
       templates?: unknown;
       nameCategoryMap?: unknown;
+      products?: unknown;
     };
     if (!userId || typeof userId !== 'string') {
       res.status(400).json({ error: 'userId is required' });
@@ -81,6 +84,19 @@ export default async function handler(
           ([k, v]) => typeof k === 'string' && typeof v === 'string'
         )
       );
+    }
+    if (Array.isArray(products)) {
+      update.products = products
+        .filter(
+          (p: unknown): p is { name: string; category?: string } => {
+            if (typeof p !== 'object' || p === null) return false;
+            const o = p as { [key: string]: unknown };
+            if (typeof o.name !== 'string') return false;
+            if (o.category !== undefined && typeof o.category !== 'string') return false;
+            return true;
+          }
+        )
+        .map((p) => ({ name: p.name, category: p.category }));
     }
 
     if (Object.keys(update).length === 1) {

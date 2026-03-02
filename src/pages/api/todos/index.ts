@@ -21,7 +21,8 @@ export default async function handler(
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     
-    const filter: any = { listId: new ObjectId(listId) };
+    interface TodoFilter { listId: ObjectId; category?: string }
+    const filter: TodoFilter = { listId: new ObjectId(listId) };
     if (category && typeof category === 'string' && category.trim() !== '') {
       filter.category = category;
     }
@@ -60,7 +61,19 @@ export default async function handler(
       return;
     }
 
-    const item: any = {
+    interface TodoDoc {
+      listId: ObjectId;
+      name: string;
+      completed: boolean;
+      missing: boolean;
+      description: string;
+      quantity: number;
+      comment: string;
+      color: string;
+      category: string;
+      order: number;
+    }
+    const item: TodoDoc = {
       listId: new ObjectId(listId),
       name,
       completed: false,

@@ -33,6 +33,7 @@ interface UseListsReturn {
   selectList: (id: string) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   updateListColor: (id: string, color: string) => Promise<void>;
+  updateShareToken: (id: string, token: string) => Promise<void>;
   completeList: (id: string) => Promise<void>;
   clearAllLists: () => void;
 }
@@ -143,6 +144,23 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
     [lists, currentListId, onSnackbar, t]
   );
 
+  const updateShareToken = React.useCallback(
+    async (id: string, token: string) => {
+      try {
+        await apiUpdateList(id, { shareToken: token });
+        const updated = lists.map((l) => (l._id === id ? { ...l, shareToken: token } : l));
+        setLists(updated);
+
+        if (currentListId === id) {
+          setCurrentList(updated.find((l) => l._id === id) || null);
+        }
+      } catch {
+        onSnackbar(t.messages.saveError || 'Failed to update share token');
+      }
+    },
+    [lists, currentListId, onSnackbar, t]
+  );
+
   const completeList = React.useCallback(
     async (id: string) => {
       try {
@@ -195,6 +213,7 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
     selectList,
     deleteList,
     updateListColor,
+    updateShareToken,
     completeList,
     clearAllLists,
   };

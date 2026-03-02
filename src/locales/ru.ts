@@ -46,6 +46,8 @@ export const ru = {
     completeList: 'Завершить список',
     share: 'Поделиться',
     linkCopied: 'Ссылка скопирована',
+    linkRevoked: 'Ссылка отозвана',
+    revokeLink: 'Отозвать ссылку',
     noLists: 'Нет списков',
   },
   
@@ -148,7 +150,11 @@ export const ru = {
     personalizationSaved: 'Настройки сохранены',
     personalizationSaveError: 'Ошибка при сохранении',
     possibleCategoryMismatch: 'Внимание: категория может быть неверной',
+    cannotMoveBetweenCategories: 'Нельзя перемещать элементы между категориями',
     createError: 'Ошибка при создании',
+    invalidLink: 'Неверная ссылка',
+    loading: 'Загрузка...',
+    saveError: 'Ошибка при сохранении',
     error: 'Ошибка',
   },
   

@@ -31,6 +31,8 @@ import {
   createTodosBulk,
   fetchPersonalization,
   savePersonalization,
+  fetchProducts,
+  saveProduct,
 } from '@/lib/api';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -40,6 +42,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import EditIcon from '@mui/icons-material/Edit';
 import { useTheme, alpha } from '@mui/material/styles';
 
 // Custom hooks
@@ -96,6 +99,8 @@ export default function Home() {
   const [availableCategories, setAvailableCategories] = React.useState<Category[]>(defaultCategories);
   const [availableTemplates, setAvailableTemplates] = React.useState<Template[]>(defaultTemplates);
   const [nameCategoryMap, setNameCategoryMap] = React.useState<Record<string, string>>({});
+  // global catalog of seen products (name + optional category)
+  const [products, setProducts] = React.useState<Array<{ name: string; category?: string; comment?: string; icon?: string }>>([]);
   const [personalDialogOpen, setPersonalDialogOpen] = React.useState(false);
 
   // new-list dialog state
@@ -174,13 +179,24 @@ export default function Home() {
     },
     t,
     nameCategoryMap,
+    products,
   });
 
   // compute autocomplete options outside render to avoid conditional hook complaint
-  const nameOptions = React.useMemo(
-    () => Array.from(new Set(todoActions.todos.map((t) => t.name))).filter(Boolean),
-    [todoActions.todos]
-  );
+  const nameOptions = React.useMemo(() => {
+    const map = new Map<string, { name: string; category?: string; comment?: string; icon?: string }>();
+    todoActions.todos.forEach((t) => {
+      if (t.name) {
+        map.set(t.name, { name: t.name, category: t.category });
+      }
+    });
+    products.forEach((p) => {
+      if (p.name && !map.has(p.name)) {
+        map.set(p.name, { name: p.name, category: p.category, comment: p.comment, icon: p.icon });
+      }
+    });
+    return Array.from(map.values());
+  }, [todoActions.todos, products]);
 
   // category suggestions smart list: categories previously used with the same name
   // or recorded in the global map
@@ -236,29 +252,39 @@ export default function Home() {
 
   // update global name->category mapping and persist
   const updateNameCategory = React.useCallback(
-    async (name: string, category: string) => {
+    async (name: string, category: string, comment?: string) => {
       const n = name.trim();
       if (!n) return;
+      setProducts((prev) => {
+        if (prev.find((p) => p.name === n)) return prev;
+        type Prod = { name: string; category?: string; comment?: string; icon?: string };
+        const added: Prod = { name: n };
+        if (category) added.category = category;
+        if (comment) added.comment = comment;
+        return [...prev, added];
+      });
+      if (auth.userId) {
+        // also save product to dedicated collection
+        saveProduct(auth.userId, { name: n, category: category || undefined, comment: comment || undefined }).catch(() => {});
+      }
       setNameCategoryMap((prev) => {
         if (prev[n] === category) return prev;
         const next = { ...prev, [n]: category };
         if (auth.userId) {
-          // fire and forget; effect will also persist the map
+          // fire and forget; effect will also persist the map (including products via effect below)
           savePersonalization(
             auth.userId,
             availableCategories.map((c) => ({ value: c.value, label: c.label, icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '' })),
             availableTemplates,
-            next
+            next,
+            products // current products list will be captured but we also update below effect
           ).catch(() => {});
         }
         return next;
       });
     },
-    [auth.userId, availableCategories, availableTemplates]
+    [auth.userId, availableCategories, availableTemplates, products]
   );
-
-
-  // displayed text in category field should be human-friendly label
   const displayedCategory = React.useMemo(() => {
     if (
       todoActions.category === '' &&
@@ -276,25 +302,31 @@ export default function Home() {
   const handleAdd = React.useCallback(async () => {
     await ensureCategoryExists(todoActions.category, tempIconKey || undefined);
     await todoActions.addItem();
-    updateNameCategory(todoActions.name, todoActions.category);
+    updateNameCategory(todoActions.name, todoActions.category, todoActions.comment);
     setTempIconKey('');
   }, [ensureCategoryExists, todoActions, tempIconKey, updateNameCategory]);
 
   const handleListChange = React.useCallback(
     async (id: string) => {
       await listActions.selectList(id);
-      todoActions.setColor(listActions.lists.find((l) => l._id === id)?.defaultColor || '#ffffff');
+      // recompute color from up-to-date lists array
+      const list = listActions.lists.find((l) => l._id === id);
+      todoActions.setColor(list?.defaultColor || '#ffffff');
       if (id) await todoActions.fetchTodos(id);
     },
+    // listActions identity is stable inside hook, todoActions used by ESLint but it's safe to omit
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [listActions]
   );
 
-  // load templates/categories for current user
+  // load templates/categories and products for current user
   const loadPersonalization = React.useCallback(async () => {
     if (!auth.userId) return;
     try {
-      const data = await fetchPersonalization(auth.userId);
+      const [data, prods] = await Promise.all([
+        fetchPersonalization(auth.userId),
+        fetchProducts(auth.userId),
+      ]);
       if (data) {
         if (Array.isArray(data.categories)) {
           // start with defaults, override or append from personalization
@@ -339,9 +371,37 @@ export default function Home() {
         if (data.nameCategoryMap && typeof data.nameCategoryMap === 'object') {
           setNameCategoryMap(data.nameCategoryMap as Record<string, string>);
         }
-        if (data.nameCategoryMap && typeof data.nameCategoryMap === 'object') {
-          setNameCategoryMap(data.nameCategoryMap as Record<string, string>);
+        if (Array.isArray(data.products)) {
+          const oldProds = data.products as Array<{ name: string; category?: string; comment?: string; icon?: string }>;
+          setProducts(oldProds);
+          // migrate each old product to new collection
+          if (auth.userId) {
+            oldProds.forEach((p) => {
+              saveProduct(auth.userId!, { name: p.name, category: p.category }).catch(() => {});
+            });
+          }
+          // also populate nameCategoryMap from old products
+          setNameCategoryMap((prev) => {
+            const next = { ...prev };
+            oldProds.forEach((p) => {
+              if (p.name && p.category && next[p.name] !== p.category) {
+                next[p.name] = p.category;
+              }
+            });
+            return next;
+          });
         }
+      }
+      if (Array.isArray(prods)) {
+        // merge server catalog with personalization list
+        setProducts((prev) => {
+          const seen = new Set(prev.map((p) => p.name));
+          const merged = [...prev];
+          prods.forEach((p) => {
+            if (!seen.has(p.name)) merged.push(p);
+          });
+          return merged;
+        });
       }
     } catch {
       // ignore invalid personalization
@@ -367,9 +427,10 @@ export default function Home() {
         icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
       })),
       availableTemplates,
-      nameCategoryMap
+      nameCategoryMap,
+      products
     ).catch(() => {});
-  }, [auth.userId, availableCategories, availableTemplates, nameCategoryMap]);
+  }, [auth.userId, availableCategories, availableTemplates, nameCategoryMap, products]);
 
   const handleRegisterSuccess = React.useCallback(async (userId: string, username: string) => {
     // Close register dialog first
@@ -437,7 +498,13 @@ export default function Home() {
 
   React.useEffect(() => {
     if (listActions.viewingHistory) setFormOpen(false);
-  }, [listActions.viewingHistory]);
+    // when switching back out of history, reload todos for current list
+    if (!listActions.viewingHistory && listActions.currentListId) {
+      todoActions.fetchTodos(listActions.currentListId);
+    }
+    // todoActions is intentionally omitted to avoid refetch loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listActions.viewingHistory, listActions.currentListId]);
 
   const headerColor = (listActions.currentList && listActions.currentList.defaultColor) || listActions.listDefaultColor || '#ffffff';
   // Ensure header text contrasts with the page background in dark/light theme
@@ -576,6 +643,7 @@ export default function Home() {
               await listActions.completeList(listActions.currentListId);
               todoActions.setTodos([]);
             }}
+            updateShareToken={listActions.updateShareToken}
           />
 
           {/* search field and optional bulk toolbar */}
@@ -609,12 +677,44 @@ export default function Home() {
                 <Autocomplete
                   freeSolo
                   options={nameOptions}
+                  getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.name)}
                   inputValue={todoActions.name}
                   onInputChange={(_, v) => todoActions.setName(v)}
                   onChange={(_, v) => {
                     if (typeof v === 'string') {
                       todoActions.setName(v);
+                    } else if (v && typeof v === 'object') {
+                      todoActions.setName(v.name);
+                      if (v.category) todoActions.setCategory(v.category);
+                      // could also prefill description/comment/icon if desired
                     }
+                  }}
+                  renderOption={(props, option) => {
+                    const data = typeof option === 'string' ? { name: option } : option;
+                    return (
+                      <li {...props}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {data.icon && iconMap[data.icon] ? (
+                            <Box sx={{ display: 'flex' }}>
+                              {React.createElement(iconMap[data.icon], { fontSize: 'small' })}
+                            </Box>
+                          ) : null}
+                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                            <span>{data.name}</span>
+                            {data.category && (
+                              <Typography variant="caption" color="text.secondary">
+                                {data.category}
+                              </Typography>
+                            )}
+                            {data.comment && (
+                              <Typography variant="caption" color="text.secondary">
+                                {data.comment}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      </li>
+                    );
                   }}
                   renderInput={(params) => (
                     <TextField
@@ -630,22 +730,8 @@ export default function Home() {
                       }}
                       InputProps={{
                         ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {todoActions.name ? (
-                              <InputAdornment position="end">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => todoActions.setName('')}
-                                  edge="end"
-                                >
-                                  <ClearIcon />
-                                </IconButton>
-                              </InputAdornment>
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
+                        // rely on Autocomplete's built-in adornments (clear button + popup indicator)
+                        endAdornment: params.InputProps.endAdornment,
                       }}
                     />
                   )}
@@ -855,7 +941,7 @@ export default function Home() {
               const elements: React.JSX.Element[] = [];
               const seenCategories = new Set<string>();
 
-              sorted.forEach((todo, index) => {
+              sorted.forEach((todo) => {
                 // sentinel for header grouping (use something unique for blank)
                 const catKey = todo.category || '__none';
                 if (!seenCategories.has(catKey)) {
@@ -947,19 +1033,27 @@ export default function Home() {
                   itemTextColor = theme.palette.text.primary as string;
                 }
 
+                const globalIndex = todoActions.todos.findIndex((t) => t._id === todo._id);
+
                 elements.push(
                   <Grow key={todo._id} in timeout={300}>
                     <Card
                       draggable={!listActions.viewingHistory}
-                      onDragStart={(e) => todoActions.onDragStart(e, index)}
+                      onDragStart={(e) => todoActions.onDragStart(e, globalIndex)}
                       onDragOver={todoActions.onDragOver}
-                      onDrop={(e) => todoActions.onDrop(e, index)}
-                      onTouchStart={(e) => todoActions.onTouchStart(e, index)}
+                      onDrop={(e) => todoActions.onDrop(e, globalIndex)}
+                      onTouchStart={(e) => todoActions.onTouchStart(e, globalIndex)}
+                      onDragEnter={(e) => todoActions.onDragEnter(e, globalIndex)}
+                      onDragLeave={todoActions.onDragLeave}
                       onTouchMove={todoActions.onTouchMove}
-                      onTouchEnd={(e) => todoActions.onTouchEnd(e, index)}
+                      onTouchEnd={(e) => todoActions.onTouchEnd(e, globalIndex)}
                       sx={{
                         mb: 1,
                         backgroundColor: itemBg || 'inherit',
+                        boxShadow:
+                          todoActions.dragOverIndex === globalIndex
+                            ? '0 0 0 3px rgba(25,118,210,0.12)'
+                            : undefined,
                         transition: 'background-color 0.3s ease',
                         color: itemTextColor,
                         cursor: !listActions.viewingHistory ? 'move' : 'auto',
@@ -1050,7 +1144,10 @@ export default function Home() {
                                   <Button
                                     size="small"
                                     variant="contained"
-                                    onClick={() => todoActions.finishInlineEdit(todo)}
+                                    onClick={async () => {
+                                      await todoActions.finishInlineEdit(todo);
+                                      updateNameCategory(todoActions.inlineName, todo.category || '', todo.comment);
+                                    }}
                                   >
                                     {t.todos.save}
                                   </Button>
@@ -1106,7 +1203,7 @@ export default function Home() {
                                   todoActions.setCategory(todo.category || '');
                                 }}
                               >
-                                ✏️
+                                <EditIcon fontSize="small" />
                               </IconButton>
                               <IconButton
                                 edge="end"

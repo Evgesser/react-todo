@@ -38,6 +38,8 @@ interface ListToolbarProps {
   setSnackbarOpen: (open: boolean) => void;
   openPersonalDialog: () => void;
   completeCurrentList: () => void;
+  // new helper for share functionality
+  updateShareToken: (id: string, token: string) => Promise<void>;
 }
 
 export default function ListToolbar({
@@ -61,6 +63,7 @@ export default function ListToolbar({
   setSnackbarOpen,
   openPersonalDialog,
   completeCurrentList,
+  updateShareToken, // added destructure
 }: ListToolbarProps) {
     const { t } = useLanguage();
   return (
@@ -165,10 +168,19 @@ export default function ListToolbar({
             {t.buttons.personalize}
           </MenuItem>
           <MenuItem
-            onClick={() => {
+            onClick={async () => {
               closeMenu();
               if (!currentListId) return;
-              const link = `${window.location.origin}/?listId=${currentListId}`;
+              // if we already have a token, reuse it; otherwise generate and persist one
+              let token: string = lists.find((l) => l._id === currentListId)?.shareToken || '';
+              if (!token) {
+                // use crypto API for quality randomness, fallback to Math if unavailable
+                token = typeof crypto !== 'undefined' && (crypto as any).randomUUID ? (crypto as any).randomUUID() :
+                  Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+                await updateShareToken(currentListId, token);
+              }
+              const link = `${window.location.origin}/shared?token=${encodeURIComponent(token)}`;
+              // copy to clipboard (do not open)
               navigator.clipboard.writeText(link);
               setSnackbarMsg(t.lists.linkCopied);
               setSnackbarOpen(true);
@@ -176,6 +188,19 @@ export default function ListToolbar({
           >
             {t.lists.share}
           </MenuItem>
+          {lists.find((l) => l._id === currentListId)?.shareToken && (
+            <MenuItem
+              onClick={async () => {
+                closeMenu();
+                if (!currentListId) return;
+                await updateShareToken(currentListId, '');
+                setSnackbarMsg(t.lists.linkRevoked);
+                setSnackbarOpen(true);
+              }}
+            >
+              {t.lists.revokeLink}
+            </MenuItem>
+          )}
           <MenuItem
             onClick={() => {
               closeMenu();

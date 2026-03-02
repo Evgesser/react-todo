@@ -15,6 +15,8 @@ interface UseTodosParams {
   t: TranslationKeys;
   // optional global name->category mapping for inference
   nameCategoryMap?: Record<string, string>;
+  // global product catalog (used for suggested names and categories)
+  products?: Array<{ name: string; category?: string }>;
 }
 
 interface UseTodosReturn {
@@ -38,6 +40,7 @@ interface UseTodosReturn {
   // warning/auxiliaries
   categoryWarning: string;
   clearedForName: string | null;
+  dragOverIndex: number | null;
   // missing flag is stored on individual todos; form doesn't need its own state
 
   // Setters
@@ -71,6 +74,8 @@ interface UseTodosReturn {
   bulkDelete: () => Promise<void>;
   onDragStart: (e: React.DragEvent, index: number) => void;
   onDragOver: (e: React.DragEvent) => void;
+  onDragEnter: (e: React.DragEvent, index: number) => void;
+  onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, dropIndex: number) => void;
   onTouchStart: (e: React.TouchEvent, index: number) => void;
   onTouchMove: (e: React.TouchEvent) => void;
@@ -81,7 +86,7 @@ interface UseTodosReturn {
 }
 
 export function useTodos(params: UseTodosParams): UseTodosReturn {
-  const { currentListId, listDefaultColor, onSnackbar, t, nameCategoryMap } = params;
+  const { currentListId, listDefaultColor, onSnackbar, t, nameCategoryMap, products } = params;
 
   // Todo list state
   const [todos, setTodos] = React.useState<Todo[]>([]);
@@ -134,8 +139,18 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     if (match && match.category) {
       setCategoryState(match.category);
       setAutoAssignedFor(lower);
+      return;
     }
-  }, [name, todos, editingId, category, nameCategoryMap, clearedForName]);
+
+    // check global products catalog
+    if (products) {
+      const prod = products.find((p) => p.name.trim().toLowerCase() === lower && p.category);
+      if (prod && prod.category) {
+        setCategoryState(prod.category);
+        setAutoAssignedFor(lower);
+      }
+    }
+  }, [name, todos, editingId, category, nameCategoryMap, clearedForName, products]);
 
   // Search/filter state
   const [filterText, setFilterText] = React.useState('');
@@ -153,6 +168,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   // UI state
   const [lastAdded, setLastAdded] = React.useState<string | null>(null);
   const [touchDragIndex, setTouchDragIndex] = React.useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
 
   // Handle click outside inline edit
   React.useEffect(() => {
@@ -391,20 +407,63 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
 
   // Drag and drop handlers
   const onDragStart = (e: React.DragEvent, index: number) => {
-    e.dataTransfer.setData('text/plain', index.toString());
+    if (typeof index !== 'number' || index < 0) return;
+    const dragged = todos[index];
+    const payload = JSON.stringify({ index, category: dragged?.category || '', id: dragged?._id || '' });
+    try {
+      e.dataTransfer.setData('text/plain', payload);
+      e.dataTransfer.effectAllowed = 'move';
+    } catch {
+      // ignore
+    }
   };
 
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
 
+  const onDragEnter = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverIndex(null);
+  };
+
   const onDrop = (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
-    const startIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (isNaN(startIndex)) return;
+    const raw = e.dataTransfer.getData('text/plain');
+    let startIndex = parseInt(raw, 10);
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.index === 'number') startIndex = parsed.index;
+    } catch {
+      // not JSON, fall back to numeric parse above
+    }
+    if (isNaN(startIndex) || startIndex < 0) return;
+
     setTodos((prev) => {
       const copy = [...prev];
       const [moved] = copy.splice(startIndex, 1);
+      if (!moved) return prev;
+
+      // determine target category: item at dropIndex (or last item's category when dropping at end)
+      const targetItem = copy[dropIndex] ?? copy[copy.length - 1];
+      const targetCategory = (targetItem && targetItem.category) || '';
+      const movedCategory = moved.category || '';
+
+      // Only allow reordering within the same category
+      if (movedCategory !== targetCategory) {
+        onSnackbar(t.messages?.cannotMoveBetweenCategories || 'Нельзя перемещать элементы между категориями');
+        return prev;
+      }
+
       copy.splice(dropIndex, 0, moved);
-      // Persist order to server
+      // Update in-memory order fields so UI sorts by `order` reflect change
+      copy.forEach((t, idx) => {
+        t.order = idx;
+      });
+      // Persist order to server (fire-and-forget)
       if (currentListId) {
         copy.forEach((t, idx) => {
           apiUpdateTodo(t._id, { listId: currentListId, order: idx });
@@ -412,6 +471,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       }
       return copy;
     });
+    setDragOverIndex(null);
   };
 
   // Touch drag and drop handlers
@@ -435,8 +495,23 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setTodos((prev) => {
       const copy = [...prev];
       const [moved] = copy.splice(touchDragIndex, 1);
+      if (!moved) return prev;
+
+      const targetItem = copy[dropIndex] ?? copy[copy.length - 1];
+      const targetCategory = (targetItem && targetItem.category) || '';
+      const movedCategory = moved.category || '';
+
+      if (movedCategory !== targetCategory) {
+        onSnackbar(t.messages?.cannotMoveBetweenCategories || 'Нельзя перемещать элементы между категориями');
+        return prev;
+      }
+
       copy.splice(dropIndex, 0, moved);
-      // Persist order to server
+      // Update in-memory order fields so UI sorts by `order` reflect change
+      copy.forEach((t, idx) => {
+        t.order = idx;
+      });
+      // Persist order to server (fire-and-forget)
       if (currentListId) {
         copy.forEach((t, idx) => {
           apiUpdateTodo(t._id, { listId: currentListId, order: idx });
@@ -515,6 +590,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     lastAdded,
     categoryWarning,
     clearedForName,
+    dragOverIndex,
 
     // Setters
     setTodos,
@@ -548,6 +624,8 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     bulkDelete,
     onDragStart,
     onDragOver,
+    onDragEnter,
+    onDragLeave,
     onDrop,
     onTouchStart,
     onTouchMove,

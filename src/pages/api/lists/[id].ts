@@ -25,14 +25,25 @@ export default async function handler(
 
   switch (method) {
     case 'PUT': {
-      const { completed, name, defaultColor } = body as {
+      const { completed, name, defaultColor, shareToken } = body as {
         completed?: unknown;
         name?: unknown;
         defaultColor?: unknown;
+        shareToken?: unknown;
       };
-      const update: any = {};
+      type UpdateOpts = Partial<{
+        name: string;
+        defaultColor: string;
+        shareToken: string;
+        completed: boolean;
+        finishedAt: Date;
+      }>;
+      const update: UpdateOpts = {};
       if (typeof name === 'string') update.name = name;
       if (typeof defaultColor === 'string') update.defaultColor = defaultColor;
+      if (typeof shareToken === 'string') {
+        update.shareToken = shareToken;
+      }
       if (typeof completed === 'boolean') {
         update.completed = completed;
         if (completed) update.finishedAt = new Date();

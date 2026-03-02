@@ -62,6 +62,35 @@ export async function fetchLists(userId: string): Promise<List[]> {
   return res.json();
 }
 
+// --- shared list helpers ------------------------------------------------
+export async function fetchSharedList(
+  token: string
+): Promise<{ list: List; todos: Todo[] }> {
+  const res = await fetch(`${BASE}/shared/${encodeURIComponent(token)}`);
+  if (!res.ok) {
+    throw new Error('Failed to load shared list');
+  }
+  return res.json();
+}
+
+export async function updateSharedTodo(
+  token: string,
+  update: {
+    todoId: string;
+    completed?: boolean;
+    missing?: boolean;
+    order?: number;
+    category?: string;
+  }
+) {
+  const res = await fetch(`${BASE}/shared/${encodeURIComponent(token)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(update),
+  });
+  return res.ok;
+}
+
 export async function deleteList(id: string) {
   const res = await fetch(`${BASE}/lists/${id}`, {
     method: 'DELETE',
@@ -117,9 +146,35 @@ export async function fetchPersonalization(userId: string): Promise<{
   categories?: StoredCategory[];
   templates?: Template[];
   nameCategoryMap?: Record<string, string>;
+  products?: { name: string; category?: string }[];
 }> {
   const res = await fetch(`${BASE}/personalization?userId=${encodeURIComponent(userId)}`);
   if (!res.ok) throw new Error('Failed to load personalization');
+  return res.json();
+}
+
+// --- products catalog --------------------------------------------------
+export async function fetchProducts(userId: string): Promise<Array<{ name: string; category?: string; comment?:string; icon?:string }>> {
+  const res = await fetch(`${BASE}/products?userId=${encodeURIComponent(userId)}`);
+  if (!res.ok) throw new Error('Failed to load products');
+  return res.json();
+}
+
+export async function saveProduct(userId: string, prod: { name: string; category?: string; comment?:string; icon?:string }) {
+  // build a minimal body with correct types rather than using any
+  const body: { userId: string; name: string; category?: string; comment?: string; icon?: string } = {
+    userId,
+    name: prod.name,
+  };
+  if (prod.category) body.category = prod.category;
+  if (prod.comment) body.comment = prod.comment;
+  if (prod.icon) body.icon = prod.icon;
+  const res = await fetch(`${BASE}/products`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error('Failed to save product');
   return res.json();
 }
 
@@ -127,16 +182,19 @@ export async function savePersonalization(
   userId: string,
   categories?: StoredCategory[],
   templates?: Template[],
-  nameCategoryMap?: Record<string, string>
+  nameCategoryMap?: Record<string, string>,
+  products?: { name: string; category?: string }[]
 ): Promise<{
   categories?: StoredCategory[];
   templates?: Template[];
   nameCategoryMap?: Record<string, string>;
+  products?: { name: string; category?: string }[];
 }> {
   const body: Record<string, unknown> = { userId };
   if (categories) body.categories = categories;
   if (templates) body.templates = templates;
   if (nameCategoryMap) body.nameCategoryMap = nameCategoryMap;
+  if (products) body.products = products;
   const res = await fetch(`${BASE}/personalization`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
