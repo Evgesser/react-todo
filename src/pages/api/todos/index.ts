@@ -11,7 +11,7 @@ export default async function handler(
   const collection = db.collection('todos');
 
   if (req.method === 'GET') {
-    const { listId } = req.query;
+    const { listId, category } = req.query;
     if (!listId || typeof listId !== 'string') {
       res.status(400).json({ error: 'listId query parameter is required' });
       return;
@@ -21,10 +21,12 @@ export default async function handler(
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     
-    const todos = await collection
-      .find({ listId: new ObjectId(listId) })
-      .sort({ order: 1 })
-      .toArray();
+    const filter: any = { listId: new ObjectId(listId) };
+    if (category && typeof category === 'string' && category.trim() !== '') {
+      filter.category = category;
+    }
+
+    const todos = await collection.find(filter).sort({ order: 1 }).toArray();
     res.status(200).json(todos);
   } else if (req.method === 'POST') {
     const {

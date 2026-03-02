@@ -51,7 +51,7 @@ interface UseTodosReturn {
   setLastAdded: (name: string | null) => void;
 
   // Methods
-  fetchTodos: (listId: string) => Promise<void>;
+  fetchTodos: (listId: string, category?: string) => Promise<void>;
   addItem: () => Promise<void>;
   toggleComplete: (todo: Todo) => Promise<void>;
   deleteTodo: (id: string) => Promise<void>;
@@ -116,10 +116,11 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   }, [inlineEditId]);
 
   // Fetch todos from API
-  const fetchTodos = async (listId: string) => {
+  const fetchTodos = async (listId: string, categoryParam?: string) => {
     if (!listId) return;
     try {
-      const data = await apiFetchTodos(listId);
+      const cat = typeof categoryParam === 'undefined' ? category : categoryParam;
+      const data = await apiFetchTodos(listId, cat);
       setTodos((prev) =>
         data.map((t: Todo) => {
           const incomingColor = typeof t.color === 'string' ? t.color : '';

@@ -17,9 +17,13 @@ export async function login(username: string, password: string): Promise<{ userI
 }
 
 // --- todos ---------------------------------------------------------------
-export async function fetchTodos(listId: string): Promise<Todo[]> {
+export async function fetchTodos(listId: string, category?: string): Promise<Todo[]> {
   if (!listId) return [];
-  const res = await fetch(`${BASE}/todos?listId=${encodeURIComponent(listId)}`);
+  let url = `${BASE}/todos?listId=${encodeURIComponent(listId)}`;
+  if (category && category.trim() !== '') {
+    url += `&category=${encodeURIComponent(category)}`;
+  }
+  const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to load todos');
   return res.json();
 }

@@ -90,7 +90,7 @@ export default function PersonalizationDialog({
         </Typography>
 
         {editingCategories.map((category, categoryIndex) => (
-          <Box key={`${category.value}-${categoryIndex}`} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <Box key={categoryIndex} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <TextField
               label={t.dialogs.personalization.categoryValue}
               value={category.value}
@@ -172,7 +172,7 @@ export default function PersonalizationDialog({
         </Typography>
 
         {editingTemplates.map((template, templateIndex) => (
-          <Box key={`${template.name}-${templateIndex}`} sx={{ border: '1px solid rgba(0,0,0,0.2)', p: 1, mb: 2 }}>
+          <Box key={templateIndex} sx={{ border: '1px solid rgba(0,0,0,0.2)', p: 1, mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <TextField
                 label={t.dialogs.personalization.templateName}
@@ -218,7 +218,7 @@ export default function PersonalizationDialog({
             </Typography>
 
             {template.items.map((item, itemIndex) => (
-              <Box key={`${item.name}-${itemIndex}`} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Box key={itemIndex} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 <TextField
                   label={t.dialogs.personalization.itemName}
                   value={item.name}

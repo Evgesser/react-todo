@@ -357,6 +357,12 @@ export default function Home() {
           <SearchBulk
             filterText={todoActions.filterText}
             onFilterChange={todoActions.setFilterText}
+            categories={availableCategories}
+            currentCategory={todoActions.category}
+            onCategoryChange={async (val: string) => {
+              todoActions.setCategory(val);
+              if (listActions.currentListId) await todoActions.fetchTodos(listActions.currentListId, val);
+            }}
             bulkMode={todoActions.bulkMode}
             selectedCount={todoActions.selectedIds.size}
             onBulkComplete={todoActions.bulkComplete}
@@ -508,203 +514,236 @@ export default function Home() {
 
           {/* always show todos list regardless of history state */}
           <List sx={{ width: '100%' }}>
-            {todoActions.todos
-              .filter(
+            {(() => {
+              const filtered = todoActions.todos.filter(
                 (t) =>
                   t.name.toLowerCase().includes(todoActions.filterText.toLowerCase()) ||
                   t.description.toLowerCase().includes(todoActions.filterText.toLowerCase())
-              )
-              .map((todo, index) => {
-              const itemBg = todo.completed ? theme.palette.action.disabledBackground : (todo.color && todo.color.trim() ? todo.color : undefined);
-              // Determine a readable text color for the row (icons, buttons, text)
-              let itemTextColor = theme.palette.text.primary as string;
-              if (!todo.completed && todo.color && todo.color.trim()) {
-                const bg = todo.color;
-                // compute luminance of the item's background and choose a contrasting text color
-                const itemBgLum = getLuminance(bg);
-                if (!isNaN(itemBgLum)) {
-                  // Prefer a readable theme-like dark text on light backgrounds, and light text on dark backgrounds
-                  itemTextColor = itemBgLum > 0.5 ? 'rgba(0,0,0,0.87)' : (theme.palette.mode === 'dark' ? LIGHT_WHITE : '#ffffff');
-                } else {
-                  // fallback to theme contrast helpers when luminance can't be computed
-                  try {
-                    itemTextColor = theme.palette.getContrastText ? theme.palette.getContrastText(bg) : getTextColor(bg);
-                  } catch {
-                    itemTextColor = theme.palette.text.primary as string;
+              );
+
+              const elements: React.JSX.Element[] = [];
+              let lastCategory: string | null = null;
+
+              filtered.forEach((todo, index) => {
+                const cat = todo.category || '__none';
+                if (cat !== lastCategory) {
+                  const catObj = availableCategories.find((c) => c.value === todo.category);
+                  const IconComp = catObj?.icon || null;
+                  const label = catObj?.label || (todo.category || '');
+                  elements.push(
+                    <Box
+                      key={`header-${cat}`}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mt: 2,
+                        mb: 0.5,
+                        px: 1,
+                        py: 0.5,
+                        bgcolor: theme.palette.action.hover,
+                        borderRadius: 1,
+                        borderBottom: `1px solid ${theme.palette.divider}`,
+                      }}
+                    >
+                      {IconComp ? <IconComp fontSize="small" /> : null}
+                      <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+                        {label}
+                      </Typography>
+                    </Box>
+                  );
+                  lastCategory = cat;
+                }
+
+                const itemBg = todo.completed ? theme.palette.action.disabledBackground : (todo.color && todo.color.trim() ? todo.color : undefined);
+                let itemTextColor = theme.palette.text.primary as string;
+                if (!todo.completed && todo.color && todo.color.trim()) {
+                  const bg = todo.color;
+                  const itemBgLum = getLuminance(bg);
+                  if (!isNaN(itemBgLum)) {
+                    itemTextColor = itemBgLum > 0.5 ? 'rgba(0,0,0,0.87)' : (theme.palette.mode === 'dark' ? LIGHT_WHITE : '#ffffff');
+                  } else {
+                    try {
+                      itemTextColor = theme.palette.getContrastText ? theme.palette.getContrastText(bg) : getTextColor(bg);
+                    } catch {
+                      itemTextColor = theme.palette.text.primary as string;
+                    }
                   }
                 }
-              }
 
-              return (
-                <Grow key={todo._id} in timeout={300}>
-                  <Card
-                    draggable={!listActions.viewingHistory}
-                    onDragStart={(e) => todoActions.onDragStart(e, index)}
-                    onDragOver={todoActions.onDragOver}
-                    onDrop={(e) => todoActions.onDrop(e, index)}
-                    onTouchStart={(e) => todoActions.onTouchStart(e, index)}
-                    onTouchMove={todoActions.onTouchMove}
-                    onTouchEnd={(e) => todoActions.onTouchEnd(e, index)}
-                    sx={{
-                      mb: 1,
-                      backgroundColor: itemBg || 'inherit',
-                      transition: 'background-color 0.3s ease',
-                      color: itemTextColor,
-                      cursor: !listActions.viewingHistory ? 'move' : 'auto',
-                      touchAction: 'none',
-                    }}
-                    elevation={1}
-                  >
-                    <CardContent sx={{ p: 1}}>
-                      <ListItem disableGutters>
-                      <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
-                        {todoActions.bulkMode && (
-                          <Checkbox
-                            checked={todoActions.selectedIds.has(todo._id)}
-                            onChange={() => todoActions.toggleSelect(todo._id)}
-                            icon={<RadioButtonUncheckedIcon />}
-                            checkedIcon={<RadioButtonCheckedIcon />}
-                            sx={{
-                              color: itemTextColor,
-                              '& .MuiSvgIcon-root': { borderRadius: '50%' },
-                            }}
-                          />
-                        )}
-                        <Stack spacing={0.25} alignItems="center">
-                          {todo.category && (
-                            <Box sx={{ fontSize: 16, color: itemTextColor }}>
-  {(() => {
-    const IconComp = availableCategories.find((c) => c.value === todo.category)?.icon;
-    return IconComp ? <IconComp fontSize="small" /> : null;
-  })()}
-</Box>
-                          )}
-                          <Checkbox
-                            checked={todo.completed}
-                            onChange={() => !listActions.viewingHistory && todoActions.toggleComplete(todo)}
-                            disabled={listActions.viewingHistory}
-                            icon={<RadioButtonUncheckedIcon />}
-                            checkedIcon={<RadioButtonCheckedIcon />}
-                            sx={{
-                              color: itemTextColor,
-                              '& .MuiSvgIcon-root': { borderRadius: '50%' },
-                            }}
-                          />
-                        </Stack>
-
-                        <Box sx={{ flex: 1 }}> 
-                          {todoActions.inlineEditId === todo._id ? (
-                            <Stack spacing={1} sx={{ flex: 1 }} data-inline-edit-root={todo._id}>
-                              <TextField
-                                value={todoActions.inlineName}
-                                onChange={(e) => todoActions.setInlineName(e.target.value)}
-                                fullWidth
-                                variant="standard"
-                                autoFocus
-                                InputProps={{
-                                  endAdornment: todoActions.inlineName ? (
-                                    <InputAdornment position="end">
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => todoActions.setInlineName('')}
-                                        edge="end"
-                                      >
-                                        <ClearIcon fontSize="small" />
-                                      </IconButton>
-                                    </InputAdornment>
-                                  ) : null,
-                                }}
-                              />
-                              <TextField
-                                value={todoActions.inlineDescription}
-                                onChange={(e) => todoActions.setInlineDescription(e.target.value)}
-                                fullWidth
-                                variant="standard"
-                                InputProps={{
-                                  endAdornment: todoActions.inlineDescription ? (
-                                    <InputAdornment position="end">
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => todoActions.setInlineDescription('')}
-                                        edge="end"
-                                      >
-                                        <ClearIcon fontSize="small" />
-                                      </IconButton>
-                                    </InputAdornment>
-                                  ) : null,
-                                }}
-                              />
-                              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                                <Button
-                                  size="small"
-                                  variant="contained"
-                                  onClick={() => todoActions.finishInlineEdit(todo)}
-                                >
-                                  {t.todos.save}
-                                </Button>
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  onClick={() => todoActions.setInlineEditId(null)}
-                                >
-                                  {t.todos.cancel}
-                                </Button>
-                              </Stack>
-                            </Stack>
-                          ) : (
-                            <Box onClick={() => { if (!todoActions.bulkMode && !listActions.viewingHistory) todoActions.startInlineEdit(todo); }} sx={{ cursor: !todoActions.bulkMode && !listActions.viewingHistory ? 'pointer' : 'default' }}>
-                              <Typography variant="subtitle1" sx={{ color: itemTextColor, fontWeight: 500 }}>
-                                {todo.name}{todo.quantity > 1 ? ` (x${todo.quantity})` : ''}
-                              </Typography>
-                              {todo.description && (
-                                <Typography variant="body2" sx={{ color: itemTextColor, mt: 0.25 }}>
-                                  {todo.description}
-                                </Typography>
-                              )}
-                              {todo.comment && (
-                                <Typography variant="caption" sx={{ color: itemTextColor, opacity: 0.7 }}>
-                                  {todo.comment}
-                                </Typography>
-                              )}
-                            </Box>
-                          )}
-                        </Box>
-
-                        {!listActions.viewingHistory && (
-                          <Stack direction="row" spacing={1}>
-                            <IconButton
-                              edge="end"
-                              aria-label={t.todos.edit}
-                              sx={{ color: itemTextColor }}
-                              onClick={() => {
-                                todoActions.setEditingId(todo._id);
-                                todoActions.setName(todo.name);
-                                todoActions.setDescription(todo.description);
-                                todoActions.setQuantity(todo.quantity);
-                                todoActions.setComment(todo.comment || '');
-                                todoActions.setColor(todo.color || listActions.listDefaultColor);
-                                todoActions.setCategory(todo.category || '');
+                elements.push(
+                  <Grow key={todo._id} in timeout={300}>
+                    <Card
+                      draggable={!listActions.viewingHistory}
+                      onDragStart={(e) => todoActions.onDragStart(e, index)}
+                      onDragOver={todoActions.onDragOver}
+                      onDrop={(e) => todoActions.onDrop(e, index)}
+                      onTouchStart={(e) => todoActions.onTouchStart(e, index)}
+                      onTouchMove={todoActions.onTouchMove}
+                      onTouchEnd={(e) => todoActions.onTouchEnd(e, index)}
+                      sx={{
+                        mb: 1,
+                        backgroundColor: itemBg || 'inherit',
+                        transition: 'background-color 0.3s ease',
+                        color: itemTextColor,
+                        cursor: !listActions.viewingHistory ? 'move' : 'auto',
+                        touchAction: 'none',
+                      }}
+                      elevation={1}
+                    >
+                      <CardContent sx={{ p: 1}}>
+                        <ListItem disableGutters>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                          {todoActions.bulkMode && (
+                            <Checkbox
+                              checked={todoActions.selectedIds.has(todo._id)}
+                              onChange={() => todoActions.toggleSelect(todo._id)}
+                              icon={<RadioButtonUncheckedIcon />}
+                              checkedIcon={<RadioButtonCheckedIcon />}
+                              sx={{
+                                color: itemTextColor,
+                                '& .MuiSvgIcon-root': { borderRadius: '50%' },
                               }}
-                            >
-                              ✏️
-                            </IconButton>
-                            <IconButton
-                              edge="end"
-                              aria-label={t.todos.delete}
-                              sx={{ color: itemTextColor }}
-                              onClick={() => todoActions.deleteTodo(todo._id)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
+                            />
+                          )}
+                          <Stack spacing={0.25} alignItems="center">
+                            {todo.category && (
+                              <Box sx={{ fontSize: 16, color: itemTextColor }}>
+                {(() => {
+                  const IconComp = availableCategories.find((c) => c.value === todo.category)?.icon;
+                  return IconComp ? <IconComp fontSize="small" /> : null;
+                })()}
+              </Box>
+                            )}
+                            <Checkbox
+                              checked={todo.completed}
+                              onChange={() => !listActions.viewingHistory && todoActions.toggleComplete(todo)}
+                              disabled={listActions.viewingHistory}
+                              icon={<RadioButtonUncheckedIcon />}
+                              checkedIcon={<RadioButtonCheckedIcon />}
+                              sx={{
+                                color: itemTextColor,
+                                '& .MuiSvgIcon-root': { borderRadius: '50%' },
+                              }}
+                            />
                           </Stack>
-                        )}
-                      </Stack>
-                    </ListItem>
-                    </CardContent>
-                  </Card>
-                </Grow>
-              );
-            })}
+
+                          <Box sx={{ flex: 1 }}> 
+                            {todoActions.inlineEditId === todo._id ? (
+                              <Stack spacing={1} sx={{ flex: 1 }} data-inline-edit-root={todo._id}>
+                                <TextField
+                                  value={todoActions.inlineName}
+                                  onChange={(e) => todoActions.setInlineName(e.target.value)}
+                                  fullWidth
+                                  variant="standard"
+                                  autoFocus
+                                  InputProps={{
+                                    endAdornment: todoActions.inlineName ? (
+                                      <InputAdornment position="end">
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => todoActions.setInlineName('')}
+                                          edge="end"
+                                        >
+                                          <ClearIcon fontSize="small" />
+                                        </IconButton>
+                                      </InputAdornment>
+                                    ) : null,
+                                  }}
+                                />
+                                <TextField
+                                  value={todoActions.inlineDescription}
+                                  onChange={(e) => todoActions.setInlineDescription(e.target.value)}
+                                  fullWidth
+                                  variant="standard"
+                                  InputProps={{
+                                    endAdornment: todoActions.inlineDescription ? (
+                                      <InputAdornment position="end">
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => todoActions.setInlineDescription('')}
+                                          edge="end"
+                                        >
+                                          <ClearIcon fontSize="small" />
+                                        </IconButton>
+                                      </InputAdornment>
+                                    ) : null,
+                                  }}
+                                />
+                                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    onClick={() => todoActions.finishInlineEdit(todo)}
+                                  >
+                                    {t.todos.save}
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => todoActions.setInlineEditId(null)}
+                                  >
+                                    {t.todos.cancel}
+                                  </Button>
+                                </Stack>
+                              </Stack>
+                            ) : (
+                              <Box onClick={() => { if (!todoActions.bulkMode && !listActions.viewingHistory) todoActions.startInlineEdit(todo); }} sx={{ cursor: !todoActions.bulkMode && !listActions.viewingHistory ? 'pointer' : 'default' }}>
+                                <Typography variant="subtitle1" sx={{ color: itemTextColor, fontWeight: 500 }}>
+                                  {todo.name}{todo.quantity > 1 ? ` (x${todo.quantity})` : ''}
+                                </Typography>
+                                {todo.description && (
+                                  <Typography variant="body2" sx={{ color: itemTextColor, mt: 0.25 }}>
+                                    {todo.description}
+                                  </Typography>
+                                )}
+                                {todo.comment && (
+                                  <Typography variant="caption" sx={{ color: itemTextColor, opacity: 0.7 }}>
+                                    {todo.comment}
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                          </Box>
+
+                          {!listActions.viewingHistory && (
+                            <Stack direction="row" spacing={1}>
+                              <IconButton
+                                edge="end"
+                                aria-label={t.todos.edit}
+                                sx={{ color: itemTextColor }}
+                                onClick={() => {
+                                  todoActions.setEditingId(todo._id);
+                                  todoActions.setName(todo.name);
+                                  todoActions.setDescription(todo.description);
+                                  todoActions.setQuantity(todo.quantity);
+                                  todoActions.setComment(todo.comment || '');
+                                  todoActions.setColor(todo.color || listActions.listDefaultColor);
+                                  todoActions.setCategory(todo.category || '');
+                                }}
+                              >
+                                ✏️
+                              </IconButton>
+                              <IconButton
+                                edge="end"
+                                aria-label={t.todos.delete}
+                                sx={{ color: itemTextColor }}
+                                onClick={() => todoActions.deleteTodo(todo._id)}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Stack>
+                          )}
+                        </Stack>
+                      </ListItem>
+                      </CardContent>
+                    </Card>
+                  </Grow>
+                );
+              });
+
+              return elements;
+            })()}
           </List>
 
           {/* history dialog instead of inline section */}
