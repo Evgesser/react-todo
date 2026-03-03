@@ -30,3 +30,67 @@ a {
     color-scheme: dark;
   }
 }
+
+/* When page is rtl (e.g. Hebrew), align input/textarea text and placeholders to the right */
+html[dir="rtl"] input,
+html[dir="rtl"] textarea,
+html[dir="rtl"] .MuiInputBase-input,
+html[dir="rtl"] .MuiOutlinedInput-input,
+html[dir="rtl"] .MuiInputBase-input::placeholder,
+html[dir="rtl"] .MuiOutlinedInput-input::placeholder {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Ensure placeholder pseudo-element specifically aligns right in browsers */
+html[dir="rtl"] input::placeholder,
+html[dir="rtl"] textarea::placeholder {
+  text-align: right;
+}
+
+/* Align MUI TextField/Form labels to the right in RTL (including floating/shrunk state) */
+html[dir="rtl"] .MuiInputLabel-root,
+html[dir="rtl"] .MuiFormLabel-root,
+html[dir="rtl"] .MuiFormControlLabel-label {
+  direction: rtl;
+  text-align: right;
+  width: 100%;
+}
+
+html[dir="rtl"] .MuiInputLabel-root {
+  transform-origin: top right !important;
+}
+
+html[dir="rtl"] .MuiInputLabel-root.Mui-focused,
+html[dir="rtl"] .MuiInputLabel-root.MuiInputLabel-shrink {
+  transform-origin: top right !important;
+}
+
+/* Tweak floating label X translation and input padding for RTL so label doesn't overlap */
+html[dir="rtl"] .MuiFormControl-root {
+  direction: rtl;
+}
+
+/* Outlined inputs: adjust label translateX from +14px to -14px for RTL */
+html[dir="rtl"] .MuiInputLabel-root {
+  transform: translate(-14px, -4px) scale(1);
+}
+html[dir="rtl"] .MuiInputLabel-root.MuiInputLabel-shrink {
+  transform: translate(-14px, -18px) scale(0.75) !important;
+}
+
+/* Filled / standard variants: small adjustments */
+html[dir="rtl"] .MuiInputLabel-root.Mui-focused,
+html[dir="rtl"] .MuiFormLabel-root.Mui-focused {
+  transform: translate(-14px, -18px) scale(0.75) !important;
+}
+
+/* Ensure input padding mirrors correctly in RTL so text doesn't overlap label */
+html[dir="rtl"] .MuiOutlinedInput-input {
+  padding-right: 14px; /* space for label */
+  padding-left: 12px;
+}
+html[dir="rtl"] .MuiInputBase-input {
+  padding-right: 14px;
+  padding-left: 12px;
+}

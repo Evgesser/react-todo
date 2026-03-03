@@ -11,8 +11,12 @@ interface MyDocumentProps {
 
 export default class MyDocument extends Document<MyDocumentProps> {
   render() {
+    // allow getInitialProps to provide server-detected lang/dir
+    const propsAny = this.props as any;
+    const langAttr = propsAny.__LANG || 'en';
+    const dirAttr = propsAny.__DIR || 'ltr';
     return (
-      <Html lang="en">
+      <Html lang={langAttr} dir={dirAttr}>
         <Head>
           {/* PWA primary color */}
           <meta name="theme-color" content="#1976d2" />
@@ -55,8 +59,28 @@ MyDocument.getInitialProps = async (ctx: DocumentContext) => {
     />
   ));
 
+  // detect language cookie from the incoming request so initial HTML can have correct dir/lang
+  let langCode = 'en';
+  let dir = 'ltr';
+  try {
+    const cookie = ctx.req?.headers?.cookie || '';
+    const m = cookie.match(/(?:^|; )language=([^;]+)/);
+    if (m && m[1]) {
+      const val = decodeURIComponent(m[1]);
+      if (val === 'ru') langCode = 'ru';
+      else if (val === 'he') {
+        langCode = 'he';
+        dir = 'rtl';
+      } else langCode = 'en';
+    }
+  } catch (e) {
+    // ignore and fallback to defaults
+  }
+
   return {
     ...initialProps,
     emotionStyleTags,
+    __LANG: langCode,
+    __DIR: dir,
   };
 };

@@ -84,6 +84,16 @@ export default async function handler(
     // Success - clear attempts
     await clearAttempts(clientIp, normalizedUsername);
 
+    // If client provided preferred language, set cookie so SSR can read it
+    const lang = (req.body as any)?.language;
+    if (lang && (lang === 'ru' || lang === 'en' || lang === 'he')) {
+      const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+      res.setHeader(
+        'Set-Cookie',
+        `language=${encodeURIComponent(lang)}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax${secure}`
+      );
+    }
+
     res.status(200).json({
       userId: user._id.toString(),
       username: user.username,

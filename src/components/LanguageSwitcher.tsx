@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { IconButton, Menu, MenuItem } from '@mui/material';
-import LanguageIcon from '@mui/icons-material/Language';
+import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function LanguageSwitcher() {
@@ -15,28 +14,33 @@ export default function LanguageSwitcher() {
     setAnchorEl(null);
   };
 
-  const handleSelectLanguage = (lang: 'ru' | 'en') => {
+  const handleSelectLanguage = (lang: any) => {
     setLanguage(lang);
     handleClose();
   };
 
+  const flagMap: Record<string, string> = {
+    ru: '🇷🇺',
+    en: '🇬🇧',
+    he: '🇮🇱',
+  };
+
   return (
     <>
-      <IconButton onClick={handleClick} color="inherit" size="small">
-        <LanguageIcon />
-      </IconButton>
+      <Tooltip title={language === 'ru' ? 'Русский' : language === 'he' ? 'עברית' : 'English'}>
+        <IconButton onClick={handleClick} color="inherit" size="small">
+          <span style={{ fontSize: 20, lineHeight: 1 }}>{flagMap[language] || '🌐'}</span>
+        </IconButton>
+      </Tooltip>
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>
-        <MenuItem
-          onClick={() => handleSelectLanguage('ru')}
-          selected={language === 'ru'}
-        >
+        <MenuItem onClick={() => handleSelectLanguage('ru')} selected={language === 'ru'}>
           🇷🇺 Русский
         </MenuItem>
-        <MenuItem
-          onClick={() => handleSelectLanguage('en')}
-          selected={language === 'en'}
-        >
+        <MenuItem onClick={() => handleSelectLanguage('en')} selected={language === 'en'}>
           🇬🇧 English
+        </MenuItem>
+        <MenuItem onClick={() => handleSelectLanguage('he')} selected={language === 'he'}>
+          🇮🇱 עברית
         </MenuItem>
       </Menu>
     </>

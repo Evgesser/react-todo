@@ -1,0 +1,215 @@
+import { TranslationKeys } from './ru';
+
+export const he: TranslationKeys = {
+  // Auth
+  auth: {
+    username: 'שם משתמש',
+    password: 'סיסמה',
+    login: 'התחבר',
+    logout: 'התנתק',
+    loading: 'טוען...',
+    usernamePlaceholder: 'הכנס שם משתמש',
+    passwordPlaceholder: 'הכנס סיסמה',
+    userNotFound: 'המשתמש לא נמצא',
+    loginFailed: 'התחברות נכשלה',
+    createAccount: 'צור חשבון',
+  },
+
+  // Registration
+  register: {
+    title: 'המשתמש לא נמצא',
+    captchaLabel: 'אשר שאתה לא רובוט:',
+    captchaPlaceholder: 'הכנס תשובה',
+    captchaError: 'תשובה שגויה',
+    register: 'צור חשבון',
+    cancel: 'בטל',
+    registering: 'ביצוע...',
+    success: 'החשבון נוצר!',
+    userExists: 'משתמש קיים כבר',
+  },
+  
+  // Header
+  header: {
+    title: 'רשימת קניות',
+    profile: 'פרופיל',
+    logout: 'התנתק',
+  },
+  
+  // Lists
+  lists: {
+    selectList: 'רשימה',
+    newList: 'רשימה חדשה',
+    listColor: 'צבע הרשימה',
+    saveColor: 'שמור צבע',
+    history: 'היסטוריה',
+    bulkMode: 'בחירה מרובה',
+    bulkCancel: 'ביטול בחירה',
+    logout: 'התנתק',
+    deleteList: 'מחק רשימה',
+    completeList: 'סיים רשימה',
+    share: 'שתף',
+    linkCopied: 'הקישור הועתק',
+    linkRevoked: 'הקישור בוטל',
+    revokeLink: 'בטל קישור',
+    noLists: 'אין רשימות',
+  },
+  
+  // Todos
+  todos: {
+    addEdit: 'הוסף / ערוך',
+    name: 'שם',
+    namePlaceholder: 'מה לקנות?',
+    description: 'תיאור',
+    descriptionPlaceholder: 'מידע נוסף',
+    quantity: 'כמות',
+    comment: 'הערה',
+    parsedPreview: 'זוהה',
+    nameLabel: 'שם',
+    quantityLabel: 'כמות',
+    commentLabel: 'הערה',
+    commentPlaceholder: 'הערות לפריט',
+    color: 'צבע',
+    category: 'קטגוריה',
+    add: 'הוסף',
+    save: 'שמור',
+    cancel: 'בטל',
+    edit: 'ערוך',
+    delete: 'מחק',
+    completed: 'הושלם',
+    active: 'פעיל',
+    all: 'הכל',
+    missing: 'חסר',
+    markMissing: 'סמן כחסר',
+    unmarkMissing: 'הסר סימון חסר',
+  },
+  
+  // Search
+  search: {
+    placeholder: 'חפש',
+    bulkComplete: 'סמן כהושלם',
+    bulkDelete: 'מחק נבחרים',
+    cancelBulk: 'בטל',
+  },
+  
+  // Dialogs
+  dialogs: {
+    newList: {
+      title: 'רשימה חדשה',
+      name: 'שם',
+      template: 'תבנית',
+      noTemplate: '(ללא)',
+      create: 'צור',
+      cancel: 'בטל',
+      error: 'לא ניתן ליצור רשימה',
+    },
+    
+    quantity: {
+      title: 'כמות',
+      save: 'שמור',
+      cancel: 'בטל',
+    },
+    
+    history: {
+      title: 'היסטוריית רשימות',
+      noHistory: 'אין רשימות הושלמו',
+      view: 'צפייה',
+      deleteAll: 'מחק הכל',
+      close: 'סגור',
+    },
+    
+    personalization: {
+      title: 'התאמה אישית',
+      categories: 'קטגוריות',
+      templates: 'תבניות',
+      categoryValue: 'ערך',
+      categoryLabel: 'תווית',
+      categoryIcon: 'אייקון',
+      noIcon: '(ללא)',
+      addCategory: 'הוסף קטגוריה',
+      templateName: 'שם תבנית',
+      items: 'פריטים',
+      itemName: 'שם',
+      itemQuantity: 'כמות',
+      itemCategory: 'קטגוריה',
+      none: '(ללא)',
+      addItem: 'הוסף פריט',
+      addTemplate: 'הוסף תבנית',
+      save: 'שמור',
+      close: 'סגור',
+    },
+  },
+  
+  // Messages
+  messages: {
+    categoryAdded: 'הקטגוריה נוספה; בחר אייקון',
+    listCreated: 'הרשימה נוצרה',
+    listDeleted: 'הרשימה נמחקה',
+    listCompleted: 'הרשימה הושלמה',
+    colorSaved: 'הצבע נשמר',
+    loadListsError: 'לא ניתן לטעון רשימות',
+    deleteListError: 'לא ניתן למחוק רשימה',
+    colorUpdateError: 'עדכון צבע נכשל',
+    completeListError: 'סיום הרשימה נכשל',
+    itemAdded: 'הפריט נוסף',
+    itemUpdated: 'הפריט עודכן',
+    itemDeleted: 'הפריט נמחק',
+    itemMarkedMissing: 'הפריט סומן כחסר',
+    itemUnmarkedMissing: 'הסימון הוסר',
+    notAuthenticated: 'המשתמש אינו מחובר',
+    personalizationSaved: 'ההגדרות נשמרו',
+    personalizationSaveError: 'שגיאה בשמירת ההגדרות',
+    possibleCategoryMismatch: 'אזהרה: ייתכן שהקטגוריה שגויה',
+    cannotMoveBetweenCategories: 'לא ניתן להעביר בין קטגוריות',
+    createError: 'שגיאה ביצירה',
+    invalidLink: 'קישור לא חוקי',
+    loading: 'טוען...',
+    saveError: 'שגיאה בשמירה',
+    error: 'שגיאה',
+  },
+  
+  // Buttons
+  buttons: {
+    save: 'שמור',
+    cancel: 'בטל',
+    delete: 'מחק',
+    close: 'סגור',
+    add: 'הוסף',
+    edit: 'ערוך',
+    create: 'צור',
+    personalize: 'התאמה אישית',
+    smartParse: 'פירוש חכם',
+    smartAdd: 'הוספה חכמה',
+  },
+  
+  // Contrast
+  contrast: {
+    good: 'ניגודיות טובה',
+    warning: 'אזהרה: ניגודיות בינונית',
+  },
+  
+  // Profile
+  profile: {
+    title: 'פרופיל',
+    email: 'אימייל',
+    bio: 'עליי',
+    avatar: 'אווטאר',
+    changeAvatar: 'שנה אווטאר',
+    editProfile: 'ערוך פרופיל',
+    saveChanges: 'שמור שינויים',
+    memberSince: 'חבר מאז',
+    notSet: 'לא הוגדר',
+    profileUpdated: 'הפרופיל עודכן בהצלחה',
+    passwordChanged: 'הסיסמה שונתה בהצלחה',
+    accountDeleted: 'החשבון נמחק בהצלחה',
+    changePassword: 'שנה סיסמה',
+    currentPassword: 'סיסמה נוכחית',
+    newPassword: 'סיסמה חדשה',
+    confirmPassword: 'אשר סיסמה',
+    deleteAccount: 'מחק חשבון',
+    deleteWarning: 'פעולה זו בלתי הפיכה. כל הנתונים יימחקו לצמיתות.',
+    enterPasswordToConfirm: 'הזן סיסמה לאישור',
+    passwordsDoNotMatch: 'הסיסמאות אינן תואמות',
+  },
+};
+
+export type HeTranslation = typeof he;

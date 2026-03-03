@@ -56,6 +56,7 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
         onClose();
       }}
       disableEscapeKeyDown
+      PaperProps={{ dir: 'ltr' }}
     >
       <DialogTitle>{t.dialogs.quantity.title}</DialogTitle>
       <DialogContent>
@@ -63,7 +64,7 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
           label={t.dialogs.quantity.title}
           type="text"
           /* prevent mobile keyboards by making the field read-only – users enter via the custom keypad */
-          inputProps={{ readOnly: true }}
+          inputProps={{ readOnly: true, dir: 'ltr' }}
           value={temp}
           /* avoid autoFocus so the virtual keyboard doesn't trigger on open */
           fullWidth
