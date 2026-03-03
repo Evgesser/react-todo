@@ -61,6 +61,10 @@ export const ru = {
     descriptionPlaceholder: 'Дополнительная информация',
     quantity: 'Количество',
     comment: 'Комментарий',
+    parsedPreview: 'Распознано',
+    nameLabel: 'Название',
+    quantityLabel: 'Кол‑во',
+    commentLabel: 'Комментарий',
     commentPlaceholder: 'Заметки к товару',
     color: 'Цвет',
     category: 'Категория',
@@ -171,6 +175,8 @@ export const ru = {
     edit: 'Редактировать',
     create: 'Создать',
     personalize: 'Персонализация',
+    smartParse: 'Умный ввод',
+    smartAdd: 'Умное сохранение',
   },
   
   // Contrast

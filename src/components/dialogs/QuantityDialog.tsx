@@ -10,7 +10,7 @@ interface QuantityDialogProps {
 }
 
 export default function QuantityDialog({ open, value, onChange, onClose }: QuantityDialogProps) {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
   // temp as string to allow empty field when dialog opens
   const [temp, setTemp] = React.useState<string>(value?.toString() || '');
   // when the dialog opens we always start with an empty input, treat a prop value of 1 as equivalent to no value
@@ -73,12 +73,15 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 48px)',
+            gridTemplateColumns: 'repeat(4, 48px)',
             gap: 4,
             justifyContent: 'center',
           }}
         >
-          {['1','2','3','4','5','6','7','8','9','←','0','C'].map((label) => (
+          {(() => {
+            const dec = language === 'ru' ? ',' : '.';
+            return ['1','2','3','4','5','6','7','8','9','←','0',dec,'C'];
+          })().map((label) => (
             <Button
               key={label}
               size="small"
@@ -88,6 +91,11 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
                   setTemp((prev) => prev.slice(0, -1));
                 } else if (label === 'C') {
                   setTemp('');
+                } else if (label === '.') {
+                  setTemp((prev) => {
+                    if (prev.includes('.') || prev.includes(',')) return prev;
+                    return prev === '' ? '0.' : prev + '.';
+                  });
                 } else {
                   const n = label;
                   setTemp((prev) => prev === '' ? n : prev + n);
@@ -112,7 +120,7 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
           <Button onClick={onClose}>{t.dialogs.quantity.cancel}</Button>
           <Button
             onClick={() => {
-              const num = parseInt(temp, 10);
+              const num = parseFloat(temp.replace(',', '.'));
               onChange(isNaN(num) ? 0 : num);
               onClose();
             }}

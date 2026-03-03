@@ -15,7 +15,9 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ClearIcon from '@mui/icons-material/Clear';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Category, iconMap } from '@/constants';
+// import { useLanguage } from '@/contexts/LanguageContext'; // language no longer needed in parser
 import { UseTodosReturn } from '@/hooks/useTodos';
 import { useNameOptions } from '@/hooks/useNameOptions';
 import { useCategoryOptions } from '@/hooks/useCategoryOptions';
@@ -37,6 +39,11 @@ interface Props {
   setFormOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+
+// parsing logic has been moved to a shared utility so other
+// components or tests can use it without dragging TodoForm along.
+import { parseSmartInput, ParsedInput } from '@/utils/parseSmartInput';
+
 export default function TodoForm({
   todoActions,
   availableCategories,
@@ -50,7 +57,10 @@ export default function TodoForm({
   setFormOpen,
 }: Props) {
   // local state needed by the form (icon picker + quantity dialog)
+  // language context no longer required for parsing
+  const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
   const [tempIconKey, setTempIconKey] = React.useState('');
+  const [parsed, setParsed] = React.useState<ParsedInput | null>(null);
   const [quantityDialogOpen, setQuantityDialogOpen] = React.useState(false);
   const [tempQuantity, setTempQuantity] = React.useState<number>(
     todoActions.quantity || 1
@@ -94,6 +104,15 @@ export default function TodoForm({
     return found ? found.label : todoActions.category;
   }, [availableCategories, todoActions.category, todoActions.name, todoActions.clearedForName]);
 
+  // label to show in the preview area; prefer parser's category but
+  // map it to a human-readable label if possible
+  const previewCategoryLabel = React.useMemo(() => {
+    const cat = parsed?.category || todoActions.category;
+    if (!cat) return '';
+    const found = availableCategories.find((c) => c.value === cat);
+    return found ? found.label : cat;
+  }, [parsed, todoActions.category, availableCategories]);
+
   const ensureCategoryExists = React.useCallback(
     async (val: string, iconKey?: string) => {
       const v = val.trim();
@@ -117,16 +136,48 @@ export default function TodoForm({
     [setAvailableCategories]
   );
 
-  const handleAdd = React.useCallback(async () => {
+  // add item using whatever values are currently in state
+  type Override = Partial<{ name: string; quantity: number; comment: string; category: string }>;
+
+  const handleAdd = React.useCallback(async (override?: Override) => {
+    // compute parse fresh or use override
+    let p = override ?? parsed ?? parseSmartInput(todoActions.name);
+    if (!p && todoActions.name.trim().includes(' ')) {
+      const parts = todoActions.name.trim().split(/\s+/);
+      const first = parts.shift() || '';
+      p = { name: first, quantity: 1, comment: parts.join(' ') };
+    }
+    if (p) {
+      // apply overrides to state synchronously
+      todoActions.setName(capitalize(p.name || ''));
+      todoActions.setQuantity(p.quantity ?? 1);
+      todoActions.setComment(p.comment || '');
+      if (p.category) {
+        todoActions.setCategory(p.category);
+      }
+    }
+    // always capitalize name on save (state for UI)
+    if (todoActions.name) {
+      todoActions.setName(capitalize(todoActions.name));
+    }
     await ensureCategoryExists(todoActions.category, tempIconKey || undefined);
-    await todoActions.addItem();
+    // add using override so stale state doesn't matter
+    const overridePayload: Partial<{ name: string; quantity: number; comment: string; category: string }> = {};
+    if (p) {
+      if (p.name) overridePayload.name = capitalize(p.name);
+      if (p.quantity != null) overridePayload.quantity = p.quantity;
+      if (p.comment) overridePayload.comment = p.comment;
+      if (p.category) overridePayload.category = p.category;
+    }
+    await todoActions.addItem(overridePayload);
     updateNameCategory(
-      todoActions.name,
-      todoActions.category,
-      todoActions.comment
+      overridePayload.name || todoActions.name,
+      overridePayload.category || todoActions.category,
+      overridePayload.comment || todoActions.comment
     );
     setTempIconKey('');
-  }, [ensureCategoryExists, todoActions, tempIconKey, updateNameCategory]);
+    setParsed(null);
+  }, [ensureCategoryExists, todoActions, tempIconKey, updateNameCategory, parsed]);
 
   return (
     <Collapse in={formOpen} timeout={400}>
@@ -154,14 +205,23 @@ export default function TodoForm({
             options={nameOptions}
             getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.name)}
             inputValue={todoActions.name}
-            onInputChange={(_, v) => todoActions.setName(v)}
+            onInputChange={(_, v) => {
+              todoActions.setName(capitalize(v));
+              const p = parseSmartInput(v);
+              setParsed(p);
+            }}
             onChange={(_, v) => {
+              let newName = '';
               if (typeof v === 'string') {
-                todoActions.setName(v);
+                newName = capitalize(v);
+                todoActions.setName(newName);
               } else if (v && typeof v === 'object') {
-                todoActions.setName(v.name);
+                newName = capitalize(v.name);
+                todoActions.setName(newName);
                 if (v.category) todoActions.setCategory(v.category);
               }
+              const p = parseSmartInput(newName);
+              setParsed(p);
             }}
             renderOption={(props, option) => {
               const data = typeof option === 'string' ? { name: option } : option;
@@ -200,6 +260,11 @@ export default function TodoForm({
                   if (e.key === 'Enter') {
                     handleAdd();
                     e.preventDefault();
+                  }
+                  if (e.key === ' ' || e.key === 'Spacebar') {
+                    // space pressed - update parsed preview
+                    const p = parseSmartInput(todoActions.name);
+                    setParsed(p);
                   }
                 }}
                 InputProps={{
@@ -336,10 +401,57 @@ export default function TodoForm({
                 onChange={setTempIconKey}
               />
             )}
-          <Stack direction="row" spacing="2">
-            <Button variant="contained" onClick={handleAdd}>
+
+          {/* preview of parsed result */}
+          {parsed && (
+            <Box sx={{ mt: 1, p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="body2">
+                {t.todos.parsedPreview || 'Parsed:'}
+              </Typography>
+              <Typography variant="body2">
+                <strong>{t.todos.nameLabel || 'Name'}:</strong> {parsed.name}
+              </Typography>
+              <Typography variant="body2">
+                <strong>{t.todos.quantityLabel || 'Qty'}:</strong> {parsed.quantity}
+              </Typography>
+              {parsed.comment && (
+                <Typography variant="body2">
+                  <strong>{t.todos.commentLabel || 'Comment'}:</strong> {parsed.comment}
+                </Typography>
+              )}
+              {previewCategoryLabel && (
+                <Typography variant="body2">
+                  <strong>{t.todos.category}:</strong> {previewCategoryLabel}
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          <Stack direction="row" spacing={2} flexWrap="wrap">
+            <Button
+              variant="contained"
+              onClick={() => handleAdd()}
+            >
               {todoActions.editingId ? t.todos.save : t.todos.add}
             </Button>
+            {parsed && (
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<AutoAwesomeIcon />}
+                onClick={() => {
+                  // apply parsed values then add
+                  handleAdd({
+                    name: parsed.name,
+                    quantity: parsed.quantity,
+                    comment: parsed.comment,
+                    category: parsed.category,
+                  });
+                }}
+              >
+                {t.buttons.smartAdd || 'Умное сохранение'}
+              </Button>
+            )}
             {todoActions.editingId && (
               <Button
                 variant="outlined"

@@ -19,6 +19,15 @@ interface UseTodosParams {
   products?: Array<{ name: string; category?: string }>;
 }
 
+interface AddOverride {
+  name?: string;
+  description?: string;
+  quantity?: number;
+  comment?: string;
+  color?: string;
+  category?: string;
+}
+
 export interface UseTodosReturn {
   // State
   todos: Todo[];
@@ -65,7 +74,7 @@ export interface UseTodosReturn {
 
   // Methods
   fetchTodos: (listId: string, category?: string, silent?: boolean) => Promise<void>;
-  addItem: () => Promise<void>;
+  addItem: (override?: AddOverride) => Promise<void>;
   toggleComplete: (todo: Todo) => Promise<void>;
   toggleMissing: (todo: Todo) => Promise<void>;
   deleteTodo: (id: string) => Promise<void>;
@@ -231,16 +240,26 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   };
 
   // Add or update a todo item
-  const addItem = async () => {
-    if (!name.trim() || !currentListId) return;
+  interface AddOverride {
+    name?: string;
+    description?: string;
+    quantity?: number;
+    comment?: string;
+    color?: string;
+    category?: string;
+  }
+
+  const addItem = async (override: AddOverride = {}) => {
+    const finalName = (override.name ?? name).trim();
+    if (!finalName || !currentListId) return;
     const payload: Partial<Todo> & { listId: string } = {
       listId: currentListId,
-      name: name.trim(),
-      description: description.trim(),
-      quantity,
-      comment: comment.trim(),
-      color,
-      category,
+      name: finalName,
+      description: (override.description ?? description).trim(),
+      quantity: override.quantity ?? quantity,
+      comment: (override.comment ?? comment).trim(),
+      color: override.color ?? color,
+      category: override.category ?? category,
     };
     // when editing, preserve the missing flag if it already existed
     if (editingId) {

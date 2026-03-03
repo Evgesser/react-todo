@@ -63,6 +63,10 @@ export const en: TranslationKeys = {
     descriptionPlaceholder: 'Additional information',
     quantity: 'Quantity',
     comment: 'Comment',
+    parsedPreview: 'Parsed',
+    nameLabel: 'Name',
+    quantityLabel: 'Qty',
+    commentLabel: 'Comment',
     commentPlaceholder: 'Item notes',
     color: 'Color',
     category: 'Category',
@@ -173,6 +177,8 @@ export const en: TranslationKeys = {
     edit: 'Edit',
     create: 'Create',
     personalize: 'Personalize',
+    smartParse: 'Smart parse',
+    smartAdd: 'Smart add',
   },
   
   // Contrast
