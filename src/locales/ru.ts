@@ -125,6 +125,7 @@ export const ru = {
       itemName: 'Название',
       itemQuantity: 'Кол-во',
       itemCategory: 'Категория',
+      none: '(нет)',
       addItem: 'Добавить пункт',
       addTemplate: 'Добавить шаблон',
       save: 'Сохранить',
@@ -134,6 +135,7 @@ export const ru = {
   
   // Messages
   messages: {
+    categoryAdded: 'Категория добавлена; выберите иконку',
     listCreated: 'Список создан',
     listDeleted: 'Список удален',
     listCompleted: 'Список завершен',

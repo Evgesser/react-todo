@@ -64,7 +64,7 @@ export interface UseTodosReturn {
   setLastAdded: (name: string | null) => void;
 
   // Methods
-  fetchTodos: (listId: string, category?: string) => Promise<void>;
+  fetchTodos: (listId: string, category?: string, silent?: boolean) => Promise<void>;
   addItem: () => Promise<void>;
   toggleComplete: (todo: Todo) => Promise<void>;
   toggleMissing: (todo: Todo) => Promise<void>;
@@ -189,7 +189,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   }, [inlineEditId]);
 
   // Fetch todos from API
-  const fetchTodos = async (listId: string, categoryParam?: string) => {
+  const fetchTodos = async (listId: string, categoryParam?: string, silent = false) => {
     if (!listId) return;
     // cancel previous request if still pending
     if (todosAbort.current) {
@@ -197,7 +197,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     }
     const controller = new AbortController();
     todosAbort.current = controller;
-    setTodosLoading(true);
+    if (!silent) setTodosLoading(true);
     try {
       // use explicit parameter first, otherwise fall back to filterCategory (not form
       // category, which is unrelated to filtering)
@@ -315,20 +315,22 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   // Toggle todo completion status
   const toggleComplete = async (todo: Todo) => {
     if (!currentListId) return;
+    setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, completed: !todo.completed } : t)));
     await apiUpdateTodo(todo._id, { listId: currentListId, completed: !todo.completed });
-    await fetchTodos(currentListId);
+    await fetchTodos(currentListId, undefined, true);
   };
 
   // Toggle missing/unavailable status
   const toggleMissing = async (todo: Todo) => {
     if (!currentListId) return;
+    setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, missing: !todo.missing } : t)));
     await apiUpdateTodo(todo._id, { listId: currentListId, missing: !todo.missing });
     if (todo.missing) {
       onSnackbar(t.messages.itemUnmarkedMissing || '');
     } else {
       onSnackbar(t.messages.itemMarkedMissing || '');
     }
-    await fetchTodos(currentListId);
+    await fetchTodos(currentListId, undefined, true);
   };
 
   // Move an entire category block up or down in the ordering.  We recompute a

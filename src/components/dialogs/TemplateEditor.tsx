@@ -7,14 +7,17 @@ import TemplateItemRow, { TemplateItem } from './TemplateItemRow';
 import type { TranslationKeys } from '@/locales/ru';
 import type { Template } from '@/types';
 
+interface CatOpt { value: string; label: string }
 interface Props {
   template: Template;
   t: TranslationKeys;
   onChange: (tmpl: Template) => void;
   onRemove: () => void;
+  categoryOptions: CatOpt[];
+  onCategoryAdd: (cat: string) => void;
 }
 
-export default function TemplateEditor({ template, t, onChange, onRemove }: Props) {
+export default function TemplateEditor({ template, t, onChange, onRemove, categoryOptions, onCategoryAdd }: Props) {
   const handleName = (name: string) => onChange({ ...template, name });
 
   const updateItem = (index: number, item: TemplateItem) => {
@@ -59,6 +62,8 @@ export default function TemplateEditor({ template, t, onChange, onRemove }: Prop
           key={idx}
           item={item}
           t={t}
+          categoryOptions={categoryOptions}
+          onCategoryAdd={onCategoryAdd}
           onChange={(it) => updateItem(idx, it)}
           onRemove={() => removeItem(idx)}
         />

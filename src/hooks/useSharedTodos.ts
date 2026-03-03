@@ -55,18 +55,21 @@ export function useSharedTodos(token: string, onSnackbar: (msg: string) => void,
   }, [token, fetch]);
 
   const toggleComplete = async (todo: Todo) => {
+    setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, completed: !todo.completed } : t)));
     await updateSharedTodo(token, { todoId: todo._id, completed: !todo.completed });
-    await fetch();
+    // fetch is called in background but we don't await blocking it if it flickers
+    fetch();
   };
 
   const toggleMissing = async (todo: Todo) => {
+    setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, missing: !todo.missing } : t)));
     await updateSharedTodo(token, { todoId: todo._id, missing: !todo.missing });
     if (todo.missing) {
       onSnackbar(t.messages.itemUnmarkedMissing || '');
     } else {
       onSnackbar(t.messages.itemMarkedMissing || '');
     }
-    await fetch();
+    fetch();
   };
 
   const moveCategory = async (category: string, direction: 'up' | 'down') => {

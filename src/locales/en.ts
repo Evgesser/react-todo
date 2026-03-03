@@ -127,6 +127,7 @@ export const en: TranslationKeys = {
       itemName: 'Name',
       itemQuantity: 'Qty',
       itemCategory: 'Category',
+      none: '(none)',
       addItem: 'Add Item',
       addTemplate: 'Add Template',
       save: 'Save',
@@ -136,6 +137,7 @@ export const en: TranslationKeys = {
   
   // Messages
   messages: {
+    categoryAdded: 'Category added; please pick an icon',
     listCreated: 'List created',
     listDeleted: 'List deleted',
     listCompleted: 'List completed',

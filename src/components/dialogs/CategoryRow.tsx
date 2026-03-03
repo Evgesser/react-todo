@@ -11,6 +11,7 @@ interface CategoryRowProps {
   t: TranslationKeys;
   onChange: (next: StoredCategory) => void;
   onRemove: () => void;
+  autoFocusIcon?: boolean;
 }
 
 export default function CategoryRow({
@@ -18,6 +19,7 @@ export default function CategoryRow({
   t,
   onChange,
   onRemove,
+  autoFocusIcon,
 }: CategoryRowProps) {
   const handleField = (key: keyof StoredCategory, value: string) => {
     onChange({ ...category, [key]: value });
@@ -54,10 +56,11 @@ export default function CategoryRow({
         select
         label={t.dialogs.personalization.categoryIcon}
         value={category.icon || ''}
+        autoFocus={autoFocusIcon}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           handleField('icon', e.target.value)
         }
-        sx={{ mr: 1, width: { xs: '100%', sm: 140 } }}
+        sx={{ mr: 1, width: { xs: '100%', sm: 160, md: 200 } }}
       >
         <MenuItem value="">{t.dialogs.personalization.noIcon}</MenuItem>
         {iconChoices.map((ic) => (

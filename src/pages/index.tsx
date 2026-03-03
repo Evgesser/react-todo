@@ -285,6 +285,7 @@ export default function Home() {
             setAvailableCategories={setAvailableCategories}
             availableTemplates={availableTemplates}
             setAvailableTemplates={setAvailableTemplates}
+            products={products}
             setSnackbarMsg={setSnackbarMsg}
             setSnackbarOpen={setSnackbarOpen}
           />

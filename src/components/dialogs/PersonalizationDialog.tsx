@@ -31,6 +31,7 @@ interface PersonalizationDialogProps {
   setAvailableCategories: (cats: Category[]) => void;
   availableTemplates: Template[];
   setAvailableTemplates: (templates: Template[]) => void;
+  products: Array<{ name: string; category?: string }>;
   setSnackbarMsg: (msg: string) => void;
   setSnackbarOpen: (open: boolean) => void;
 }
@@ -43,6 +44,7 @@ export default function PersonalizationDialog({
   setAvailableCategories,
   availableTemplates,
   setAvailableTemplates,
+  products,
   setSnackbarMsg,
   setSnackbarOpen,
 }: PersonalizationDialogProps) {
@@ -55,6 +57,48 @@ export default function PersonalizationDialog({
   const [editingCategories, setEditingCategories] = React.useState<StoredCategory[]>([]);
   const [editingTemplates, setEditingTemplates] = React.useState<Template[]>([]);
   const [saving, setSaving] = React.useState(false);
+  const [autoFocusCategory, setAutoFocusCategory] = React.useState<string | null>(null);
+
+  // clear focus flag shortly after it's set so the next render doesn't repeatedly open
+  React.useEffect(() => {
+    if (autoFocusCategory) {
+      const timer = setTimeout(() => setAutoFocusCategory(null), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [autoFocusCategory]);
+
+  // callback from template rows when a new category string is entered
+  const handleTemplateCategoryAdd = React.useCallback(
+    (cat: string) => {
+      const v = cat.trim();
+      if (!v) return;
+      if (!editingCategories.find((c) => c.value === v)) {
+        setEditingCategories((prev) => [...prev, { value: v, label: v, icon: '' }]);
+        setAutoFocusCategory(v);
+        setSnackbarMsg(t.messages.categoryAdded || `Category "${v}" added. Select an icon.`);
+        setSnackbarOpen(true);
+      }
+    },
+    [editingCategories, setSnackbarMsg, setSnackbarOpen, t.messages]
+  );
+
+  // list of strings passed to template editors; include current categories and any appearing in products
+  interface CatOpt { value: string; label: string; }
+  const templateCategoryOptions = React.useMemo<CatOpt[]>(() => {
+    const map = new Map<string, string>();
+    editingCategories.forEach((c) => {
+      if (c.value && c.value.trim()) map.set(c.value, c.label || c.value);
+    });
+    availableCategories.forEach((c) => {
+      if (c.value && c.value.trim() && !map.has(c.value))
+        map.set(c.value, c.label || c.value);
+    });
+    products.forEach((p) => {
+      if (p.category && p.category.trim() && !map.has(p.category))
+        map.set(p.category, p.category);
+    });
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+  }, [editingCategories, availableCategories, products]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -115,6 +159,7 @@ export default function PersonalizationDialog({
             <CategoryRow
               category={category}
               t={t}
+              autoFocusIcon={autoFocusCategory === category.value}
               onChange={(next) =>
                 setEditingCategories((prev) => {
                   const arr = [...prev];
@@ -147,6 +192,8 @@ export default function PersonalizationDialog({
             <TemplateEditor
               template={template}
               t={t}
+              categoryOptions={templateCategoryOptions}
+              onCategoryAdd={handleTemplateCategoryAdd}
               onChange={(next) =>
                 setEditingTemplates((prev) => {
                   const arr = [...prev];

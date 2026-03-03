@@ -50,10 +50,10 @@ export default function TodoListItem({
 
   // background / text colours follow the logic that used to live in TodoList
   let itemBg: string | undefined;
-  if (todo.completed) {
-    itemBg = theme.palette.action.disabledBackground;
-  } else if (todo.missing) {
-    itemBg = alpha(theme.palette.error.light, 0.4);
+  if (todo.missing) {
+    itemBg = alpha(theme.palette.error.light, theme.palette.mode === 'dark' ? 0.2 : 0.4);
+  } else if (todo.completed) {
+    itemBg = (todo.color && todo.color.trim()) ? todo.color : theme.palette.action.disabledBackground;
   } else {
     itemBg = todo.color && todo.color.trim() ? todo.color : undefined;
   }
@@ -94,21 +94,32 @@ export default function TodoListItem({
         onTouchMove={todoActions.onTouchMove}
         onTouchEnd={(e) => todoActions.onTouchEnd(e, globalIndex)}
         sx={{
-          mb: 1,
+          mb: 1.5,
           backgroundColor: itemBg || 'inherit',
+          opacity: todo.completed ? 0.75 : 1,
           boxShadow:
             todoActions.dragOverIndex === globalIndex
-              ? '0 0 0 3px rgba(25,118,210,0.12)'
-              : undefined,
-          transition: 'background-color 0.3s ease',
+              ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.4)}`
+              : 'none',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           color: itemTextColor,
-          cursor: !listActions.viewingHistory ? 'move' : 'auto',
+          cursor: !listActions.viewingHistory ? 'grab' : 'auto',
+          '&:active': { cursor: !listActions.viewingHistory ? 'grabbing' : 'auto' },
           touchAction: 'none',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': todo.completed ? {
+            content: '""',
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.5)',
+            pointerEvents: 'none',
+          } : {},
         }}
-        elevation={1}
+        elevation={0}
       >
-        <CardContent sx={{ p: 1 }}>
-          <ListItem disableGutters>
+        <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <ListItem disableGutters sx={{ p: 0 }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
               {todoActions.bulkMode && (
                 <Checkbox
@@ -223,19 +234,20 @@ export default function TodoListItem({
                       sx={{
                         color: itemTextColor,
                         fontWeight: 500,
-                        textDecoration: todo.missing ? 'line-through' : 'none',
+                        textDecoration: todo.missing || todo.completed ? 'line-through' : 'none',
+                        opacity: todo.completed ? 0.7 : 1,
                       }}
                     >
                       {todo.name}
                       {todo.quantity > 1 ? ` (x${todo.quantity})` : ''}
                     </Typography>
                     {todo.description && (
-                      <Typography variant="body2" sx={{ color: itemTextColor, mt: 0.25 }}>
+                      <Typography variant="body2" sx={{ color: itemTextColor, mt: 0.25, opacity: todo.completed ? 0.6 : 0.85 }}>
                         {todo.description}
                       </Typography>
                     )}
                     {todo.comment && (
-                      <Typography variant="caption" sx={{ color: itemTextColor, opacity: 0.7 }}>
+                      <Typography variant="caption" sx={{ color: itemTextColor, opacity: todo.completed ? 0.5 : 0.7 }}>
                         {todo.comment}
                       </Typography>
                     )}
