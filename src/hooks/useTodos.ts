@@ -22,6 +22,7 @@ interface UseTodosParams {
 export interface UseTodosReturn {
   // State
   todos: Todo[];
+  todosLoading: boolean;
   name: string;
   description: string;
   quantity: number;
@@ -90,6 +91,8 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
 
   // Todo list state
   const [todos, setTodos] = React.useState<Todo[]>([]);
+  const [todosLoading, setTodosLoading] = React.useState(false);
+  const todosAbort = React.useRef<AbortController | null>(null);
 
   // Form state
   const [name, setName] = React.useState('');
@@ -188,11 +191,18 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   // Fetch todos from API
   const fetchTodos = async (listId: string, categoryParam?: string) => {
     if (!listId) return;
+    // cancel previous request if still pending
+    if (todosAbort.current) {
+      todosAbort.current.abort();
+    }
+    const controller = new AbortController();
+    todosAbort.current = controller;
+    setTodosLoading(true);
     try {
       // use explicit parameter first, otherwise fall back to filterCategory (not form
       // category, which is unrelated to filtering)
       const cat = typeof categoryParam === 'undefined' ? filterCategory : categoryParam;
-      const data = await apiFetchTodos(listId, cat);
+      const data = await apiFetchTodos(listId, cat, { signal: controller.signal });
       setTodos((prev) =>
         data.map((t: Todo) => {
           const incomingColor = typeof t.color === 'string' ? t.color : '';
@@ -208,8 +218,15 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
           return { ...t, color: preservedColor, category: preservedCat } as Todo;
         })
       );
-    } catch {
-      // Error handling could be added here
+    } catch (e: unknown) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        // ignore cancelled request
+      } else {
+        // optionally show snackbar or log
+      }
+    } finally {
+      setTodosLoading(false);
+      todosAbort.current = null;
     }
   };
 
@@ -448,10 +465,29 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
 
     // Determine drop position based on cursor location
     let dropAfter = false;
-    const target = e.currentTarget as HTMLElement;
+    const target = (e.currentTarget as HTMLElement) || null;
     if (target) {
-      const { top, height } = target.getBoundingClientRect();
-      dropAfter = e.clientY > top + height / 2;
+      let rect: DOMRect | null = null;
+      try {
+        if (typeof target.getBoundingClientRect === 'function') {
+          rect = target.getBoundingClientRect();
+        }
+      } catch (err) {
+        // sometimes the element can be detached in the middle of the event
+        // sequence; don't crash the app, just ignore measurement
+        console.warn('drag drop: failed to measure target', err);
+        rect = null;
+      }
+      if (rect) {
+        const top = rect.top;
+        const height = rect.height;
+        dropAfter = e.clientY > top + height / 2;
+      } else {
+        dropAfter = false;
+      }
+    } else {
+      // if there is no current target at all, treat as before
+      dropAfter = false;
     }
 
     const newIndex = dropAfter ? rawIndex + 1 : rawIndex;
@@ -606,6 +642,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   return {
     // State
     todos,
+    todosLoading,
     name,
     description,
     quantity,

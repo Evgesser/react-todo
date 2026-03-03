@@ -3,6 +3,7 @@ import Head from 'next/head';
 import {
   Container,
   Box,
+  LinearProgress,
 } from '@mui/material';
 
 // shared types, constants and helpers
@@ -74,7 +75,7 @@ export default function Home() {
     personalDialogOpen,
     setPersonalDialogOpen,
     updateNameCategory,
-  } = usePersonalization(auth.userId, t);
+  } = usePersonalization(auth.userId);
 
   // new-list dialog state
   const [newListDialogOpen, setNewListDialogOpen] = React.useState(false);
@@ -155,8 +156,10 @@ export default function Home() {
         <AuthPanel t={t} onSnackbar={(msg) => { setSnackbarMsg(msg); setSnackbarOpen(true); }} />
       ) : (
         <Box>
+          {listActions.isLoading && <LinearProgress />}
           <ListToolbar
             lists={listActions.lists}
+            listsLoading={listActions.isLoading}
             currentListId={listActions.currentListId}
             onSelectList={handleListChange}
             listDefaultColor={listActions.listDefaultColor}
@@ -239,6 +242,7 @@ export default function Home() {
           {/* history dialog instead of inline section */}
           <HistoryDialog
             open={historyOpen}
+            loading={listActions.isLoading}
             lists={listActions.lists}
             onSelect={(l) => {
               listActions.selectList(l._id);

@@ -9,6 +9,8 @@ import {
   Alert,
   Box,
   Typography,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -107,8 +109,11 @@ export default function RegisterDialog({
     onClose();
   };
 
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle>{t.register.title}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1 }}>

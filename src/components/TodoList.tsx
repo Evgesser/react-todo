@@ -13,6 +13,7 @@ import {
   TextField,
   InputAdornment,
   Button,
+  Skeleton,
 } from '@mui/material';
 import {
   ArrowUpward as ArrowUpwardIcon,
@@ -46,6 +47,22 @@ export default function TodoList({
   t,
 }: TodoListProps) {
   const theme = useTheme();
+
+  if (todoActions.todosLoading) {
+    // render a few skeleton cards while loading
+    return (
+      <Box>
+        {[...Array(6)].map((_, i) => (
+          <Skeleton
+            key={i}
+            variant="rectangular"
+            height={64}
+            sx={{ mb: 1, borderRadius: 1 }}
+          />
+        ))}
+      </Box>
+    );
+  }
 
   const elements = React.useMemo(() => {
     const filtered = todoActions.todos.filter(

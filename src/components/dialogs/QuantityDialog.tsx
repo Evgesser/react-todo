@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box, useTheme, useMediaQuery } from '@mui/material';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface QuantityDialogProps {
@@ -13,8 +13,11 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
     const { t } = useLanguage();
   const [temp, setTemp] = React.useState<number>(value || 1);
   React.useEffect(() => setTemp(value || 1), [value]);
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs" fullScreen={fullScreen}>
       <DialogTitle>{t.dialogs.quantity.title}</DialogTitle>
       <DialogContent>
         {/* numeric keypad as 3×4 grid with backspace/clear */}

@@ -7,6 +7,7 @@ import {
   Tooltip,
   Button,
   Menu,
+  Skeleton,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -21,6 +22,7 @@ interface ListToolbarProps {
   lists: ListType[];
   currentListId: string | null;
   onSelectList: (id: string) => void;
+  listsLoading?: boolean;
   listDefaultColor: string;
   setListDefaultColor: (color: string) => void;
   saveListColor: () => void;
@@ -46,6 +48,7 @@ export default function ListToolbar({
   lists,
   currentListId,
   onSelectList,
+  listsLoading = false,
   listDefaultColor,
   setListDefaultColor,
   saveListColor,
@@ -77,21 +80,25 @@ export default function ListToolbar({
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <TextField
-          select
-          label={t.lists.selectList}
-          value={currentListId || ''}
-          onChange={(e) => onSelectList(e.target.value)}
-          fullWidth
-        >
-          {lists
-            .filter((l) => !l.completed)
-            .map((l) => (
-              <MenuItem key={l._id} value={l._id}>
-                {l.name}
-              </MenuItem>
-            ))}
-        </TextField>
+        {listsLoading ? (
+          <Skeleton variant="rectangular" width="100%" height={56} />
+        ) : (
+          <TextField
+            select
+            label={t.lists.selectList}
+            value={currentListId || ''}
+            onChange={(e) => onSelectList(e.target.value)}
+            fullWidth
+          >
+            {lists
+              .filter((l) => !l.completed)
+              .map((l) => (
+                <MenuItem key={l._id} value={l._id}>
+                  {l.name}
+                </MenuItem>
+              ))}
+          </TextField>
+        )}
       </Box>
 
       <Box
@@ -104,7 +111,7 @@ export default function ListToolbar({
         }}
       >
         <Box>
-          <IconButton size="small" onClick={toggleForm}>
+          <IconButton size="small" onClick={toggleForm} disabled={listsLoading}>
             {formOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </Box>

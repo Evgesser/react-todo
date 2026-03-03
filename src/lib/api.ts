@@ -17,13 +17,17 @@ export async function login(username: string, password: string): Promise<{ userI
 }
 
 // --- todos ---------------------------------------------------------------
-export async function fetchTodos(listId: string, category?: string): Promise<Todo[]> {
+export async function fetchTodos(
+  listId: string,
+  category?: string,
+  options?: { signal?: AbortSignal }
+): Promise<Todo[]> {
   if (!listId) return [];
   let url = `${BASE}/todos?listId=${encodeURIComponent(listId)}`;
   if (category && category.trim() !== '') {
     url += `&category=${encodeURIComponent(category)}`;
   }
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: options?.signal });
   if (!res.ok) throw new Error('Failed to load todos');
   return res.json();
 }
@@ -56,8 +60,13 @@ export async function deleteTodo(id: string, listId: string) {
 }
 
 // --- lists ---------------------------------------------------------------
-export async function fetchLists(userId: string): Promise<List[]> {
-  const res = await fetch(`${BASE}/lists?userId=${encodeURIComponent(userId)}`);
+export async function fetchLists(
+  userId: string,
+  options?: { signal?: AbortSignal }
+): Promise<List[]> {
+  const res = await fetch(`${BASE}/lists?userId=${encodeURIComponent(userId)}`, {
+    signal: options?.signal,
+  });
   if (!res.ok) throw new Error('Failed to load lists');
   return res.json();
 }

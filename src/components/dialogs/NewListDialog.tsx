@@ -11,6 +11,8 @@ import {
   Alert,
   InputAdornment,
   IconButton,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
 import { Template } from '@/types';
@@ -61,8 +63,11 @@ export default function NewListDialog({
     }
   }, [open]);
 
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
-    <Dialog open={open} onClose={onClose} fullWidth>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" fullScreen={fullScreen}>
       <DialogTitle>{t.dialogs.newList.title}</DialogTitle>
       <DialogContent>
         {errorMsg && (

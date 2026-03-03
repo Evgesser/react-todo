@@ -60,6 +60,26 @@ export function getTheme(mode: PaletteMode) {
           },
         },
       },
+      // ensure every TextField has vertical spacing so floating label never overlaps neighbors
+      MuiTextField: {
+        defaultProps: {
+          margin: 'normal', // adds vertical margin (theme.spacing(2)) above/below
+          fullWidth: false, // keep existing explicit fullWidth behaviour
+        },
+        styleOverrides: {
+          root: {
+            // For particularly tight layouts, we also add a small top padding
+            '& .MuiInputBase-root': {
+              paddingTop: 4,
+            },
+          },
+        },
+      },
+      MuiFormControl: {
+        defaultProps: {
+          margin: 'normal',
+        },
+      },
     },
   });
 }

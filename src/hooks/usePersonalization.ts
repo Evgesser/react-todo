@@ -2,12 +2,10 @@ import * as React from 'react';
 import { Category, iconMap, categories as defaultCategories, templates as defaultTemplates } from '@/constants';
 import type { Template, StoredProduct } from '@/types';
 import { fetchPersonalization, fetchProducts, savePersonalization, saveProduct } from '@/lib/api';
-import type { TranslationKeys } from '@/locales/ru';
 
 // hook that wraps all of the "personalization" state and side effects
 export function usePersonalization(
-  userId: string | null,
-  t: TranslationKeys
+  userId: string | null
 ) {
   const [availableCategories, setAvailableCategories] = React.useState<Category[]>(
     defaultCategories
@@ -38,7 +36,7 @@ export function usePersonalization(
             label: c.label,
             icon: c.icon && iconMap[c.icon] ? iconMap[c.icon] : null,
           }));
-          setAvailableCategories((prev) => {
+          setAvailableCategories(() => {
             const merged: Category[] = defaultCategories.map((d) => ({ ...d }));
             cats.forEach((c) => {
               if (!merged.find((m) => m.value === c.value)) merged.push(c);

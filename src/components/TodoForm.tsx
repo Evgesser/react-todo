@@ -11,6 +11,7 @@ import {
   Autocomplete,
   Alert,
   Collapse,
+  LinearProgress,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -135,11 +136,18 @@ export default function TodoForm({
           sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}
         >
           <Typography variant="h6">{t.todos.addEdit}</Typography>
-          <IconButton size="small" onClick={() => setFormOpen(false)}>
+          <IconButton size="small" onClick={() => setFormOpen(false)} disabled={todoActions.todosLoading}>
             <ExpandMoreIcon sx={{ transform: 'rotate(-90deg)' }} />
           </IconButton>
         </Box>
-        <Stack spacing={2}>
+        {todoActions.todosLoading && <LinearProgress />}
+        <Stack
+          spacing={2}
+          sx={{
+            opacity: todoActions.todosLoading ? 0.5 : 1,
+            pointerEvents: todoActions.todosLoading ? 'none' : undefined,
+          }}
+        >
           {/* name field now provides autocomplete based on existing todo names */}
           <Autocomplete
             freeSolo

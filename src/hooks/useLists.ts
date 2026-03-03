@@ -20,6 +20,7 @@ export interface UseListsReturn {
   currentList: ListType | null;
   listDefaultColor: string;
   viewingHistory: boolean;
+  isLoading: boolean;
 
   // Setters
   setLists: (lists: ListType[]) => void;
@@ -40,6 +41,8 @@ export interface UseListsReturn {
 
 export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsReturn {
   const [lists, setLists] = React.useState<ListType[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const abortRef = React.useRef<AbortController | null>(null);
   const [currentListId, setCurrentListId] = React.useState<string | null>(null);
   const [currentList, setCurrentList] = React.useState<ListType | null>(null);
   const [listDefaultColor, setListDefaultColor] = React.useState('#ffffff');
@@ -47,8 +50,16 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
 
   const loadLists = React.useCallback(async (): Promise<ListType[] | null> => {
     if (!userId) return null;
+    // cancel any previous pending call
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setIsLoading(true);
+
     try {
-      let data = await apiFetchLists(userId);
+      let data = await apiFetchLists(userId, { signal: controller.signal });
 
       // purge any lingering placeholder lists named "Список 1" (default from earlier)
       const defaultPattern = /^\s*Список\s*1\s*$/i;
@@ -59,7 +70,7 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
             await apiDeleteList(l._id);
           }
         }
-        data = await apiFetchLists(userId);
+        data = await apiFetchLists(userId, { signal: controller.signal });
       }
       // also filter them out of local data just in case
       data = data.filter((l) => !defaultPattern.test(l.name));
@@ -77,9 +88,16 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
       }
 
       return data;
-    } catch {
+    } catch (e) {
+      if ((e as any).name === 'AbortError') {
+        // aborted by caller, ignore
+        return null;
+      }
       onSnackbar(t.messages.loadListsError);
       return null;
+    } finally {
+      setIsLoading(false);
+      abortRef.current = null;
     }
   }, [userId, currentListId, onSnackbar, t]);
 
@@ -204,6 +222,7 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
     currentList,
     listDefaultColor,
     viewingHistory,
+    isLoading,
     setLists,
     setCurrentListId,
     setCurrentList,
