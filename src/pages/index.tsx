@@ -139,8 +139,8 @@ export default function Home() {
   const { effectiveHeaderTextColor } = useHeaderColors(headerColor, menuAnchor);
 
   // keep ref in sync so scroll handler can read latest value without needing it as a dependency
-  // hook will handle auto‑collapse on scroll/keyboard
-  useFormAutoCollapse(formOpen, setFormOpen, menuAnchor);
+  // hook will handle auto‑collapse on scroll/keyboard; increase threshold so collapse happens later
+  useFormAutoCollapse(formOpen, setFormOpen, menuAnchor, { collapseThreshold: 120 });
 
   const openNewListDialog = () => {
     setNewListDialogOpen(true);

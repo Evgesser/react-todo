@@ -10,11 +10,20 @@ import * as React from 'react';
  * @param setFormOpen setter to toggle the form
  * @param menuAnchor menu anchor element (used to make hook update when menu status changes)
  */
+export interface FormAutoCollapseOptions {
+  /** amount of downward scroll (pixels) required before collapsing; default 48 */
+  collapseThreshold?: number;
+  /** ms to ignore further collapses after a collapse; default 420 */
+  lockDurationMs?: number;
+}
+
 export function useFormAutoCollapse(
   formOpen: boolean,
   setFormOpen: React.Dispatch<React.SetStateAction<boolean>>,
-  menuAnchor: HTMLElement | null
+  menuAnchor: HTMLElement | null,
+  options: FormAutoCollapseOptions = {}
 ) {
+  const { collapseThreshold = 48, lockDurationMs = 420 } = options;
   const prevScroll = React.useRef<number>(0);
   const ignoreScrollUntil = React.useRef<number>(0);
   const prevHeight = React.useRef<number>(typeof window !== 'undefined' ? window.innerHeight : 0);
@@ -29,7 +38,7 @@ export function useFormAutoCollapse(
   }, [formOpen]);
 
   React.useEffect(() => {
-    const SCROLL_LOCK_MS = 420;
+    const SCROLL_LOCK_MS = lockDurationMs;
     prevScroll.current = window.scrollY;
 
     const onScroll = () => {
@@ -55,7 +64,6 @@ export function useFormAutoCollapse(
       }
       prevHeight.current = h;
 
-      const collapseThreshold = 48;
       if (delta > collapseThreshold && formOpenRef.current) {
         setFormOpen(false);
         ignoreScrollUntil.current = now + SCROLL_LOCK_MS;

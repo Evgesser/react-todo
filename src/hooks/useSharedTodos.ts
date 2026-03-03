@@ -169,20 +169,47 @@ export function useSharedTodos(token: string, onSnackbar: (msg: string) => void,
     await fetch();
   };
 
-  // touch handlers copied from useTodos
+  // touch handlers copied from useTodos, now with delayed start
   const [touchDragIndex, setTouchDragIndex] = React.useState<number | null>(null);
+  const touchTimer = React.useRef<number | null>(null);
+  const touchStartPos = React.useRef<{x: number; y: number} | null>(null);
+  const DRAG_DELAY = 150;
+  const MOVE_CANCEL = 10;
+
+  const clearTouchTimer = () => {
+    if (touchTimer.current) {
+      window.clearTimeout(touchTimer.current);
+      touchTimer.current = null;
+    }
+  };
 
   const onTouchStart = (e: React.TouchEvent, index: number) => {
-    setTouchDragIndex(index);
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    clearTouchTimer();
+    touchTimer.current = window.setTimeout(() => {
+      setTouchDragIndex(index);
+      touchTimer.current = null;
+    }, DRAG_DELAY);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
     if (touchDragIndex !== null) {
       e.preventDefault();
+      return;
+    }
+    if (touchTimer.current && touchStartPos.current) {
+      const touch = e.touches[0];
+      const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+      const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+      if (dx > MOVE_CANCEL || dy > MOVE_CANCEL) {
+        clearTouchTimer();
+      }
     }
   };
 
   const onTouchEnd = async (e: React.TouchEvent, dropIndex: number) => {
+    clearTouchTimer();
     if (touchDragIndex === null || touchDragIndex === dropIndex) {
       setTouchDragIndex(null);
       return;

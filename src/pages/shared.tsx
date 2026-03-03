@@ -229,7 +229,7 @@ export default function SharedPage() {
               transition: 'background-color 0.3s ease',
               color: itemTextColor,
               cursor: 'move',
-              touchAction: 'none',
+              touchAction: 'pan-y',
             }}
             elevation={1}
           >

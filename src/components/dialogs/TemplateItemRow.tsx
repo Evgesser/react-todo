@@ -73,6 +73,7 @@ export default function TemplateItemRow({
       />
 
       <Autocomplete
+        fullWidth
         freeSolo
         options={categoryOptions || []}
         getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.label)}
@@ -117,7 +118,7 @@ export default function TemplateItemRow({
           <ClearableTextField
             {...params}
             label={t.dialogs.personalization.itemCategory}
-            sx={{ mr: 1, width: { xs: '100%', sm: 140 } }}
+            sx={{ mr: { xs: 0, sm: 1 }, width: { xs: '100%', sm: 160 } }}
           />
         )}
       />

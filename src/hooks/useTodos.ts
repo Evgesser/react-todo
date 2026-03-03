@@ -545,19 +545,49 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setDragOverIndex(null);
   };
 
-  // Touch drag and drop handlers
+  // Touch drag and drop handlers with delayed activation to preserve scroll
+  const touchTimer = React.useRef<number | null>(null);
+  const touchStartPos = React.useRef<{x: number; y: number} | null>(null);
+  const DRAG_DELAY = 150; // ms before treating press as drag
+  const MOVE_CANCEL = 10; // px movement threshold to cancel drag start
+
+  const clearTouchTimer = () => {
+    if (touchTimer.current) {
+      window.clearTimeout(touchTimer.current);
+      touchTimer.current = null;
+    }
+  };
+
   const onTouchStart = (e: React.TouchEvent, index: number) => {
-    setTouchDragIndex(index);
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    clearTouchTimer();
+    // schedule drag start after delay
+    touchTimer.current = window.setTimeout(() => {
+      setTouchDragIndex(index);
+      touchTimer.current = null;
+    }, DRAG_DELAY);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    // Prevent default scrolling while dragging
     if (touchDragIndex !== null) {
+      // already dragging – lock scroll
       e.preventDefault();
+      return;
+    }
+    // if timer pending, check for movement that should cancel it
+    if (touchTimer.current && touchStartPos.current) {
+      const touch = e.touches[0];
+      const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+      const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+      if (dx > MOVE_CANCEL || dy > MOVE_CANCEL) {
+        clearTouchTimer();
+      }
     }
   };
 
   const onTouchEnd = (e: React.TouchEvent, dropIndex: number) => {
+    clearTouchTimer();
     if (touchDragIndex === null || touchDragIndex === dropIndex) {
       setTouchDragIndex(null);
       return;

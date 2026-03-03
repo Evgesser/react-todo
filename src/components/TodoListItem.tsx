@@ -105,7 +105,7 @@ export default function TodoListItem({
           color: itemTextColor,
           cursor: !listActions.viewingHistory ? 'grab' : 'auto',
           '&:active': { cursor: !listActions.viewingHistory ? 'grabbing' : 'auto' },
-          touchAction: 'none',
+          touchAction: 'pan-y',
           position: 'relative',
           overflow: 'hidden',
           '&::before': todo.completed ? {

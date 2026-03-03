@@ -11,22 +11,70 @@ interface QuantityDialogProps {
 
 export default function QuantityDialog({ open, value, onChange, onClose }: QuantityDialogProps) {
     const { t } = useLanguage();
-  const [temp, setTemp] = React.useState<number>(value || 1);
-  React.useEffect(() => setTemp(value || 1), [value]);
-  const theme = useTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  // temp as string to allow empty field when dialog opens
+  const [temp, setTemp] = React.useState<string>(value?.toString() || '');
+  // when the dialog opens we always start with an empty input, treat a prop value of 1 as equivalent to no value
+  React.useEffect(() => {
+    if (open || value === 1) {
+      setTemp('');
+    } else {
+      setTemp(value != null ? value.toString() : '');
+    }
+  }, [open, value]);
+  // always render fullscreen; mobile/desktop both covered
+  const fullScreen = true;
+
+  // prevent background content from scrolling when dialog is open (mobile especially)
+  React.useEffect(() => {
+    const prevent = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      // prevent touch scrolling on iOS/Android
+      document.body.addEventListener('touchmove', prevent, { passive: false });
+    } else {
+      document.body.style.overflow = '';
+      document.body.removeEventListener('touchmove', prevent);
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.removeEventListener('touchmove', prevent);
+    };
+  }, [open]);
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs" fullScreen={fullScreen}>
+    <Dialog
+      open={open}
+      fullScreen={fullScreen}
+      /* ignore clicks/escapes so user can't interact outside */
+      onClose={(e, reason) => {
+        if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+          return;
+        }
+        onClose();
+      }}
+      disableEscapeKeyDown
+    >
       <DialogTitle>{t.dialogs.quantity.title}</DialogTitle>
       <DialogContent>
+        <TextField
+          label={t.dialogs.quantity.title}
+          type="text"
+          /* prevent mobile keyboards by making the field read-only – users enter via the custom keypad */
+          inputProps={{ readOnly: true }}
+          value={temp}
+          /* avoid autoFocus so the virtual keyboard doesn't trigger on open */
+          fullWidth
+          sx={{ mb: 2 }}
+        />
         {/* numeric keypad as 3×4 grid with backspace/clear */}
         <Box
           sx={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 48px)',
             gap: 4,
-            mb: 2,
             justifyContent: 'center',
           }}
         >
@@ -37,16 +85,12 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
               variant="outlined"
               onClick={() => {
                 if (label === '←') {
-                  setTemp((prev) => Math.floor(prev / 10));
+                  setTemp((prev) => prev.slice(0, -1));
                 } else if (label === 'C') {
-                  setTemp(0);
+                  setTemp('');
                 } else {
-                  const n = parseInt(label, 10);
-                  setTemp((prev) => {
-                    if (prev === 0) return n;
-                    const appended = parseInt(`${prev}${n}`, 10);
-                    return appended;
-                  });
+                  const n = label;
+                  setTemp((prev) => prev === '' ? n : prev + n);
                 }
               }}
               sx={{
@@ -63,28 +107,21 @@ export default function QuantityDialog({ open, value, onChange, onClose }: Quant
             </Button>
           ))}
         </Box>
-        <TextField
-          label={t.dialogs.quantity.title}
-          type="number"
-          autoFocus
-          value={temp}
-          onChange={(e) => setTemp(parseInt(e.target.value) || 1)}
-          inputProps={{ min: 1 }}
-          fullWidth
-        />
+        {/* action buttons placed directly under keypad */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+          <Button onClick={onClose}>{t.dialogs.quantity.cancel}</Button>
+          <Button
+            onClick={() => {
+              const num = parseInt(temp, 10);
+              onChange(isNaN(num) ? 0 : num);
+              onClose();
+            }}
+            variant="contained"
+          >
+            {t.dialogs.quantity.save}
+          </Button>
+        </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>{t.dialogs.quantity.cancel}</Button>
-        <Button
-          onClick={() => {
-            onChange(temp || 1);
-            onClose();
-          }}
-          variant="contained"
-        >
-          {t.dialogs.quantity.save}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }
