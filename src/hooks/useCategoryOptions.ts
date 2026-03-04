@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Category } from '@/constants';
+import { Category, iconMap, iconChoices, categoryKeywords } from '@/constants';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Todo } from '@/types';
 
 export interface CategoryOptionsResult {
@@ -29,6 +30,7 @@ export function useCategoryOptions({
   category,
   clearedForName,
 }: UseCategoryOptionsParams): CategoryOptionsResult {
+  const { t } = useLanguage();
   const options = React.useMemo(() => {
     const lowerName = name.trim().toLowerCase();
     const priority: Category[] = [];
@@ -37,6 +39,20 @@ export function useCategoryOptions({
       if (mapped !== undefined) {
         const cat = availableCategories.find((c) => c.value === mapped);
         if (cat) priority.push(cat);
+      } else {
+        // heuristics: try to match known keywords to icon keys and suggest that category
+        for (const [iconKey, kws] of Object.entries(categoryKeywords)) {
+          if (kws.some((k) => lowerName.includes(k))) {
+            const cat = availableCategories.find((c) => c.value === iconKey);
+            if (cat) priority.push(cat);
+            else {
+              const label = (t as any).categoryLabels?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+              const ic = iconMap[iconKey] || null;
+              priority.push({ value: iconKey, label, icon: ic });
+            }
+            break;
+          }
+        }
       }
       const matches = todos.filter(
         (t) => t.name.trim().toLowerCase() === lowerName && t.category !== undefined

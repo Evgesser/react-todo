@@ -79,6 +79,10 @@ export const ru = {
     missing: 'Отсутствует',
     markMissing: 'Пометить как отсутствующий',
     unmarkMissing: 'Снять отметку отсутствия',
+    voiceInput: 'Голосовой ввод',
+    startListening: 'Начать запись',
+    stopListening: 'Остановить запись',
+    voiceExamples: 'Примеры: «полтора молока», «2 хлеба», «молоко 1.5 л»',
   },
   
   // Search
@@ -207,6 +211,52 @@ export const ru = {
     deleteWarning: 'Это действие необнеобратимо. Все ваши данные будут удалены навсегда.',
     enterPasswordToConfirm: 'Введите пароль для подтверждения',
     passwordsDoNotMatch: 'Пароли не совпадают',
+  },
+
+  // Default data (localized labels for built-in categories/icons and templates)
+  categoryLabels: {
+    '': '(нет)',
+    groceries: 'Продукты',
+    electronics: 'Электроника',
+    clothing: 'Одежда',
+    dining: 'Еда',
+    gas: 'Бензин',
+    library: 'Книги',
+    offer: 'Скидки',
+    games: 'Игры',
+    favorite: 'Избранное',
+    home: 'Дом',
+    flora: 'Цветы',
+    tools: 'Инструменты',
+    milk: 'Молоко / Напитки',
+    beverages: 'Напитки (алко/безалко)',
+    meat: 'Мясо / Блюда',
+    grill: 'Барбекю/Мясо',
+    fastfood: 'Фастфуд',
+    restaurant: 'Готовая еда',
+    bakery: 'Выпечка',
+    icecream: 'Мороженое',
+    coffee: 'Кофе/Напитки',
+    foodbank: 'Крупы/Запасы',
+  },
+
+  defaultTemplates: {
+    weekly: {
+      name: 'Еженедельные продукты',
+      items: [
+        { name: 'Молоко', quantity: 1 },
+        { name: 'Хлеб', quantity: 1 },
+        { name: 'Яйца', quantity: 12 },
+      ],
+    },
+    party: {
+      name: 'Принадлежности для вечеринки',
+      items: [
+        { name: 'Чипсы', quantity: 2 },
+        { name: 'Сода', quantity: 6 },
+        { name: 'Пластиковые стаканчики', quantity: 20 },
+      ],
+    },
   },
 };
 

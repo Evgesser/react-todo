@@ -19,7 +19,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
-import { Category, iconMap } from '@/constants';
+import { Category, iconMap, iconChoices } from '@/constants';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { UseTodosReturn } from '@/hooks/useTodos';
 import { useNameOptions } from '@/hooks/useNameOptions';
@@ -292,7 +292,7 @@ export default function TodoForm({
         }
         const newCat: Category = {
           value: v,
-          label: v,
+          label: (t as any).categoryLabels?.[v] || iconChoices.find((x) => x.key === v)?.label || v,
           icon: finalKey ? iconMap[finalKey] : null,
         };
         return [...prev, newCat];
@@ -439,7 +439,16 @@ export default function TodoForm({
                       {params.InputProps.endAdornment}
                       {speechSupported ? (
                         <InputAdornment position="end">
-                          <Tooltip title={isListening ? 'Stop listening' : 'Voice input'}>
+                          <Tooltip
+                            title={
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                <span>{isListening ? t.todos.stopListening : t.todos.voiceInput}</span>
+                                <Typography variant="caption" sx={{ opacity: 0.85 }}>
+                                  {t.todos.voiceExamples}
+                                </Typography>
+                              </Box>
+                            }
+                          >
                             <IconButton
                               size="small"
                               onClick={(e) => {
@@ -454,7 +463,7 @@ export default function TodoForm({
                               }}
                               edge="end"
                               color={isListening ? 'primary' : undefined}
-                              aria-label={isListening ? 'Stop listening' : 'Start listening'}
+                              aria-label={isListening ? t.todos.stopListening : t.todos.startListening}
                             >
                               {isListening ? <MicOffIcon /> : <MicIcon />}
                             </IconButton>
@@ -597,7 +606,15 @@ export default function TodoForm({
 
           {/* preview of parsed result */}
           {parsed && (
-            <Box sx={{ mt: 1, p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
+            <Box
+              sx={(t) => ({
+                mt: 1,
+                p: 1,
+                bgcolor: t.palette.mode === 'dark' ? t.palette.grey[800] : t.palette.grey[100],
+                color: 'text.primary',
+                borderRadius: 1,
+              })}
+            >
               <Typography variant="body2">
                 {t.todos.parsedPreview || 'Parsed:'}
               </Typography>

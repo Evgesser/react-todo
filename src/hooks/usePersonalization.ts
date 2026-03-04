@@ -1,17 +1,27 @@
 import * as React from 'react';
-import { Category, iconMap, categories as defaultCategories, templates as defaultTemplates } from '@/constants';
+import { Category, iconMap, categories as defaultCategories, templates as defaultTemplates, iconChoices, categoryKeywords } from '@/constants';
 import type { Template, StoredProduct } from '@/types';
 import { fetchPersonalization, fetchProducts, savePersonalization, saveProduct } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // hook that wraps all of the "personalization" state and side effects
 export function usePersonalization(
   userId: string | null
 ) {
+  const { t } = useLanguage();
+
   const [availableCategories, setAvailableCategories] = React.useState<Category[]>(
-    defaultCategories
+    () => defaultCategories.map((d) => ({ ...d, label: (t as any).categoryLabels?.[d.value] || d.label }))
   );
+
   const [availableTemplates, setAvailableTemplates] = React.useState<Template[]>(
-    defaultTemplates
+    () => {
+      const defs = (t as any).defaultTemplates;
+      if (defs && typeof defs === 'object') {
+        return Object.keys(defs).map((k) => ({ key: k, ...(defs as any)[k] })) as Template[];
+      }
+      return defaultTemplates;
+    }
   );
   const [nameCategoryMap, setNameCategoryMap] = React.useState<
     Record<string, string>
@@ -40,6 +50,19 @@ export function usePersonalization(
             const merged: Category[] = defaultCategories.map((d) => ({ ...d }));
             cats.forEach((c) => {
               if (!merged.find((m) => m.value === c.value)) merged.push(c);
+            });
+            // enrich merged by matching labels to known keywords
+            const mergedLower = merged.map((c) => c.label.toLowerCase());
+            const mergedValues = new Set(merged.map((c) => c.value));
+            Object.keys(categoryKeywords).forEach((iconKey) => {
+              if (mergedValues.has(iconKey)) return;
+              const keywords = categoryKeywords[iconKey];
+              const matchesLabel = mergedLower.some((lbl) => keywords.some((k) => lbl.includes(k)));
+              if (matchesLabel) {
+                const ic = iconMap[iconKey] || null;
+                const label = (t as any).categoryLabels?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+                merged.push({ value: iconKey, label, icon: ic });
+              }
             });
             return merged;
           });
@@ -92,7 +115,41 @@ export function usePersonalization(
               merged.push(cat);
             }
           });
-          setAvailableCategories(merged);
+          // enrich merged categories by auto-adding category entries when
+          // product names or existing category labels match known keywords
+          const mergedLowerLabels = merged.map((c) => c.label.toLowerCase());
+          const mergedValues = new Set(merged.map((c) => c.value));
+          const toAdd: Category[] = [];
+          Object.keys(categoryKeywords).forEach((iconKey) => {
+            if (mergedValues.has(iconKey)) return; // already present
+            const keywords = categoryKeywords[iconKey];
+            // match against existing category labels
+            const matchesLabel = mergedLowerLabels.some((lbl) => keywords.some((k) => lbl.includes(k)));
+            if (matchesLabel) {
+              const ic = iconMap[iconKey] || null;
+              const label = (t as any).categoryLabels?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+              toAdd.push({ value: iconKey, label, icon: ic });
+            }
+          });
+          // also inspect saved products for matches and add categories if needed
+          if (Array.isArray(data.products)) {
+            (data.products as Array<{ name?: string }> ).forEach((p) => {
+              if (!p?.name) return;
+              const name = p.name.toLowerCase();
+              Object.keys(categoryKeywords).forEach((iconKey) => {
+                if (mergedValues.has(iconKey)) return;
+                if (toAdd.find((c) => c.value === iconKey)) return;
+                const keywords = categoryKeywords[iconKey];
+                if (keywords.some((k) => name.includes(k))) {
+                  const ic = iconMap[iconKey] || null;
+                  const label = (t as any).categoryLabels?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+                  toAdd.push({ value: iconKey, label, icon: ic });
+                }
+              });
+            });
+          }
+          const finalCats = merged.concat(toAdd);
+          setAvailableCategories(finalCats);
         }
         if (Array.isArray(data.templates)) {
           setAvailableTemplates(data.templates);
@@ -114,8 +171,21 @@ export function usePersonalization(
           setNameCategoryMap((prev) => {
             const next = { ...prev };
             oldProds.forEach((p) => {
-              if (p.name && p.category && next[p.name] !== p.category) {
-                next[p.name] = p.category;
+              if (!p.name) return;
+              const lower = p.name.trim().toLowerCase();
+              if (p.category && next[lower] !== p.category) {
+                next[lower] = p.category;
+              }
+              // if no explicit category, try heuristic mapping by keywords
+              if (!p.category || !next[lower]) {
+                Object.keys(categoryKeywords).some((iconKey) => {
+                  const kws = categoryKeywords[iconKey];
+                  if (kws.some((k) => lower.includes(k))) {
+                    next[lower] = iconKey;
+                    return true;
+                  }
+                  return false;
+                });
               }
             });
             return next;
@@ -141,6 +211,31 @@ export function usePersonalization(
     if (userId) loadPersonalization();
   }, [userId, loadPersonalization]);
 
+  // when language changes, refresh labels for built-in defaults (preserve user-defined ones)
+  React.useEffect(() => {
+    setAvailableCategories((prev) => {
+      const defaultVals = new Set(defaultCategories.map((d) => d.value));
+      return prev.map((c) => {
+        if (defaultVals.has(c.value)) {
+          const iconComp = defaultCategories.find((d) => d.value === c.value)?.icon || null;
+          const label = (t as any).categoryLabels?.[c.value] || c.label;
+          return { value: c.value, label, icon: iconComp };
+        }
+        return c;
+      });
+    });
+
+    setAvailableTemplates((prev) =>
+      prev.map((tmpl) => {
+        const key = (tmpl as any).key as string | undefined;
+        if (key && (t as any).defaultTemplates && (t as any).defaultTemplates[key]) {
+          return { key, ...(t as any).defaultTemplates[key] } as Template;
+        }
+        return tmpl;
+      })
+    );
+  }, [t]);
+
   // persist personalization whenever any of the pieces change
   React.useEffect(() => {
     if (!userId) return;
@@ -160,6 +255,7 @@ export function usePersonalization(
   const updateNameCategory = React.useCallback(
     async (name: string, category: string, comment?: string) => {
       const n = name.trim();
+      const key = n.toLowerCase();
       if (!n) return;
       setProducts((prev) => {
         if (prev.find((p) => p.name === n)) return prev;
@@ -174,8 +270,8 @@ export function usePersonalization(
         );
       }
       setNameCategoryMap((prev) => {
-        if (prev[n] === category) return prev;
-        const next = { ...prev, [n]: category };
+        if (prev[key] === category) return prev;
+        const next = { ...prev, [key]: category };
         if (userId) {
           savePersonalization(
             userId,

@@ -22,6 +22,8 @@ export interface TemplateItem {
 }
 
 export interface Template {
+  // optional key to identify built-in templates for localization
+  key?: string;
   name: string;
   items: TemplateItem[];
 }

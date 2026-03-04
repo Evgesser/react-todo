@@ -81,6 +81,10 @@ export const en: TranslationKeys = {
     missing: 'Missing',
     markMissing: 'Mark as missing',
     unmarkMissing: 'Mark as available',
+    voiceInput: 'Voice input',
+    startListening: 'Start listening',
+    stopListening: 'Stop listening',
+    voiceExamples: 'Examples: "one and a half milk", "2 loaves", "milk 1.5 l"',
   },
   
   // Search
@@ -209,5 +213,51 @@ export const en: TranslationKeys = {
     deleteWarning: 'This action cannot be undone. All your data will be permanently deleted.',
     enterPasswordToConfirm: 'Enter your password to confirm',
     passwordsDoNotMatch: 'Passwords do not match',
+  },
+
+  // Default data (localized labels for built-in categories/icons and templates)
+  categoryLabels: {
+    '': '(none)',
+    groceries: 'Groceries',
+    electronics: 'Electronics',
+    clothing: 'Clothing',
+    dining: 'Dining',
+    gas: 'Gas',
+    library: 'Books',
+    offer: 'Offers',
+    games: 'Games',
+    favorite: 'Favorites',
+    home: 'Home',
+    flora: 'Flowers',
+    tools: 'Tools',
+    milk: 'Milk / Drinks',
+    beverages: 'Beverages',
+    meat: 'Meat / Meals',
+    grill: 'Grill / Meat',
+    fastfood: 'Fast Food',
+    restaurant: 'Prepared Food',
+    bakery: 'Bakery',
+    icecream: 'Ice Cream',
+    coffee: 'Coffee / Drinks',
+    foodbank: 'Grains / Staples',
+  },
+
+  defaultTemplates: {
+    weekly: {
+      name: 'Weekly groceries',
+      items: [
+        { name: 'Milk', quantity: 1 },
+        { name: 'Bread', quantity: 1 },
+        { name: 'Eggs', quantity: 12 },
+      ],
+    },
+    party: {
+      name: 'Party supplies',
+      items: [
+        { name: 'Chips', quantity: 2 },
+        { name: 'Soda', quantity: 6 },
+        { name: 'Plastic cups', quantity: 20 },
+      ],
+    },
   },
 };

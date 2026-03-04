@@ -10,6 +10,16 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import HomeIcon from '@mui/icons-material/Home';
 import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import BuildIcon from '@mui/icons-material/Build';
+import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
+import LiquorIcon from '@mui/icons-material/Liquor';
+import SetMealIcon from '@mui/icons-material/SetMeal';
+import FastfoodIcon from '@mui/icons-material/Fastfood';
+import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import FoodBankIcon from '@mui/icons-material/FoodBank';
+import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
+import OutdoorGrillIcon from '@mui/icons-material/OutdoorGrill';
+import IcecreamIcon from '@mui/icons-material/Icecream';
+import LocalCafeIcon from '@mui/icons-material/LocalCafe';
 import { Template, TemplateItem } from './types';
 import { OverridableComponent } from '@mui/material/OverridableComponent';
 import { SvgIconTypeMap } from '@mui/material/SvgIcon';
@@ -45,6 +55,16 @@ export const iconChoices: { key: string; label: string; icon: SvgIconComponent }
   { key: 'home', label: 'Дом', icon: HomeIcon },
   { key: 'flora', label: 'Цветы', icon: LocalFloristIcon },
   { key: 'tools', label: 'Инструменты', icon: BuildIcon },
+  { key: 'milk', label: 'Молоко / Напитки', icon: LocalDrinkIcon },
+  { key: 'beverages', label: 'Напитки (алко/безалко)', icon: LiquorIcon },
+  { key: 'meat', label: 'Мясо / Блюда', icon: SetMealIcon },
+  { key: 'grill', label: 'Барбекю/Мясо', icon: OutdoorGrillIcon },
+  { key: 'fastfood', label: 'Фастфуд', icon: FastfoodIcon },
+  { key: 'restaurant', label: 'Готовая еда', icon: RestaurantMenuIcon },
+  { key: 'bakery', label: 'Выпечка', icon: BakeryDiningIcon },
+  { key: 'icecream', label: 'Мороженое', icon: IcecreamIcon },
+  { key: 'coffee', label: 'Кофе/Напитки', icon: LocalCafeIcon },
+  { key: 'foodbank', label: 'Крупы/Запасы', icon: FoodBankIcon },
 ];
 
 // mapping from key to component for easy lookup
@@ -53,8 +73,24 @@ export const iconMap: Record<string, SvgIconComponent> = iconChoices.reduce(
   {}
 );
 
+// keywords to heuristically map product/category names to icon keys
+// keys are iconChoice keys, values are arrays of lowercase tokens to match
+export const categoryKeywords: Record<string, string[]> = {
+  milk: ['молоко', 'кефир', 'йогурт', 'молочные', 'milk', 'dairy'],
+  beverages: ['вода', 'сок', 'напиток', 'напитки', 'вино', 'пиво', 'сода', 'juice', 'drink', 'water'],
+  meat: ['мясо', 'свинина', 'говядина', 'курица', 'бекон', 'стейк', 'meat', 'chicken', 'pork', 'beef'],
+  grill: ['гриль', 'барбекю', 'шашлык', 'grill', 'barbecue'],
+  fastfood: ['фастфуд', 'бург', 'гамбургер', 'картофель фри', 'pizza', 'fastfood'],
+  restaurant: ['еда', 'блюдо', 'готовая еда', 'restaurant', 'meal'],
+  bakery: ['хлеб', 'булочка', 'выпечка', 'булки', 'пирог', 'cake', 'bread', 'bakery'],
+  icecream: ['мороженое', 'icecream', 'морож'],
+  coffee: ['кофе', 'капучино', 'латте', 'эспрессо', 'кофейня', 'coffee', 'cafe'],
+  foodbank: ['крупа', 'рис', 'макароны', 'мука', 'запас', 'консервы', 'grains', 'rice', 'pasta'],
+};
+
 export const templates: Template[] = [
   {
+    key: 'weekly',
     name: 'Еженедельные продукты',
     items: [
       { name: 'Молоко', quantity: 1 },
@@ -63,6 +99,7 @@ export const templates: Template[] = [
     ],
   },
   {
+    key: 'party',
     name: 'Принадлежности для вечеринки',
     items: [
       { name: 'Чипсы', quantity: 2 },

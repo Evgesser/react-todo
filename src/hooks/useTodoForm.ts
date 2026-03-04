@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Category, iconMap } from '@/constants';
+import { Category, iconMap, iconChoices } from '@/constants';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { UseTodosReturn } from './useTodos';
 
 interface UseTodoFormParams {
@@ -24,6 +25,7 @@ export function useTodoForm({
   updateNameCategory,
 }: UseTodoFormParams): UseTodoFormReturn {
   const [tempIconKey, setTempIconKey] = React.useState('');
+  const { t } = useLanguage();
 
   const ensureCategoryExists = React.useCallback(
     async (val: string, iconKey?: string) => {
@@ -37,14 +39,14 @@ export function useTodoForm({
         }
         const newCat: Category = {
           value: v,
-          label: v,
+          label: (t as any).categoryLabels?.[v] || iconChoices.find((x) => x.key === v)?.label || v,
           icon: finalKey ? iconMap[finalKey] : null,
         };
         return [...prev, newCat];
       });
       return;
     },
-    [setAvailableCategories]
+    [setAvailableCategories, t]
   );
 
   const displayedCategory = React.useMemo(() => {

@@ -81,6 +81,10 @@ export const he: TranslationKeys = {
     missing: 'חסר',
     markMissing: 'סמן כחסר',
     unmarkMissing: 'הסר סימון חסר',
+    voiceInput: 'קלט קול',
+    startListening: 'התחל הקלטה',
+    stopListening: 'עצור הקלטה',
+    voiceExamples: 'דוגמאות: "חצי חלב", "2 לחמים", "חלב 1.5 ל"',
   },
   
   // Search
@@ -209,6 +213,52 @@ export const he: TranslationKeys = {
     deleteWarning: 'פעולה זו בלתי הפיכה. כל הנתונים יימחקו לצמיתות.',
     enterPasswordToConfirm: 'הזן סיסמה לאישור',
     passwordsDoNotMatch: 'הסיסמאות אינן תואמות',
+  },
+
+  // Default data (localized labels for built-in categories/icons and templates)
+  categoryLabels: {
+    '': '(ללא)',
+    groceries: 'Groceries',
+    electronics: 'Electronics',
+    clothing: 'Clothing',
+    dining: 'Dining',
+    gas: 'Gas',
+    library: 'Books',
+    offer: 'Offers',
+    games: 'Games',
+    favorite: 'Favorites',
+    home: 'Home',
+    flora: 'Flowers',
+    tools: 'Tools',
+    milk: 'Milk / Drinks',
+    beverages: 'Beverages',
+    meat: 'Meat / Meals',
+    grill: 'Grill / Meat',
+    fastfood: 'Fast Food',
+    restaurant: 'Prepared Food',
+    bakery: 'Bakery',
+    icecream: 'Ice Cream',
+    coffee: 'Coffee / Drinks',
+    foodbank: 'Grains / Staples',
+  },
+
+  defaultTemplates: {
+    weekly: {
+      name: 'Weekly groceries',
+      items: [
+        { name: 'Milk', quantity: 1 },
+        { name: 'Bread', quantity: 1 },
+        { name: 'Eggs', quantity: 12 },
+      ],
+    },
+    party: {
+      name: 'Party supplies',
+      items: [
+        { name: 'Chips', quantity: 2 },
+        { name: 'Soda', quantity: 6 },
+        { name: 'Plastic cups', quantity: 20 },
+      ],
+    },
   },
 };
 
