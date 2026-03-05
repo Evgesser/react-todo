@@ -23,19 +23,21 @@ export interface ParsedInput {
 // returns null if nothing recognizable
 export const RU_UNITS = ['шт', 'кг', 'г', 'гр', 'л', 'мл', 'литр', 'литра', 'литров', 'уп', '%'];
 export const EN_UNITS = ['pcs', 'kg', 'g', 'l', 'ml', 'pack', 'oz', '%'];
+export const HE_UNITS = ['יח', 'יחידות', 'קג', 'גרם', 'ליטר', 'מל', 'מיליליטר', 'חבילה', 'אריזה', '%'];
 export function getUnitOptions(lang?: string): string[] {
-  if (!lang) return Array.from(new Set([...RU_UNITS, ...EN_UNITS]));
+  if (!lang) return Array.from(new Set([...RU_UNITS, ...EN_UNITS, ...HE_UNITS]));
   const l = lang.toLowerCase();
   if (l.startsWith('ru')) return RU_UNITS;
   if (l.startsWith('en')) return EN_UNITS;
-  return Array.from(new Set([...RU_UNITS, ...EN_UNITS]));
+  if (l.startsWith('he')) return HE_UNITS;
+  return Array.from(new Set([...RU_UNITS, ...EN_UNITS, ...HE_UNITS]));
 }
 
 export function parseSmartInput(text: string): ParsedInput | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
-  // always include both sets so parser works regardless of UI language
-  const units = Array.from(new Set([...RU_UNITS, ...EN_UNITS]));
+  // always include known sets so parser works regardless of UI language
+  const units = Array.from(new Set([...RU_UNITS, ...EN_UNITS, ...HE_UNITS]));
   // escape for regex, sort by length desc to match longer words first
   const escaped = units.map((u) => u.replace(/[-\/\^$*+?.()|[\]{}]/g, '\\$&')).sort((a,b)=>b.length-a.length);
   const unitPattern = escaped.join('|');
