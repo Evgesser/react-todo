@@ -62,6 +62,7 @@ export const en: TranslationKeys = {
     description: 'Description',
     descriptionPlaceholder: 'Additional information',
     quantity: 'Quantity',
+    unit: 'Unit',
     comment: 'Comment',
     parsedPreview: 'Parsed',
     nameLabel: 'Name',

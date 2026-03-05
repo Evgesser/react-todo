@@ -11,14 +11,14 @@ export function usePersonalization(
   const { t } = useLanguage();
 
   const [availableCategories, setAvailableCategories] = React.useState<Category[]>(
-    () => defaultCategories.map((d) => ({ ...d, label: (t as any).categoryLabels?.[d.value] || d.label }))
+    () => defaultCategories.map((d) => ({ ...d, label: (t.categoryLabels as Record<string, string>)?.[d.value] || d.label }))
   );
 
   const [availableTemplates, setAvailableTemplates] = React.useState<Template[]>(
     () => {
-      const defs = (t as any).defaultTemplates;
+      const defs = t.defaultTemplates as Record<string, Template> | undefined;
       if (defs && typeof defs === 'object') {
-        return Object.keys(defs).map((k) => ({ key: k, ...(defs as any)[k] })) as Template[];
+        return Object.keys(defs).map((k) => ({ key: k, ...(defs[k] as Template) }));
       }
       return defaultTemplates;
     }
@@ -60,7 +60,7 @@ export function usePersonalization(
               const matchesLabel = mergedLower.some((lbl) => keywords.some((k) => lbl.includes(k)));
               if (matchesLabel) {
                 const ic = iconMap[iconKey] || null;
-                const label = (t as any).categoryLabels?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+                const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
                 merged.push({ value: iconKey, label, icon: ic });
               }
             });
@@ -127,7 +127,7 @@ export function usePersonalization(
             const matchesLabel = mergedLowerLabels.some((lbl) => keywords.some((k) => lbl.includes(k)));
             if (matchesLabel) {
               const ic = iconMap[iconKey] || null;
-              const label = (t as any).categoryLabels?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+              const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
               toAdd.push({ value: iconKey, label, icon: ic });
             }
           });
@@ -142,7 +142,7 @@ export function usePersonalization(
                 const keywords = categoryKeywords[iconKey];
                 if (keywords.some((k) => name.includes(k))) {
                   const ic = iconMap[iconKey] || null;
-                  const label = (t as any).categoryLabels?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+                    const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
                   toAdd.push({ value: iconKey, label, icon: ic });
                 }
               });
@@ -218,7 +218,7 @@ export function usePersonalization(
       return prev.map((c) => {
         if (defaultVals.has(c.value)) {
           const iconComp = defaultCategories.find((d) => d.value === c.value)?.icon || null;
-          const label = (t as any).categoryLabels?.[c.value] || c.label;
+              const label = (t.categoryLabels as Record<string, string>)?.[c.value] || c.label;
           return { value: c.value, label, icon: iconComp };
         }
         return c;
@@ -227,9 +227,10 @@ export function usePersonalization(
 
     setAvailableTemplates((prev) =>
       prev.map((tmpl) => {
-        const key = (tmpl as any).key as string | undefined;
-        if (key && (t as any).defaultTemplates && (t as any).defaultTemplates[key]) {
-          return { key, ...(t as any).defaultTemplates[key] } as Template;
+        const key = tmpl.key as string | undefined;
+        const defsMap = t.defaultTemplates as Record<string, Template> | undefined;
+        if (key && defsMap && defsMap[key]) {
+          return { key, ...(defsMap[key] as Template) } as Template;
         }
         return tmpl;
       })

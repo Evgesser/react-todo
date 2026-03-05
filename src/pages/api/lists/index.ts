@@ -56,8 +56,9 @@ export default async function handler(
       defaultColor: typeof defaultColor === 'string' ? defaultColor : '#ffffff',
     };
     // allow client to supply an initial shareToken (rare)
-    if (typeof (req.body as any).shareToken === 'string' && (req.body as any).shareToken.trim() !== '') {
-      newList.shareToken = (req.body as any).shareToken.trim();
+    const body = req.body as { shareToken?: unknown };
+    if (typeof body.shareToken === 'string' && body.shareToken.trim() !== '') {
+      newList.shareToken = body.shareToken.trim();
     }
     const result = await lists.insertOne(newList);
     res.status(201).json({ _id: result.insertedId, ...newList });

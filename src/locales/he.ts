@@ -62,6 +62,7 @@ export const he: TranslationKeys = {
     description: 'תיאור',
     descriptionPlaceholder: 'מידע נוסף',
     quantity: 'כמות',
+    unit: 'יח',
     comment: 'הערה',
     parsedPreview: 'זוהה',
     nameLabel: 'שם',

@@ -5,6 +5,7 @@ export interface ParsedInput {
   name: string;
   quantity: number;
   comment: string;
+  unit?: string;
   category?: string;
 }
 
@@ -20,14 +21,21 @@ export interface ParsedInput {
 //   "3 шт Яйцо"          -> {name:"Яйцо", quantity:3, comment:"шт"}
 //   "1 пакет сахара"     -> {name:"пакет", quantity:1, comment:"сахара"}
 // returns null if nothing recognizable
+export const RU_UNITS = ['шт', 'кг', 'г', 'гр', 'л', 'мл', 'литр', 'литра', 'литров', 'уп', '%'];
+export const EN_UNITS = ['pcs', 'kg', 'g', 'l', 'ml', 'pack', 'oz', '%'];
+export function getUnitOptions(lang?: string): string[] {
+  if (!lang) return Array.from(new Set([...RU_UNITS, ...EN_UNITS]));
+  const l = lang.toLowerCase();
+  if (l.startsWith('ru')) return RU_UNITS;
+  if (l.startsWith('en')) return EN_UNITS;
+  return Array.from(new Set([...RU_UNITS, ...EN_UNITS]));
+}
+
 export function parseSmartInput(text: string): ParsedInput | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
-
-  const ruUnits = ['шт', 'кг', 'г', 'гр', 'л', 'мл', 'литр', 'литра', 'литров', 'уп', '%'];
-  const enUnits = ['pcs', 'kg', 'g', 'l', 'ml', 'pack', 'oz', '%'];
   // always include both sets so parser works regardless of UI language
-  const units = Array.from(new Set([...ruUnits, ...enUnits]));
+  const units = Array.from(new Set([...RU_UNITS, ...EN_UNITS]));
   // escape for regex, sort by length desc to match longer words first
   const escaped = units.map((u) => u.replace(/[-\/\^$*+?.()|[\]{}]/g, '\\$&')).sort((a,b)=>b.length-a.length);
   const unitPattern = escaped.join('|');
@@ -41,10 +49,12 @@ export function parseSmartInput(text: string): ParsedInput | null {
   if (m) {
     const qty = parseFloat(m[2].replace(',', '.'));
     const comment = m[4] ? m[4].trim() : '';
+    const unit = m[3] ? m[3].trim() : undefined;
     return {
       name: m[1].trim(),
       quantity: qty,
       comment,
+      unit,
     };
   }
 
@@ -65,13 +75,11 @@ export function parseSmartInput(text: string): ParsedInput | null {
       name = parts.shift() || '';
       comment = parts.join(' ');
     }
-    let finalComment = unitPart;
-    if (comment && finalComment) finalComment = `${unitPart} ${comment}`;
-    else if (comment) finalComment = comment;
     return {
       name: name.trim(),
       quantity: qty,
-      comment: finalComment.trim(),
+      comment: comment.trim(),
+      unit: unitPart || undefined,
     };
   }
 

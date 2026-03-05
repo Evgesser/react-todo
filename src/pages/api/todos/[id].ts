@@ -34,6 +34,7 @@ export default async function handler(
         category,
         order,
         missing,
+        unit,
       } = body as {
         listId?: unknown;
         name?: unknown;
@@ -45,6 +46,7 @@ export default async function handler(
         category?: unknown;
         order?: unknown;
         missing?: unknown;
+        unit?: unknown;
       };
 
       if (!listId || typeof listId !== 'string') {
@@ -59,6 +61,7 @@ export default async function handler(
         completed?: boolean;
         missing?: boolean;
         comment?: string;
+        unit?: string;
         color?: string;
         category?: string;
         order?: number;
@@ -70,6 +73,7 @@ export default async function handler(
       if (typeof completed === 'boolean') update.completed = completed;
       if (typeof missing === 'boolean') update.missing = missing;
       if (typeof comment === 'string') update.comment = comment;
+      if (typeof unit === 'string') update.unit = unit;
       if (typeof color === 'string') update.color = color;
       if (typeof category === 'string') update.category = category;
       if (typeof order === 'number') update.order = order;

@@ -89,7 +89,7 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
 
       return data;
     } catch (e) {
-      if ((e as any).name === 'AbortError') {
+      if (e instanceof DOMException && e.name === 'AbortError') {
         // aborted by caller, ignore
         return null;
       }

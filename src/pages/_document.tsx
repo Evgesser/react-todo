@@ -12,9 +12,9 @@ interface MyDocumentProps {
 export default class MyDocument extends Document<MyDocumentProps> {
   render() {
     // allow getInitialProps to provide server-detected lang/dir
-    const propsAny = this.props as any;
-    const langAttr = propsAny.__LANG || 'en';
-    const dirAttr = propsAny.__DIR || 'ltr';
+    const props = this.props as MyDocumentProps & { __LANG?: string; __DIR?: string };
+    const langAttr = props.__LANG || 'en';
+    const dirAttr = props.__DIR || 'ltr';
     return (
       <Html lang={langAttr} dir={dirAttr}>
         <Head>

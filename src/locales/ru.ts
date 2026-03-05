@@ -60,6 +60,7 @@ export const ru = {
     description: 'Описание',
     descriptionPlaceholder: 'Дополнительная информация',
     quantity: 'Количество',
+    unit: 'Ед.',
     comment: 'Комментарий',
     parsedPreview: 'Распознано',
     nameLabel: 'Название',

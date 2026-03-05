@@ -72,7 +72,7 @@ export default function CategoryRow({
             <Box component="span" sx={{ mr: 1 }}>
               <ic.icon fontSize="small" />
             </Box>
-            {t.categoryLabels?.[ic.key] || ic.label}
+            {(t.categoryLabels as Record<string, string>)?.[ic.key] || ic.label}
           </MenuItem>
         ))}
       </ClearableTextField>

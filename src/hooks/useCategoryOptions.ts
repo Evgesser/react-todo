@@ -46,7 +46,7 @@ export function useCategoryOptions({
             const cat = availableCategories.find((c) => c.value === iconKey);
             if (cat) priority.push(cat);
             else {
-              const label = (t as any).categoryLabels?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+              const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
               const ic = iconMap[iconKey] || null;
               priority.push({ value: iconKey, label, icon: ic });
             }

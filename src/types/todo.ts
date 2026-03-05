@@ -3,6 +3,7 @@ export interface Todo {
   name: string;
   description: string;
   quantity: number;
+  unit?: string;
   completed: boolean;
   // mark item as missing / unavailable in the store
   missing?: boolean;
@@ -16,6 +17,7 @@ export interface TemplateItem {
   name: string;
   description?: string;
   quantity?: number;
+  unit?: string;
   comment?: string;
   color?: string;
   category?: string;

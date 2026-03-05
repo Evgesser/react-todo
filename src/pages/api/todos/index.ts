@@ -40,6 +40,7 @@ export default async function handler(
       category,
       order,
       missing,
+      unit,
     } = req.body as {
       listId?: unknown;
       name?: unknown;
@@ -50,6 +51,7 @@ export default async function handler(
       category?: unknown;
       order?: unknown;
       missing?: unknown;
+      unit?: unknown;
     };
 
     if (!listId || typeof listId !== 'string') {
@@ -68,6 +70,7 @@ export default async function handler(
       missing: boolean;
       description: string;
       quantity: number;
+      unit?: string;
       comment: string;
       color: string;
       category: string;
@@ -80,6 +83,7 @@ export default async function handler(
       missing: typeof missing === 'boolean' ? missing : false,
       description: typeof description === 'string' ? description : '',
       quantity: typeof quantity === 'number' ? quantity : 1,
+      unit: typeof unit === 'string' ? unit : '',
       comment: typeof comment === 'string' ? comment : '',
       color: typeof color === 'string' ? color : '',
       category: typeof category === 'string' ? category : '',

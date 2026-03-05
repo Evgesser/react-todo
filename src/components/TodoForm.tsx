@@ -45,7 +45,7 @@ interface Props {
 
 // parsing logic has been moved to a shared utility so other
 // components or tests can use it without dragging TodoForm along.
-import { parseSmartInput, ParsedInput } from '@/utils/parseSmartInput';
+import { parseSmartInput, ParsedInput, getUnitOptions } from '@/utils/parseSmartInput';
 
 export default function TodoForm({
   todoActions,
@@ -175,7 +175,7 @@ export default function TodoForm({
   );
 
   // Speech recognition for quick voice input (Web Speech API)
-  const recognitionRef = React.useRef<any>(null);
+  const recognitionRef = React.useRef<SpeechRecognition | null>(null);
   const [isListening, setIsListening] = React.useState(false);
   const [speechSupported, setSpeechSupported] = React.useState(false);
 
@@ -183,7 +183,7 @@ export default function TodoForm({
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       setSpeechSupported(false);
       return;
@@ -203,15 +203,18 @@ export default function TodoForm({
       r.lang = langCode;
       r.interimResults = false;
       r.maxAlternatives = 1;
-      r.onresult = (e: any) => {
+      r.onresult = (e: SpeechRecognitionEvent) => {
         const last = e.results[e.results.length - 1];
-        const transcript = (last && last[0] && last[0].transcript) ? last[0].transcript.trim() : '';
+        const transcript = (last?.[0]?.transcript ?? '').trim();
         if (transcript) {
           const converted = convertNumberWordsToDigits(transcript, language);
           const capitalized = capitalize(converted);
           todoActions.setName(capitalized);
           const p = parseSmartInput(converted);
           setParsed(p);
+          try {
+            todoActions.setUnit(p?.unit || '')
+          } catch (e) {}
         }
       };
       r.onstart = () => setIsListening(true);
@@ -292,17 +295,17 @@ export default function TodoForm({
         }
         const newCat: Category = {
           value: v,
-          label: (t as any).categoryLabels?.[v] || iconChoices.find((x) => x.key === v)?.label || v,
+          label: (t.categoryLabels as Record<string, string>)?.[v] || iconChoices.find((x) => x.key === v)?.label || v,
           icon: finalKey ? iconMap[finalKey] : null,
         };
         return [...prev, newCat];
       });
     },
-    [setAvailableCategories]
+    [setAvailableCategories, t]
   );
 
   // add item using whatever values are currently in state
-  type Override = Partial<{ name: string; quantity: number; comment: string; category: string }>;
+  type Override = Partial<{ name: string; quantity: number; comment: string; category: string; unit: string }>;
 
   const handleAdd = React.useCallback(async (override?: Override) => {
     // compute parse fresh or use override
@@ -317,6 +320,7 @@ export default function TodoForm({
       todoActions.setName(capitalize(p.name || ''));
       todoActions.setQuantity(p.quantity ?? 1);
       todoActions.setComment(p.comment || '');
+      todoActions.setUnit(p.unit || '');
       if (p.category) {
         todoActions.setCategory(p.category);
       }
@@ -327,11 +331,12 @@ export default function TodoForm({
     }
     await ensureCategoryExists(todoActions.category, tempIconKey || undefined);
     // add using override so stale state doesn't matter
-    const overridePayload: Partial<{ name: string; quantity: number; comment: string; category: string }> = {};
+    const overridePayload: Partial<{ name: string; quantity: number; comment: string; category: string; unit: string }> = {};
     if (p) {
       if (p.name) overridePayload.name = capitalize(p.name);
       if (p.quantity != null) overridePayload.quantity = p.quantity;
       if (p.comment) overridePayload.comment = p.comment;
+      if (p.unit) overridePayload.unit = p.unit;
       if (p.category) overridePayload.category = p.category;
     }
     await todoActions.addItem(overridePayload);
@@ -374,6 +379,7 @@ export default function TodoForm({
               todoActions.setName(capitalize(v));
               const p = parseSmartInput(v);
               setParsed(p);
+              todoActions.setUnit(p?.unit || '');
             }}
             onChange={(_, v) => {
               let newName = '';
@@ -387,6 +393,7 @@ export default function TodoForm({
               }
               const p = parseSmartInput(newName);
               setParsed(p);
+              todoActions.setUnit(p?.unit || '');
             }}
             renderOption={(props, option) => {
               const data = typeof option === 'string' ? { name: option } : option;
@@ -428,8 +435,9 @@ export default function TodoForm({
                   }
                   if (e.key === ' ' || e.key === 'Spacebar') {
                     // space pressed - update parsed preview
-                    const p = parseSmartInput(todoActions.name);
-                    setParsed(p);
+                      const p = parseSmartInput(todoActions.name);
+                      setParsed(p);
+                      todoActions.setUnit(p?.unit || '');
                   }
                 }}
                 InputProps={{
@@ -496,24 +504,36 @@ export default function TodoForm({
               ) : null,
             }}
           />
-          <TextField
-            label={t.todos.quantity}
-            type="number"
-            value={todoActions.quantity}
-            onClick={() => {
-              setTempQuantity(todoActions.quantity || 1);
-              setQuantityDialogOpen(true);
-            }}
-            onFocus={(e) => {
-              setTempQuantity(todoActions.quantity || 1);
-              setQuantityDialogOpen(true);
-              (e.target as HTMLElement).blur();
-            }}
-            InputLabelProps={{ shrink: true }}
-            InputProps={{ readOnly: true }}
-            inputProps={{ min: 1 }}
-            fullWidth
-          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField
+              label={t.todos.quantity}
+              type="number"
+              value={todoActions.quantity}
+              onClick={() => {
+                setTempQuantity(todoActions.quantity || 1);
+                setQuantityDialogOpen(true);
+              }}
+              onFocus={(e) => {
+                setTempQuantity(todoActions.quantity || 1);
+                setQuantityDialogOpen(true);
+                (e.target as HTMLElement).blur();
+              }}
+              InputLabelProps={{ shrink: true }}
+              InputProps={{ readOnly: true }}
+              inputProps={{ min: 1 }}
+              sx={{ flex: 1 }}
+            />
+            <Autocomplete
+              freeSolo
+              options={getUnitOptions(language)}
+              inputValue={todoActions.unit || ''}
+              onInputChange={(_, v) => todoActions.setUnit(v)}
+              sx={{ width: 110 }}
+              renderInput={(params) => (
+                <TextField {...params} label={t.todos.unit || 'Unit'} />
+              )}
+            />
+          </Box>
           <TextField
             label={t.todos.comment}
             placeholder={t.todos.commentPlaceholder}
@@ -624,6 +644,11 @@ export default function TodoForm({
               <Typography variant="body2">
                 <strong>{t.todos.quantityLabel || 'Qty'}:</strong> {parsed.quantity}
               </Typography>
+              {parsed.unit && (
+                <Typography variant="body2">
+                  <strong>{t.todos.unit || 'Unit'}:</strong> {parsed.unit}
+                </Typography>
+              )}
               {parsed.comment && (
                 <Typography variant="body2">
                   <strong>{t.todos.commentLabel || 'Comment'}:</strong> {parsed.comment}
@@ -655,6 +680,7 @@ export default function TodoForm({
                     name: parsed.name,
                     quantity: parsed.quantity,
                     comment: parsed.comment,
+                    unit: parsed.unit,
                     category: parsed.category,
                   });
                 }}

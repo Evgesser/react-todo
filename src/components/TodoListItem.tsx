@@ -239,7 +239,9 @@ export default function TodoListItem({
                       }}
                     >
                       {todo.name}
-                      {todo.quantity > 1 ? ` (x${todo.quantity})` : ''}
+                      {(todo.quantity != null && (todo.quantity !== 1 || todo.unit))
+                        ? ` (${todo.quantity}${todo.unit ? ' ' + todo.unit : ''})`
+                        : ''}
                     </Typography>
                     {todo.description && (
                       <Typography variant="body2" sx={{ color: itemTextColor, mt: 0.25, opacity: todo.completed ? 0.6 : 0.85 }}>
@@ -275,6 +277,7 @@ export default function TodoListItem({
                       todoActions.setDescription(todo.description);
                       todoActions.setQuantity(todo.quantity);
                       todoActions.setComment(todo.comment || '');
+                      todoActions.setUnit(todo.unit || '');
                       todoActions.setColor(todo.color || listActions.listDefaultColor);
                       todoActions.setCategory(todo.category || '');
                     }}

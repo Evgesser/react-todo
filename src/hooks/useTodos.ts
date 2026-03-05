@@ -24,6 +24,7 @@ interface AddOverride {
   description?: string;
   quantity?: number;
   comment?: string;
+  unit?: string;
   color?: string;
   category?: string;
 }
@@ -36,6 +37,7 @@ export interface UseTodosReturn {
   description: string;
   quantity: number;
   comment: string;
+  unit: string;
   color: string;
   category: string;
   editingId: string | null;
@@ -59,6 +61,7 @@ export interface UseTodosReturn {
   setDescription: (description: string) => void;
   setQuantity: (quantity: number) => void;
   setComment: (comment: string) => void;
+  setUnit: (unit: string) => void;
   setColor: (color: string) => void;
   setCategory: (category: string) => void;
   setCategoryManual: (category: string) => void;
@@ -108,6 +111,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   const [description, setDescription] = React.useState('');
   const [quantity, setQuantity] = React.useState(1);
   const [comment, setComment] = React.useState('');
+  const [unit, setUnit] = React.useState('');
   const [color, setColor] = React.useState('#ffffff');
   // category selected in add/edit form
   const [category, setCategoryState] = React.useState('');
@@ -245,6 +249,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     description?: string;
     quantity?: number;
     comment?: string;
+    unit?: string;
     color?: string;
     category?: string;
   }
@@ -258,6 +263,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       description: (override.description ?? description).trim(),
       quantity: override.quantity ?? quantity,
       comment: (override.comment ?? comment).trim(),
+      unit: override.unit ?? unit,
       color: override.color ?? color,
       category: override.category ?? category,
     };
@@ -319,6 +325,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       setDescription('');
       setQuantity(1);
       setComment('');
+      setUnit('');
       setColor(listDefaultColor);
       setCategoryState('');
     setAutoAssignedFor(null);
@@ -698,6 +705,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     description,
     quantity,
     comment,
+    unit,
     color,
     category,
     editingId,
@@ -719,6 +727,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setDescription,
     setQuantity,
     setComment,
+    setUnit,
     setColor,
     setCategory,
     setCategoryManual,

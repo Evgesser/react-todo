@@ -182,8 +182,8 @@ export default function ListToolbar({
               let token: string = lists.find((l) => l._id === currentListId)?.shareToken || '';
               if (!token) {
                 // use crypto API for quality randomness, fallback to Math if unavailable
-                token = typeof crypto !== 'undefined' && (crypto as any).randomUUID ? (crypto as any).randomUUID() :
-                  Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+                const rnd = (globalThis.crypto as Crypto & { randomUUID?: () => string }).randomUUID;
+                token = typeof rnd === 'function' ? rnd() : Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
                 await updateShareToken(currentListId, token);
               }
               const link = `${window.location.origin}/shared?token=${encodeURIComponent(token)}`;

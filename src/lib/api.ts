@@ -136,6 +136,7 @@ export async function createTodosBulk(listId: string, items: TemplateItem[]) {
         description: item.description || '',
         quantity: item.quantity || 1,
         comment: item.comment || '',
+        unit: item.unit || '',
         color: item.color || '',
         category: item.category || '',
         order: idx,

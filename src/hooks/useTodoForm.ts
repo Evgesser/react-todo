@@ -39,7 +39,7 @@ export function useTodoForm({
         }
         const newCat: Category = {
           value: v,
-          label: (t as any).categoryLabels?.[v] || iconChoices.find((x) => x.key === v)?.label || v,
+          label: (t.categoryLabels as Record<string, string>)?.[v] || iconChoices.find((x) => x.key === v)?.label || v,
           icon: finalKey ? iconMap[finalKey] : null,
         };
         return [...prev, newCat];
