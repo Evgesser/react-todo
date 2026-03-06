@@ -2,18 +2,24 @@ import * as React from 'react';
 import { Box, TextField, Button, IconButton, InputAdornment, Alert } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
 import RegisterDialog from './dialogs/RegisterDialog';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import useAppStore from '@/stores/useAppStore';
 import type { TranslationKeys } from '@/locales/ru';
+import type { IntlShape } from 'react-intl';
 
 interface AuthPanelProps {
   t: TranslationKeys;
+  formatMessage: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string;
   onSnackbar: (msg: string) => void;
 }
 
-export default function AuthPanel({ t, onSnackbar }: AuthPanelProps) {
-  const auth = useAuth();
-  const { formatMessage } = useLanguage();
+export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelProps) {
+  const userId = useAppStore((s) => s.userId);
+  const error = useAppStore((s) => s.error);
+  const clearError = useAppStore((s) => s.clearError);
+  const setAuthData = useAppStore((s) => s.setAuthData);
+  const loadAvatar = useAppStore((s) => s.loadAvatar);
+  const login = useAppStore((s) => s.login);
+  const isLoading = useAppStore((s) => s.isLoading);
   const [loginUsername, setLoginUsername] = React.useState('');
   const [loginPassword, setLoginPassword] = React.useState('');
   const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false);
@@ -21,18 +27,18 @@ export default function AuthPanel({ t, onSnackbar }: AuthPanelProps) {
   const handleRegisterSuccess = React.useCallback(
     async (userId: string, username: string) => {
       setRegisterDialogOpen(false);
-      auth.setAuthData(userId, username);
-      await auth.loadAvatar(userId);
+      setAuthData(userId, username);
+      await loadAvatar(userId);
       setLoginUsername('');
       setLoginPassword('');
       onSnackbar(formatMessage('register.success'));
     },
-    [auth, onSnackbar, formatMessage]
+    [setAuthData, loadAvatar, onSnackbar, formatMessage]
   );
 
   const handleLogin = React.useCallback(async () => {
-    auth.clearError();
-    const result = await auth.login(loginUsername, loginPassword);
+    clearError();
+    const result = await login(loginUsername, loginPassword);
     if (result.success) {
       setLoginUsername('');
       setLoginPassword('');
@@ -43,20 +49,20 @@ export default function AuthPanel({ t, onSnackbar }: AuthPanelProps) {
         onSnackbar(result.error || formatMessage('auth.loginFailed'));
       }
     }
-  }, [auth, loginUsername, loginPassword, onSnackbar, formatMessage]);
+  }, [clearError, login, loginUsername, loginPassword, onSnackbar, formatMessage]);
 
   // enable pressing Enter to submit
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleLogin();
   };
 
-  if (auth.userId) return null;
+  if (userId) return null;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
-      {auth.error && (
-        <Alert severity="error" onClose={() => auth.clearError()}>
-          {auth.error}
+      {error && (
+        <Alert severity="error" onClose={() => clearError()}>
+          {error}
         </Alert>
       )}
       <TextField
@@ -102,8 +108,8 @@ export default function AuthPanel({ t, onSnackbar }: AuthPanelProps) {
           ) : null,
         }}
       />
-      <Button variant="contained" onClick={handleLogin} disabled={auth.isLoading}>
-        {auth.isLoading ? t.auth.loading : t.auth.login}
+      <Button variant="contained" onClick={handleLogin} disabled={isLoading}>
+        {isLoading ? t.auth.loading : t.auth.login}
       </Button>
 
       <RegisterDialog
@@ -112,6 +118,7 @@ export default function AuthPanel({ t, onSnackbar }: AuthPanelProps) {
         password={loginPassword}
         onClose={() => setRegisterDialogOpen(false)}
         onRegisterSuccess={handleRegisterSuccess}
+        t={t}
       />
     </Box>
   );

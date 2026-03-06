@@ -16,7 +16,8 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getLuminance } from '@/utils/color';
 import { List as ListType } from '@/types';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { TranslationKeys } from '@/locales/ru';
+import type { IntlShape } from 'react-intl';
 
 interface ListToolbarProps {
   lists: ListType[];
@@ -41,6 +42,8 @@ interface ListToolbarProps {
   completeCurrentList: () => void;
   // new helper for share functionality
   updateShareToken: (id: string, token: string) => Promise<void>;
+  t: TranslationKeys;
+  formatMessage: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string;
 }
 
 export default function ListToolbar({
@@ -65,8 +68,10 @@ export default function ListToolbar({
   openPersonalDialog,
   completeCurrentList,
   updateShareToken, // added destructure
+  t,
+  formatMessage,
 }: ListToolbarProps) {
-    const { t, formatMessage } = useLanguage();
+    // `t` and `formatMessage` are passed from parent to avoid internal language context subscription
   return (
     <Box
       sx={{

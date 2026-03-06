@@ -1,16 +1,18 @@
 import * as React from 'react';
 import { Dialog, DialogTitle, DialogContent, TextField, Button, Box } from '@mui/material';
-import { useLanguage } from '@/contexts/LanguageContext';
+import useAppStore from '@/stores/useAppStore';
+import type { TranslationKeys } from '@/locales/ru';
 
 interface QuantityDialogProps {
   open: boolean;
   value: number;
   onChange: (val: number) => void;
   onClose: () => void;
+  t: TranslationKeys;
 }
 
-export default function QuantityDialog({ open, value, onChange, onClose }: QuantityDialogProps) {
-    const { t, language } = useLanguage();
+export default function QuantityDialog({ open, value, onChange, onClose, t }: QuantityDialogProps) {
+  const language = useAppStore((s) => s.language);
   // temp as string to allow empty field when dialog opens
   const [temp, setTemp] = React.useState<string>(value?.toString() || '');
   // when the dialog opens we always start with an empty input, treat a prop value of 1 as equivalent to no value

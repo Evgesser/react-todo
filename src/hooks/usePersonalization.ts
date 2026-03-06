@@ -1,33 +1,30 @@
 import * as React from 'react';
-import { Category, iconMap, categories as defaultCategories, templates as defaultTemplates, iconChoices, categoryKeywords } from '@/constants';
+import { Category, iconMap, categories as defaultCategories, iconChoices, categoryKeywords } from '@/constants';
 import type { Template, StoredProduct } from '@/types';
 import { fetchPersonalization, fetchProducts, savePersonalization, saveProduct } from '@/lib/api';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { TranslationKeys } from '@/locales/ru';
+import useAppStore from '@/stores/useAppStore';
 
 // hook that wraps all of the "personalization" state and side effects
 export function usePersonalization(
-  userId: string | null
+  userId: string | null,
+  t: TranslationKeys
 ) {
-  const { t } = useLanguage();
 
-  const [availableCategories, setAvailableCategories] = React.useState<Category[]>(
-    () => defaultCategories.map((d) => ({ ...d, label: (t.categoryLabels as Record<string, string>)?.[d.value] || d.label }))
-  );
+  const availableCategories = useAppStore((s) => s.availableCategories);
+  const setAvailableCategories = useAppStore((s) => s.setAvailableCategories);
 
-  const [availableTemplates, setAvailableTemplates] = React.useState<Template[]>(
-    () => {
-      const defs = t.defaultTemplates as Record<string, Template> | undefined;
-      if (defs && typeof defs === 'object') {
-        return Object.keys(defs).map((k) => ({ key: k, ...(defs[k] as Template) }));
-      }
-      return defaultTemplates;
-    }
-  );
-  const [nameCategoryMap, setNameCategoryMap] = React.useState<
-    Record<string, string>
-  >({});
-  const [products, setProducts] = React.useState<StoredProduct[]>([]);
-  const [personalDialogOpen, setPersonalDialogOpen] = React.useState(false);
+  const availableTemplates = useAppStore((s) => s.availableTemplates);
+  const setAvailableTemplates = useAppStore((s) => s.setAvailableTemplates);
+
+  const nameCategoryMap = useAppStore((s) => s.nameCategoryMap);
+  const setNameCategoryMap = useAppStore((s) => s.setNameCategoryMap);
+
+  const products = useAppStore((s) => s.products);
+  const setProducts = useAppStore((s) => s.setProducts);
+
+  const personalDialogOpen = useAppStore((s) => s.personalDialogOpen);
+  const setPersonalDialogOpen = useAppStore((s) => s.setPersonalDialogOpen);
 
   // load any categories the user added while offline (stored locally)
   React.useEffect(() => {
@@ -72,7 +69,7 @@ export function usePersonalization(
     } catch {
       /* ignore malformed local cache */
     }
-  }, [userId, t]);
+  }, [userId, t, setAvailableCategories]);
 
   // persist categories locally when unauthenticated so they survive reloads
   React.useEffect(() => {
@@ -205,7 +202,7 @@ export function usePersonalization(
     } catch {
       // ignore invalid personalization
     }
-  }, [userId, t]);
+  }, [userId, t, setAvailableCategories, setAvailableTemplates, setNameCategoryMap, setProducts]);
 
   React.useEffect(() => {
     if (userId) loadPersonalization();
@@ -235,7 +232,7 @@ export function usePersonalization(
         return tmpl;
       })
     );
-  }, [t]);
+  }, [t, setAvailableCategories, setAvailableTemplates]);
 
   // persist personalization whenever any of the pieces change
   React.useEffect(() => {
@@ -289,7 +286,7 @@ export function usePersonalization(
         return next;
       });
     },
-    [userId, availableCategories, availableTemplates, products]
+    [userId, availableCategories, availableTemplates, products, setProducts, setNameCategoryMap]
   );
 
   return {

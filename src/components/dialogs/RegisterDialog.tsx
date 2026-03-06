@@ -12,7 +12,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { TranslationKeys } from '@/locales/ru';
 
 interface RegisterDialogProps {
   open: boolean;
@@ -20,6 +20,7 @@ interface RegisterDialogProps {
   password: string;
   onClose: () => void;
   onRegisterSuccess: (userId: string, username: string) => void;
+  t: TranslationKeys;
 }
 
 export default function RegisterDialog({
@@ -28,8 +29,8 @@ export default function RegisterDialog({
   password,
   onClose,
   onRegisterSuccess,
+  t,
 }: RegisterDialogProps) {
-  const { t } = useLanguage();
   const [captchaQuestion, setCaptchaQuestion] = React.useState<string>('');
   const [captchaAnswer, setCaptchaAnswer] = React.useState<string>('');
   const [error, setError] = React.useState<string>('');

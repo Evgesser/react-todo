@@ -1,5 +1,6 @@
 import * as React from 'react';
 import Head from 'next/head';
+import type { IntlShape } from 'react-intl';
 import {
   Container,
   Box,
@@ -18,7 +19,7 @@ import {
 import { useFormAutoCollapse } from '../hooks/useFormAutoCollapse';
 import { useTodos } from '../hooks/useTodos';
 import { useLists } from '../hooks/useLists';
-import { useAuth } from '../contexts/AuthContext';
+import useAppStore from '@/stores/useAppStore';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePersonalization } from '../hooks/usePersonalization';
 import { useHeaderColors } from '../hooks/useHeaderColors';
@@ -49,17 +50,20 @@ export default function Home() {
   const [snackbarMsg, setSnackbarMsg] = React.useState('');
 
 
-  // Authentication hook
-  const auth = useAuth();
+  // Authentication: select only userId to avoid wide re-renders
+  const userId = useAppStore((s) => s.userId);
 
   // List management hook
+  const _formatMessage = (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) =>
+    formatMessage(id, values);
   const listActions = useLists({
-    userId: auth.userId,
+    userId,
     onSnackbar: (msg) => {
       setSnackbarMsg(msg);
       setSnackbarOpen(true);
     },
     t,
+    formatMessage: _formatMessage,
   });
   const [formOpen, setFormOpen] = React.useState(true);
   const [historyOpen, setHistoryOpen] = React.useState(false);
@@ -75,7 +79,7 @@ export default function Home() {
     personalDialogOpen,
     setPersonalDialogOpen,
     updateNameCategory,
-  } = usePersonalization(auth.userId);
+  } = usePersonalization(userId, t);
 
   // new-list dialog state
   const [newListDialogOpen, setNewListDialogOpen] = React.useState(false);
@@ -91,6 +95,7 @@ export default function Home() {
       setSnackbarOpen(true);
     },
     t,
+    formatMessage,
     nameCategoryMap,
     products,
   });
@@ -115,7 +120,7 @@ export default function Home() {
 
   // load lists when userId changes
   useInitialLists(
-    auth.userId,
+    userId,
     listActions,
     todoActions,
     setFormOpen,
@@ -151,9 +156,9 @@ export default function Home() {
       <Head>
         <title>{t.header.title}</title>
       </Head>
-      <Header headerColor={headerColor} effectiveHeaderTextColor={effectiveHeaderTextColor} />
-      {!auth.userId ? (
-        <AuthPanel t={t} onSnackbar={(msg) => { setSnackbarMsg(msg); setSnackbarOpen(true); }} />
+      <Header headerColor={headerColor} effectiveHeaderTextColor={effectiveHeaderTextColor} t={t} />
+      {!userId ? (
+        <AuthPanel t={t} formatMessage={_formatMessage} onSnackbar={(msg) => { setSnackbarMsg(msg); setSnackbarOpen(true); }} />
       ) : (
         <Box>
           {listActions.isLoading && <LinearProgress />}
@@ -186,6 +191,8 @@ export default function Home() {
               todoActions.setTodos([]);
             }}
             updateShareToken={listActions.updateShareToken}
+            t={t}
+            formatMessage={_formatMessage}
           />
 
           {/* search field and optional bulk toolbar */}
@@ -206,6 +213,7 @@ export default function Home() {
               todoActions.setBulkMode(false);
               todoActions.clearSelection();
             }}
+            t={t}
           />
 
           {!listActions.viewingHistory && (
@@ -251,14 +259,16 @@ export default function Home() {
               setHistoryOpen(false);
             }}
             onClose={() => setHistoryOpen(false)}
+            t={t}
           />
-          <NewListDialog
+              <NewListDialog
             open={newListDialogOpen}
             onClose={() => setNewListDialogOpen(false)}
             availableTemplates={availableTemplates}
+            t={t}
             onCreate={async (name, templateName) => {
-              if (!auth.userId) return false;
-              const created = await apiCreateList(auth.userId, name, '#ffffff');
+              if (!userId) return false;
+              const created = await apiCreateList(userId, name, '#ffffff');
               if (created) {
                 if (templateName) {
                   const tmpl = availableTemplates.find((t) => t.name === templateName);
@@ -287,7 +297,7 @@ export default function Home() {
           <PersonalizationDialog
             open={personalDialogOpen}
             onClose={() => setPersonalDialogOpen(false)}
-            userId={auth.userId}
+            userId={userId}
             availableCategories={availableCategories}
             setAvailableCategories={setAvailableCategories}
             availableTemplates={availableTemplates}
@@ -295,6 +305,8 @@ export default function Home() {
             products={products}
             setSnackbarMsg={setSnackbarMsg}
             setSnackbarOpen={setSnackbarOpen}
+            t={t}
+            formatMessage={_formatMessage}
           />
 
           <AppSnackbar

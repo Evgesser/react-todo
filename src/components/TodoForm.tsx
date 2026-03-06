@@ -20,7 +20,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 import { Category, iconMap, iconChoices } from '@/constants';
-import { useLanguage } from '@/contexts/LanguageContext';
+import useAppStore from '@/stores/useAppStore';
 import { UseTodosReturn } from '@/hooks/useTodos';
 import { useNameOptions } from '@/hooks/useNameOptions';
 import { useCategoryOptions } from '@/hooks/useCategoryOptions';
@@ -179,7 +179,34 @@ export default function TodoForm({
   const [isListening, setIsListening] = React.useState(false);
   const [speechSupported, setSpeechSupported] = React.useState(false);
 
-  const { language } = useLanguage();
+  const language = useAppStore((s) => s.language);
+
+  // pick only the pieces we need from the todoActions object
+  const {
+    name,
+    description,
+    quantity,
+    comment,
+    unit,
+    color,
+    category,
+    editingId,
+    todos,
+    clearedForName,
+    categoryWarning,
+    todosLoading,
+    setName,
+    setDescription,
+    setQuantity,
+    setComment,
+    setUnit,
+    setColor,
+    setCategory,
+    setCategoryManual,
+    setEditingId,
+    addItem,
+    
+  } = todoActions as UseTodosReturn;
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -207,15 +234,15 @@ export default function TodoForm({
         const last = e.results[e.results.length - 1];
         const transcript = (last?.[0]?.transcript ?? '').trim();
         if (transcript) {
-          const converted = convertNumberWordsToDigits(transcript, language);
-          const capitalized = capitalize(converted);
-          todoActions.setName(capitalized);
-          const p = parseSmartInput(converted);
-          setParsed(p);
-          try {
-            todoActions.setUnit(p?.unit || '')
-          } catch {}
-        }
+            const converted = convertNumberWordsToDigits(transcript, language);
+            const capitalized = capitalize(converted);
+            setName(capitalized);
+            const p = parseSmartInput(converted);
+            setParsed(p);
+            try {
+              setUnit(p?.unit || '')
+            } catch {}
+          }
       };
       r.onstart = () => setIsListening(true);
       r.onend = () => setIsListening(false);
@@ -232,13 +259,11 @@ export default function TodoForm({
       } catch {}
       recognitionRef.current = null;
     };
-  }, [todoActions, language]);
+  }, [setName, setUnit, language]);
 
   // keep tempIconKey in sync when user selects existing category
   React.useEffect(() => {
-    const exist = availableCategories.find(
-      (c) => c.value === todoActions.category
-    );
+    const exist = availableCategories.find((c) => c.value === category);
     if (exist) {
       const key =
         Object.keys(iconMap).find((k) => iconMap[k] === exist.icon) || '';
@@ -246,40 +271,36 @@ export default function TodoForm({
     } else {
       setTempIconKey('');
     }
-  }, [todoActions.category, availableCategories]);
+  }, [category, availableCategories]);
 
   // computed helpers
-  const nameOptions = useNameOptions(todoActions.todos, products);
+  const nameOptions = useNameOptions(todos, products);
   const { categoryOptions } = useCategoryOptions({
-    name: todoActions.name,
-    todos: todoActions.todos,
+    name,
+    todos,
     availableCategories,
     nameCategoryMap,
-    category: todoActions.category,
-    clearedForName: todoActions.clearedForName || '',
+    category,
+    clearedForName: clearedForName || '',
+    t,
   });
 
   const displayedCategory = React.useMemo(() => {
-    if (
-      todoActions.category === '' &&
-      todoActions.clearedForName === todoActions.name.trim().toLowerCase()
-    ) {
+    if (category === '' && clearedForName === (name || '').trim().toLowerCase()) {
       return '';
     }
-    const found = availableCategories.find(
-      (c) => c.value === todoActions.category
-    );
-    return found ? found.label : todoActions.category;
-  }, [availableCategories, todoActions.category, todoActions.name, todoActions.clearedForName]);
+    const found = availableCategories.find((c) => c.value === category);
+    return found ? found.label : category;
+  }, [availableCategories, category, name, clearedForName]);
 
   // label to show in the preview area; prefer parser's category but
   // map it to a human-readable label if possible
   const previewCategoryLabel = React.useMemo(() => {
-    const cat = parsed?.category || todoActions.category;
+    const cat = parsed?.category || category;
     if (!cat) return '';
     const found = availableCategories.find((c) => c.value === cat);
     return found ? found.label : cat;
-  }, [parsed, todoActions.category, availableCategories]);
+  }, [parsed, category, availableCategories]);
 
   const ensureCategoryExists = React.useCallback(
     async (val: string, iconKey?: string) => {
@@ -309,27 +330,27 @@ export default function TodoForm({
 
   const handleAdd = React.useCallback(async (override?: Override) => {
     // compute parse fresh or use override
-    let p = override ?? parsed ?? parseSmartInput(todoActions.name);
-    if (!p && todoActions.name.trim().includes(' ')) {
-      const parts = todoActions.name.trim().split(/\s+/);
+    let p = override ?? parsed ?? parseSmartInput(name || '');
+    if (!p && (name || '').trim().includes(' ')) {
+      const parts = (name || '').trim().split(/\s+/);
       const first = parts.shift() || '';
       p = { name: first, quantity: 1, comment: parts.join(' ') };
     }
     if (p) {
       // apply overrides to state synchronously
-      todoActions.setName(capitalize(p.name || ''));
-      todoActions.setQuantity(p.quantity ?? 1);
-      todoActions.setComment(p.comment || '');
-      todoActions.setUnit(p.unit || '');
+      setName(capitalize(p.name || ''));
+      setQuantity(p.quantity ?? 1);
+      setComment(p.comment || '');
+      setUnit(p.unit || '');
       if (p.category) {
-        todoActions.setCategory(p.category);
+        setCategory(p.category);
       }
     }
     // always capitalize name on save (state for UI)
-    if (todoActions.name) {
-      todoActions.setName(capitalize(todoActions.name));
+    if (name) {
+      setName(capitalize(name));
     }
-    await ensureCategoryExists(todoActions.category, tempIconKey || undefined);
+    await ensureCategoryExists(category, tempIconKey || undefined);
     // add using override so stale state doesn't matter
     const overridePayload: Partial<{ name: string; quantity: number; comment: string; category: string; unit: string }> = {};
     if (p) {
@@ -339,15 +360,15 @@ export default function TodoForm({
       if (p.unit) overridePayload.unit = p.unit;
       if (p.category) overridePayload.category = p.category;
     }
-    await todoActions.addItem(overridePayload);
+    await addItem(overridePayload);
     updateNameCategory(
-      overridePayload.name || todoActions.name,
-      overridePayload.category || todoActions.category,
-      overridePayload.comment || todoActions.comment
+      overridePayload.name || name || '',
+      overridePayload.category || category || '',
+      overridePayload.comment || comment || ''
     );
     setTempIconKey('');
     setParsed(null);
-  }, [ensureCategoryExists, todoActions, tempIconKey, updateNameCategory, parsed]);
+  }, [ensureCategoryExists, addItem, setName, setQuantity, setComment, setUnit, setCategory, name, category, comment, tempIconKey, updateNameCategory, parsed]);
 
   return (
     <Collapse in={formOpen} timeout={400}>
@@ -357,16 +378,16 @@ export default function TodoForm({
           sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}
         >
           <Typography variant="h6">{t.todos.addEdit}</Typography>
-          <IconButton size="small" onClick={() => setFormOpen(false)} disabled={todoActions.todosLoading}>
+          <IconButton size="small" onClick={() => setFormOpen(false)} disabled={todosLoading}>
             <ExpandMoreIcon sx={{ transform: 'rotate(-90deg)' }} />
           </IconButton>
         </Box>
-        {todoActions.todosLoading && <LinearProgress />}
+        {todosLoading && <LinearProgress />}
         <Stack
           spacing={2}
           sx={{
-            opacity: todoActions.todosLoading ? 0.5 : 1,
-            pointerEvents: todoActions.todosLoading ? 'none' : undefined,
+            opacity: todosLoading ? 0.5 : 1,
+            pointerEvents: todosLoading ? 'none' : undefined,
           }}
         >
           {/* name field now provides autocomplete based on existing todo names */}
@@ -374,26 +395,26 @@ export default function TodoForm({
             freeSolo
             options={nameOptions}
             getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.name)}
-            inputValue={todoActions.name}
+            inputValue={name || ''}
             onInputChange={(_, v) => {
-              todoActions.setName(capitalize(v));
+              setName(capitalize(v));
               const p = parseSmartInput(v);
               setParsed(p);
-              todoActions.setUnit(p?.unit || '');
+              setUnit(p?.unit || '');
             }}
             onChange={(_, v) => {
               let newName = '';
               if (typeof v === 'string') {
                 newName = capitalize(v);
-                todoActions.setName(newName);
+                setName(newName);
               } else if (v && typeof v === 'object') {
                 newName = capitalize(v.name);
-                todoActions.setName(newName);
+                setName(newName);
                 if (v.category) todoActions.setCategory(v.category);
               }
               const p = parseSmartInput(newName);
               setParsed(p);
-              todoActions.setUnit(p?.unit || '');
+              setUnit(p?.unit || '');
             }}
             renderOption={(props, option) => {
               const data = typeof option === 'string' ? { name: option } : option;
@@ -435,9 +456,9 @@ export default function TodoForm({
                   }
                   if (e.key === ' ' || e.key === 'Spacebar') {
                     // space pressed - update parsed preview
-                      const p = parseSmartInput(todoActions.name);
+                      const p = parseSmartInput(name || '');
                       setParsed(p);
-                      todoActions.setUnit(p?.unit || '');
+                      setUnit(p?.unit || '');
                   }
                 }}
                 InputProps={{
@@ -484,147 +505,6 @@ export default function TodoForm({
               />
             )}
           />
-          <TextField
-            label={t.todos.description}
-            placeholder={t.todos.descriptionPlaceholder}
-            value={todoActions.description}
-            onChange={(e) => todoActions.setDescription(e.target.value)}
-            fullWidth
-            InputProps={{
-              endAdornment: todoActions.description ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    onClick={() => todoActions.setDescription('')}
-                    edge="end"
-                  >
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }}
-          />
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField
-              label={t.todos.quantity}
-              type="number"
-              value={todoActions.quantity}
-              onClick={() => {
-                setTempQuantity(todoActions.quantity || 1);
-                setQuantityDialogOpen(true);
-              }}
-              onFocus={(e) => {
-                setTempQuantity(todoActions.quantity || 1);
-                setQuantityDialogOpen(true);
-                (e.target as HTMLElement).blur();
-              }}
-              InputLabelProps={{ shrink: true }}
-              InputProps={{ readOnly: true }}
-              inputProps={{ min: 1 }}
-              sx={{ flex: 1 }}
-            />
-            <Autocomplete
-              freeSolo
-              options={getUnitOptions(language)}
-              inputValue={todoActions.unit || ''}
-              onInputChange={(_, v) => todoActions.setUnit(v)}
-              sx={{ width: 110 }}
-              renderInput={(params) => (
-                <TextField {...params} label={t.todos.unit || 'Unit'} />
-              )}
-            />
-          </Box>
-          <TextField
-            label={t.todos.comment}
-            placeholder={t.todos.commentPlaceholder}
-            value={todoActions.comment}
-            onChange={(e) => todoActions.setComment(e.target.value)}
-            fullWidth
-            InputProps={{
-              endAdornment: todoActions.comment ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    onClick={() => todoActions.setComment('')}
-                    edge="end"
-                  >
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }}
-          />
-          <TextField
-            label={t.todos.color}
-            type="color"
-            value={todoActions.color}
-            onChange={(e) => todoActions.setColor(e.target.value)}
-            sx={{ width: 80 }}
-          />
-          <Autocomplete
-            freeSolo
-            options={categoryOptions}
-            getOptionLabel={(opt) =>
-              typeof opt === 'string' ? opt : opt.label || opt.value
-            }
-            value={
-              todoActions.category === '' &&
-              todoActions.clearedForName ===
-                todoActions.name.trim().toLowerCase()
-                ? null
-                : availableCategories.find((c) => c.value === todoActions.category) ||
-                  (todoActions.category
-                    ? { value: todoActions.category, label: todoActions.category, icon: null }
-                    : null)
-            }
-            inputValue={displayedCategory}
-            onInputChange={(_, v, reason) => {
-              if (reason === 'input') {
-                todoActions.setCategoryManual(v);
-              }
-            }}
-            onChange={(_, v) => {
-              let val = '';
-              if (typeof v === 'string') {
-                val = v;
-              } else if (v && typeof v === 'object') {
-                val = v.value || '';
-              }
-              todoActions.setCategoryManual(val);
-              ensureCategoryExists(val);
-            }}
-            renderOption={(props, option) => (
-              <li {...props}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  {option.icon ? <option.icon fontSize="small" sx={{ mr: 0.5 }} /> : null}
-                  {option.label || option.value}
-                </Box>
-              </li>
-            )}
-            renderInput={(params) => (
-              <TextField {...params} label={t.todos.category} fullWidth />
-            )}
-          />
-          {todoActions.categoryWarning && (
-            <Box sx={{ mt: 1 }}>
-              <Alert
-                severity="warning"
-                onClose={() => todoActions.setCategoryManual(todoActions.category)}
-              >
-                {todoActions.categoryWarning}
-              </Alert>
-            </Box>
-          )}
-          {/* if category text doesn't match existing, allow picking icon */}
-          {todoActions.category &&
-            !availableCategories.find((c) => c.value === todoActions.category) && (
-              <CategoryIconPicker
-                selected={tempIconKey}
-                onChange={setTempIconKey}
-              />
-            )}
-
-          {/* preview of parsed result */}
           {parsed && (
             <Box
               sx={(t) => ({
@@ -659,45 +539,172 @@ export default function TodoForm({
                   <strong>{t.todos.category}:</strong> {previewCategoryLabel}
                 </Typography>
               )}
+              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<AutoAwesomeIcon />}
+                  onClick={() => {
+                    handleAdd({
+                      name: parsed.name,
+                      quantity: parsed.quantity,
+                      comment: parsed.comment,
+                      unit: parsed.unit,
+                      category: parsed.category,
+                    });
+                  }}
+                >
+                  {t.buttons?.smartAdd || 'Умное сохранение'}
+                </Button>
+              </Box>
             </Box>
           )}
+          <TextField
+            label={t.todos.description}
+            placeholder={t.todos.descriptionPlaceholder}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            fullWidth
+            InputProps={{
+              endAdornment: description ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => setDescription('')}
+                    edge="end"
+                  >
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            }}
+          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField
+              label={t.todos.quantity}
+              type="number"
+              value={quantity}
+              onClick={() => {
+                  setTempQuantity(quantity || 1);
+                  setQuantityDialogOpen(true);
+                }}
+                onFocus={(e) => {
+                  setTempQuantity(quantity || 1);
+                  setQuantityDialogOpen(true);
+                  (e.target as HTMLElement).blur();
+                }}
+              InputLabelProps={{ shrink: true }}
+              InputProps={{ readOnly: true }}
+              inputProps={{ min: 1 }}
+              sx={{ flex: 1 }}
+            />
+            <Autocomplete
+              freeSolo
+              options={getUnitOptions(language)}
+              inputValue={unit || ''}
+              onInputChange={(_, v) => setUnit(v)}
+              sx={{ width: 110 }}
+              renderInput={(params) => (
+                <TextField {...params} label={t.todos.unit || 'Unit'} />
+              )}
+            />
+          </Box>
+          <TextField
+            label={t.todos.comment}
+            placeholder={t.todos.commentPlaceholder}
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            fullWidth
+            InputProps={{
+              endAdornment: comment ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => setComment('')}
+                    edge="end"
+                  >
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            }}
+          />
+          <TextField
+            label={t.todos.color}
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            sx={{ width: 80 }}
+          />
+          <Autocomplete
+            freeSolo
+            options={categoryOptions}
+            getOptionLabel={(opt) =>
+              typeof opt === 'string' ? opt : opt.label || opt.value
+            }
+            value={category === '' && clearedForName === (name || '').trim().toLowerCase() ? null : availableCategories.find((c) => c.value === category) || (category ? { value: category, label: category, icon: null } : null)}
+            inputValue={displayedCategory}
+            onInputChange={(_, v, reason) => {
+              if (reason === 'input') {
+                setCategoryManual(v);
+              }
+            }}
+            onChange={(_, v) => {
+              let val = '';
+              if (typeof v === 'string') {
+                val = v;
+              } else if (v && typeof v === 'object') {
+                val = v.value || '';
+              }
+              setCategoryManual(val);
+              ensureCategoryExists(val);
+            }}
+            renderOption={(props, option) => (
+              <li {...props}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  {option.icon ? <option.icon fontSize="small" sx={{ mr: 0.5 }} /> : null}
+                  {option.label || option.value}
+                </Box>
+              </li>
+            )}
+            renderInput={(params) => (
+              <TextField {...params} label={t.todos.category} fullWidth />
+            )}
+          />
+          {categoryWarning && (
+            <Box sx={{ mt: 1 }}>
+              <Alert
+                severity="warning"
+                onClose={() => setCategoryManual(category)}
+              >
+                {todoActions.categoryWarning}
+              </Alert>
+            </Box>
+          )}
+          {/* if category text doesn't match existing, allow picking icon */}
+          {category && !availableCategories.find((c) => c.value === category) && (
+              <CategoryIconPicker
+                selected={tempIconKey}
+                onChange={setTempIconKey}
+              />
+            )}
+
+          
 
           <Stack direction="row" spacing={2} flexWrap="wrap">
-            <Button
-              variant="contained"
-              onClick={() => handleAdd()}
-            >
-              {todoActions.editingId ? t.todos.save : t.todos.add}
+            <Button variant="contained" onClick={() => handleAdd()}>
+              {editingId ? t.todos.save : t.todos.add}
             </Button>
-            {parsed && (
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<AutoAwesomeIcon />}
-                onClick={() => {
-                  // apply parsed values then add
-                  handleAdd({
-                    name: parsed.name,
-                    quantity: parsed.quantity,
-                    comment: parsed.comment,
-                    unit: parsed.unit,
-                    category: parsed.category,
-                  });
-                }}
-              >
-                {t.buttons.smartAdd || 'Умное сохранение'}
-              </Button>
-            )}
-            {todoActions.editingId && (
+            {editingId && (
               <Button
                 variant="outlined"
                 onClick={() => {
-                  todoActions.setEditingId(null);
-                  todoActions.setName('');
-                  todoActions.setDescription('');
-                  todoActions.setQuantity(1);
-                  todoActions.setComment('');
-                  todoActions.setColor(listDefaultColor);
+                  setEditingId(null);
+                  setName('');
+                  setDescription('');
+                  setQuantity(1);
+                  setComment('');
+                  setColor(listDefaultColor);
                 }}
               >
                 {t.todos.cancel}
@@ -714,6 +721,7 @@ export default function TodoForm({
           todoActions.setQuantity(v);
         }}
         onClose={() => setQuantityDialogOpen(false)}
+        t={t}
       />
     </Collapse>
   );

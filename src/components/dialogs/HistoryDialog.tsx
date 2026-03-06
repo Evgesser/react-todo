@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemButton, ListItemText, Grow, useTheme, useMediaQuery } from '@mui/material';
 import { List as ListType } from '@/types';
-import { useLanguage } from '@/contexts/LanguageContext';
+import useAppStore from '@/stores/useAppStore';
+import type { TranslationKeys } from '@/locales/ru';
 
 interface HistoryDialogProps {
   open: boolean;
@@ -9,10 +10,11 @@ interface HistoryDialogProps {
   onSelect: (l: ListType) => void;
   onClose: () => void;
   loading?: boolean;
+  t: TranslationKeys;
 }
 
-export default function HistoryDialog({ open, lists, onSelect, onClose }: HistoryDialogProps) {
-  const { t, language } = useLanguage();
+export default function HistoryDialog({ open, lists, onSelect, onClose, t }: HistoryDialogProps) {
+  const language = useAppStore((s) => s.language);
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   return (

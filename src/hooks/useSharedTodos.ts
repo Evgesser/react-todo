@@ -4,7 +4,8 @@ import {
   fetchSharedList,
   updateSharedTodo,
 } from '@/lib/api';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { IntlShape } from 'react-intl';
+// TranslationKeys not used here
 
 interface UseSharedTodosReturn {
   list: { name: string; defaultColor?: string } | null;
@@ -29,14 +30,20 @@ interface UseSharedTodosReturn {
   onTouchEnd: (e: React.TouchEvent, dropIndex: number) => void;
 }
 
-export function useSharedTodos(token: string, onSnackbar: (msg: string) => void): UseSharedTodosReturn {
-  const { formatMessage } = useLanguage();
+export function useSharedTodos(
+  token: string,
+  onSnackbar: (msg: string) => void,
+  formatMessage?: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string
+): UseSharedTodosReturn {
   const [list, setList] = React.useState<{ name: string; defaultColor?: string } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [todos, setTodos] = React.useState<Todo[]>([]);
   const [filterText, setFilterText] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState('');
   const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+  const fm = React.useCallback((id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => {
+    return formatMessage ? formatMessage(id, values) : id;
+  }, [formatMessage]);
 
   const fetch = React.useCallback(async () => {
     try {
@@ -45,10 +52,10 @@ export function useSharedTodos(token: string, onSnackbar: (msg: string) => void)
       setTodos(data.todos || []);
       setError(null);
     } catch {
-      onSnackbar(formatMessage('messages.loadListsError'));
+      onSnackbar(fm('messages.loadListsError'));
       setError('failed');
     }
-  }, [token, onSnackbar, formatMessage]);
+  }, [token, onSnackbar, fm]);
 
   React.useEffect(() => {
     if (!token) return;
@@ -66,9 +73,9 @@ export function useSharedTodos(token: string, onSnackbar: (msg: string) => void)
     setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, missing: !todo.missing } : t)));
     await updateSharedTodo(token, { todoId: todo._id, missing: !todo.missing });
     if (todo.missing) {
-        onSnackbar(formatMessage('messages.itemUnmarkedMissing'));
+        onSnackbar(fm('messages.itemUnmarkedMissing'));
     } else {
-      onSnackbar(formatMessage('messages.itemMarkedMissing'));
+      onSnackbar(fm('messages.itemMarkedMissing'));
     }
     fetch();
   };
@@ -152,7 +159,7 @@ export function useSharedTodos(token: string, onSnackbar: (msg: string) => void)
       const movedCategory = moved.category || '';
 
       if (movedCategory !== targetCategory) {
-        onSnackbar(formatMessage('messages.cannotMoveBetweenCategories'));
+        onSnackbar(fm('messages.cannotMoveBetweenCategories'));
         return prev;
       }
 
@@ -225,7 +232,7 @@ export function useSharedTodos(token: string, onSnackbar: (msg: string) => void)
       const targetCategory = (targetItem && targetItem.category) || '';
       const movedCategory = moved.category || '';
       if (movedCategory !== targetCategory) {
-        onSnackbar(formatMessage('messages.cannotMoveBetweenCategories'));
+        onSnackbar(fm('messages.cannotMoveBetweenCategories'));
         return prev;
       }
 

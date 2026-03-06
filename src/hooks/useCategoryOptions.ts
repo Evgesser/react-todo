@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Category, iconMap, iconChoices, categoryKeywords } from '@/constants';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { TranslationKeys } from '@/locales/ru';
 import { Todo } from '@/types';
 
 export interface CategoryOptionsResult {
@@ -15,6 +15,7 @@ interface UseCategoryOptionsParams {
   nameCategoryMap: Record<string, string>;
   category: string;
   clearedForName: string | null;
+  t: TranslationKeys;
 }
 
 /**
@@ -29,8 +30,8 @@ export function useCategoryOptions({
   nameCategoryMap,
   category,
   clearedForName,
+  t,
 }: UseCategoryOptionsParams): CategoryOptionsResult {
-  const { t } = useLanguage();
   const options = React.useMemo(() => {
     const lowerName = name.trim().toLowerCase();
     const priority: Category[] = [];

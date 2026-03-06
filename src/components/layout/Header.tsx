@@ -6,21 +6,24 @@ import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useTheme } from '@mui/material/styles';
 import { ColorModeContext } from '@/pages/_app';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
+import type { TranslationKeys } from '@/locales/ru';
+import useAppStore from '@/stores/useAppStore';
 import LanguageSwitcher from '../LanguageSwitcher';
 import Link from 'next/link';
 
 interface HeaderProps {
   headerColor: string;
   effectiveHeaderTextColor: string;
+  t: TranslationKeys;
 }
 
-const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor }) => {
+const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, t }) => {
   const theme = useTheme();
   const colorMode = React.useContext(ColorModeContext);
-  const { t } = useLanguage();
-  const { userId, username, avatar, logout } = useAuth();
+  const userId = useAppStore((s) => s.userId);
+  const username = useAppStore((s) => s.username);
+  const avatar = useAppStore((s) => s.avatar);
+  const logout = useAppStore((s) => s.logout);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 

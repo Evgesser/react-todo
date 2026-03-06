@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
 import { Template } from '@/types';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { TranslationKeys } from '@/locales/ru';
 
 interface NewListDialogProps {
   open: boolean;
@@ -24,6 +24,7 @@ interface NewListDialogProps {
   availableTemplates: Template[];
   // should return truthy if creation succeeded (dialog will then close)
   onCreate: (name: string, templateName: string) => Promise<boolean> | boolean;
+  t: TranslationKeys;
 }
 
 export default function NewListDialog({
@@ -31,8 +32,8 @@ export default function NewListDialog({
   onClose,
   availableTemplates,
   onCreate,
+  t,
 }: NewListDialogProps) {
-    const { t } = useLanguage();
   const [name, setName] = React.useState('');
   const [templateName, setTemplateName] = React.useState('');
   const [errorMsg, setErrorMsg] = React.useState<string>('');

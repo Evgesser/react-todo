@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Box, TextField, MenuItem, Button, InputAdornment, IconButton } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { TranslationKeys } from '@/locales/ru';
 
 interface Props {
+  t: TranslationKeys;
   filterText: string;
   onFilterChange: (text: string) => void;
   bulkMode: boolean;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 const SearchBulk: React.FC<Props> = ({
+  t,
   filterText,
   onFilterChange,
   bulkMode,
@@ -28,7 +30,6 @@ const SearchBulk: React.FC<Props> = ({
   currentCategory,
   onCategoryChange,
 }) => {
-  const { t } = useLanguage();
   return (
     <Box sx={{ mb: 2 }}>
       <Box sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>

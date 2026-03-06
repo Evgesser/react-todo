@@ -7,13 +7,15 @@ import {
   deleteTodo as apiDeleteTodo,
 } from '@/lib/api';
 import { TranslationKeys } from '@/locales/ru';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { IntlShape } from 'react-intl';
+import useAppStore from '@/stores/useAppStore';
 
 interface UseTodosParams {
   currentListId: string | null;
   listDefaultColor: string;
   onSnackbar: (message: string) => void;
   t: TranslationKeys;
+  formatMessage?: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string;
   // optional global name->category mapping for inference
   nameCategoryMap?: Record<string, string>;
   // global product catalog (used for suggested names and categories)
@@ -100,13 +102,14 @@ export interface UseTodosReturn {
 }
 
 export function useTodos(params: UseTodosParams): UseTodosReturn {
-  const { currentListId, listDefaultColor, onSnackbar, t, nameCategoryMap, products } = params;
+  const { currentListId, listDefaultColor, onSnackbar, t, nameCategoryMap, products, formatMessage } = params;
+  const fm = formatMessage || ((id: string) => id);
 
-  const { formatMessage } = useLanguage();
-
-  // Todo list state
-  const [todos, setTodos] = React.useState<Todo[]>([]);
-  const [todosLoading, setTodosLoading] = React.useState(false);
+  // Todo list state (migrated to global store)
+  const todos = useAppStore((s) => s.todos);
+  const setTodos = useAppStore((s) => s.setTodos);
+  const todosLoading = useAppStore((s) => s.todosLoading);
+  const setTodosLoading = useAppStore((s) => s.setTodosLoading);
   const todosAbort = React.useRef<AbortController | null>(null);
 
   // Form state
@@ -334,7 +337,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setAutoAssignedFor(null);
       setEditingId(null);
       setLastAdded(addedName);
-      onSnackbar(editingId ? formatMessage('messages.itemUpdated') : formatMessage('messages.itemAdded'));
+      onSnackbar(editingId ? fm('messages.itemUpdated') : fm('messages.itemAdded'));
       if (currentListId) {
         await fetchTodos(currentListId);
       }
@@ -355,9 +358,9 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, missing: !todo.missing } : t)));
     await apiUpdateTodo(todo._id, { listId: currentListId, missing: !todo.missing });
     if (todo.missing) {
-      onSnackbar(formatMessage('messages.itemUnmarkedMissing'));
+      onSnackbar(fm('messages.itemUnmarkedMissing'));
     } else {
-      onSnackbar(formatMessage('messages.itemMarkedMissing'));
+      onSnackbar(fm('messages.itemMarkedMissing'));
     }
     await fetchTodos(currentListId, undefined, true);
   };
@@ -544,7 +547,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
         : newIndex;
 
     if (constrained !== newIndex) {
-      onSnackbar(formatMessage('messages.cannotMoveBetweenCategories'));
+      onSnackbar(fm('messages.cannotMoveBetweenCategories'));
     }
 
     // Don't move if source and target are the same
@@ -629,7 +632,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       const movedCategory = moved.category || '';
 
       if (movedCategory !== targetCategory) {
-        onSnackbar(formatMessage('messages.cannotMoveBetweenCategories'));
+        onSnackbar(fm('messages.cannotMoveBetweenCategories'));
         return prev;
       }
 

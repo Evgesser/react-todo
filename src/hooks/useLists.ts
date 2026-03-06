@@ -6,12 +6,14 @@ import {
   updateList as apiUpdateList,
 } from '@/lib/api';
 import { TranslationKeys } from '@/locales/ru';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { IntlShape } from 'react-intl';
+import useAppStore from '@/stores/useAppStore';
 
 interface UseListsParams {
   userId: string | null;
   onSnackbar: (message: string) => void;
   t?: TranslationKeys;
+  formatMessage: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string;
 }
 
 export interface UseListsReturn {
@@ -40,15 +42,21 @@ export interface UseListsReturn {
   clearAllLists: () => void;
 }
 
-export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn {
-  const { formatMessage } = useLanguage();
-  const [lists, setLists] = React.useState<ListType[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
+export function useLists({ userId, onSnackbar, formatMessage }: UseListsParams): UseListsReturn {
   const abortRef = React.useRef<AbortController | null>(null);
-  const [currentListId, setCurrentListId] = React.useState<string | null>(null);
-  const [currentList, setCurrentList] = React.useState<ListType | null>(null);
-  const [listDefaultColor, setListDefaultColor] = React.useState('#ffffff');
-  const [viewingHistory, setViewingHistory] = React.useState(false);
+
+  const lists = useAppStore((s) => s.lists);
+  const setLists = useAppStore((s) => s.setLists);
+  const isLoading = useAppStore((s) => s.listsLoading);
+  const setIsLoading = useAppStore((s) => s.setListsLoading);
+  const currentListId = useAppStore((s) => s.currentListId);
+  const setCurrentListId = useAppStore((s) => s.setCurrentListId);
+  const currentList = useAppStore((s) => s.currentList);
+  const setCurrentList = useAppStore((s) => s.setCurrentList);
+  const listDefaultColor = useAppStore((s) => s.listDefaultColor);
+  const setListDefaultColor = useAppStore((s) => s.setListDefaultColor);
+  const viewingHistory = useAppStore((s) => s.viewingHistory);
+  const setViewingHistory = useAppStore((s) => s.setViewingHistory);
 
   const loadLists = React.useCallback(async (): Promise<ListType[] | null> => {
     if (!userId) return null;
@@ -101,7 +109,7 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
       setIsLoading(false);
       abortRef.current = null;
     }
-  }, [userId, currentListId, onSnackbar, formatMessage]);
+  }, [userId, currentListId, onSnackbar, formatMessage, setIsLoading, setLists, setCurrentListId, setCurrentList, setListDefaultColor, setViewingHistory]);
 
   const selectList = React.useCallback(
     async (id: string) => {
@@ -113,7 +121,7 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
         setViewingHistory(selected.completed);
       }
     },
-    [lists]
+    [lists, setCurrentListId, setCurrentList, setListDefaultColor, setViewingHistory]
   );
 
   const deleteList = React.useCallback(
@@ -142,7 +150,7 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
         onSnackbar(formatMessage('messages.deleteListError'));
       }
     },
-    [lists, currentListId, onSnackbar, formatMessage]
+    [lists, currentListId, onSnackbar, formatMessage, setLists, setCurrentListId, setCurrentList, setListDefaultColor, setViewingHistory]
   );
 
   const updateListColor = React.useCallback(
@@ -161,7 +169,7 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
         onSnackbar(formatMessage('messages.colorUpdateError'));
       }
     },
-    [lists, currentListId, onSnackbar, formatMessage]
+    [lists, currentListId, onSnackbar, formatMessage, setLists, setListDefaultColor, setCurrentList]
   );
 
   const updateShareToken = React.useCallback(
@@ -178,7 +186,7 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
         onSnackbar(formatMessage('messages.saveError'));
       }
     },
-    [lists, currentListId, onSnackbar, formatMessage]
+    [lists, currentListId, onSnackbar, formatMessage, setLists, setCurrentList]
   );
 
   const completeList = React.useCallback(
@@ -207,7 +215,7 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
         onSnackbar(formatMessage('messages.completeListError'));
       }
     },
-    [lists, currentListId, onSnackbar, formatMessage]
+    [lists, currentListId, onSnackbar, formatMessage, setLists, setCurrentListId, setCurrentList, setListDefaultColor, setViewingHistory]
   );
 
   const clearAllLists = React.useCallback(() => {
@@ -216,7 +224,7 @@ export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn
     setCurrentList(null);
     setListDefaultColor('#ffffff');
     setViewingHistory(false);
-  }, []);
+  }, [setLists, setCurrentListId, setCurrentList, setListDefaultColor, setViewingHistory]);
 
   return {
     lists,

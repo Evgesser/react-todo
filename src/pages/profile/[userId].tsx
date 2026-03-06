@@ -19,7 +19,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useAuth } from '@/contexts/AuthContext';
+import useAppStore from '@/stores/useAppStore';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   fetchUserProfile,
@@ -36,7 +36,8 @@ interface DialogState {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const auth = useAuth();
+  const loadAvatar = useAppStore((s) => s.loadAvatar);
+  const logout = useAppStore((s) => s.logout);
   const { t } = useLanguage();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,8 +97,8 @@ export default function ProfilePage() {
       const data = await updateUserProfile(userId, { email, bio, avatar });
       setProfile(data);
       
-      // Update auth hook with new avatar
-      await auth.loadAvatar(userId);
+      // Update auth store with new avatar
+      await loadAvatar(userId);
       
       setEditing(false);
       setSuccess(t.profile.profileUpdated);
@@ -139,7 +140,7 @@ export default function ProfilePage() {
       setDeletePassword('');
       
       // Logout and clear all auth data
-      auth.logout();
+      logout();
       
       // Show success briefly
       setSuccess(t.profile.accountDeleted);

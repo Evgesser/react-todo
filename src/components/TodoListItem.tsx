@@ -48,6 +48,44 @@ export default function TodoListItem({
 }: TodoListItemProps) {
   const theme = useTheme();
 
+  // pick only the fields we need from the action objects to avoid
+  // repeatedly accessing the full object and make intent explicit
+  const {
+    bulkMode,
+    selectedIds,
+    toggleSelect,
+    dragOverIndex,
+    inlineEditId,
+    inlineName,
+    setInlineName,
+    inlineDescription,
+    setInlineDescription,
+    finishInlineEdit,
+    setInlineEditId,
+    startInlineEdit,
+    toggleMissing,
+    setEditingId,
+    setName,
+    setDescription,
+    setQuantity,
+    setComment,
+    setUnit,
+    setColor,
+    setCategory,
+    deleteTodo,
+    onDragStart,
+    onDragOver,
+    onDrop,
+    onTouchStart,
+    onDragEnter,
+    onDragLeave,
+    onTouchMove,
+    onTouchEnd,
+    toggleComplete,
+  } = todoActions;
+
+  const { viewingHistory, listDefaultColor } = listActions;
+
   // background / text colours follow the logic that used to live in TodoList
   let itemBg: string | undefined;
   if (todo.missing) {
@@ -84,27 +122,24 @@ export default function TodoListItem({
   return (
     <Grow in timeout={300}>
       <Card
-        draggable={!listActions.viewingHistory}
-        onDragStart={(e) => todoActions.onDragStart(e, globalIndex)}
-        onDragOver={todoActions.onDragOver}
-        onDrop={(e) => todoActions.onDrop(e, globalIndex)}
-        onTouchStart={(e) => todoActions.onTouchStart(e, globalIndex)}
-        onDragEnter={(e) => todoActions.onDragEnter(e, globalIndex)}
-        onDragLeave={todoActions.onDragLeave}
-        onTouchMove={todoActions.onTouchMove}
-        onTouchEnd={(e) => todoActions.onTouchEnd(e, globalIndex)}
+        draggable={!viewingHistory}
+        onDragStart={(e) => onDragStart(e, globalIndex)}
+        onDragOver={onDragOver}
+        onDrop={(e) => onDrop(e, globalIndex)}
+        onTouchStart={(e) => onTouchStart(e, globalIndex)}
+        onDragEnter={(e) => onDragEnter(e, globalIndex)}
+        onDragLeave={onDragLeave}
+        onTouchMove={onTouchMove}
+        onTouchEnd={(e) => onTouchEnd(e, globalIndex)}
         sx={{
           mb: 1.5,
           backgroundColor: itemBg || 'inherit',
           opacity: todo.completed ? 0.75 : 1,
-          boxShadow:
-            todoActions.dragOverIndex === globalIndex
-              ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.4)}`
-              : 'none',
+          boxShadow: dragOverIndex === globalIndex ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.4)}` : 'none',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           color: itemTextColor,
-          cursor: !listActions.viewingHistory ? 'grab' : 'auto',
-          '&:active': { cursor: !listActions.viewingHistory ? 'grabbing' : 'auto' },
+          cursor: !viewingHistory ? 'grab' : 'auto',
+          '&:active': { cursor: !viewingHistory ? 'grabbing' : 'auto' },
           touchAction: 'pan-y',
           position: 'relative',
           overflow: 'hidden',
@@ -121,10 +156,10 @@ export default function TodoListItem({
         <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
           <ListItem disableGutters sx={{ p: 0 }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
-              {todoActions.bulkMode && (
+              {bulkMode && (
                 <Checkbox
-                  checked={todoActions.selectedIds.has(todo._id)}
-                  onChange={() => todoActions.toggleSelect(todo._id)}
+                  checked={selectedIds.has(todo._id)}
+                  onChange={() => toggleSelect(todo._id)}
                   icon={<RadioButtonUncheckedIcon />}
                   checkedIcon={<RadioButtonCheckedIcon />}
                   sx={{
@@ -144,8 +179,8 @@ export default function TodoListItem({
                 )}
                 <Checkbox
                   checked={todo.completed}
-                  onChange={() => !listActions.viewingHistory && todoActions.toggleComplete(todo)}
-                  disabled={listActions.viewingHistory}
+                  onChange={() => !viewingHistory && toggleComplete(todo)}
+                  disabled={viewingHistory}
                   icon={<RadioButtonUncheckedIcon />}
                   checkedIcon={<RadioButtonCheckedIcon />}
                   sx={{
@@ -156,20 +191,20 @@ export default function TodoListItem({
               </Stack>
 
               <Box sx={{ flex: 1 }}>
-                {todoActions.inlineEditId === todo._id ? (
+                {inlineEditId === todo._id ? (
                   <Stack spacing={1} sx={{ flex: 1 }} data-inline-edit-root={todo._id}>
                     <TextField
-                      value={todoActions.inlineName}
-                      onChange={(e) => todoActions.setInlineName(e.target.value)}
+                      value={inlineName}
+                      onChange={(e) => setInlineName(e.target.value)}
                       fullWidth
                       variant="standard"
                       autoFocus
                       InputProps={{
-                        endAdornment: todoActions.inlineName ? (
+                        endAdornment: inlineName ? (
                           <InputAdornment position="end">
                             <IconButton
                               size="small"
-                              onClick={() => todoActions.setInlineName('')}
+                              onClick={() => setInlineName('')}
                               edge="end"
                             >
                               <ClearIcon fontSize="small" />
@@ -179,16 +214,16 @@ export default function TodoListItem({
                       }}
                     />
                     <TextField
-                      value={todoActions.inlineDescription}
-                      onChange={(e) => todoActions.setInlineDescription(e.target.value)}
+                      value={inlineDescription}
+                      onChange={(e) => setInlineDescription(e.target.value)}
                       fullWidth
                       variant="standard"
                       InputProps={{
-                        endAdornment: todoActions.inlineDescription ? (
+                        endAdornment: inlineDescription ? (
                           <InputAdornment position="end">
                             <IconButton
                               size="small"
-                              onClick={() => todoActions.setInlineDescription('')}
+                              onClick={() => setInlineDescription('')}
                               edge="end"
                             >
                               <ClearIcon fontSize="small" />
@@ -202,7 +237,7 @@ export default function TodoListItem({
                         size="small"
                         variant="contained"
                         onClick={async () => {
-                          await todoActions.finishInlineEdit(todo);
+                          await finishInlineEdit(todo);
                         }}
                       >
                         {t.todos.save}
@@ -210,7 +245,7 @@ export default function TodoListItem({
                       <Button
                         size="small"
                         variant="outlined"
-                        onClick={() => todoActions.setInlineEditId(null)}
+                        onClick={() => setInlineEditId(null)}
                       >
                         {t.todos.cancel}
                       </Button>
@@ -219,12 +254,11 @@ export default function TodoListItem({
                 ) : (
                   <Box
                     onClick={() => {
-                      if (!todoActions.bulkMode && !listActions.viewingHistory)
-                        todoActions.startInlineEdit(todo);
+                      if (!bulkMode && !viewingHistory) startInlineEdit(todo);
                     }}
                     sx={{
                       cursor:
-                        !todoActions.bulkMode && !listActions.viewingHistory
+                        !bulkMode && !viewingHistory
                           ? 'pointer'
                           : 'default',
                     }}
@@ -257,13 +291,13 @@ export default function TodoListItem({
                 )}
               </Box>
 
-              {!listActions.viewingHistory && (
+              {!viewingHistory && (
                 <Stack direction="row" spacing={1}>
                   <IconButton
                     edge="end"
                     aria-label={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
                     sx={{ color: todo.missing ? theme.palette.error.main : itemTextColor }}
-                    onClick={() => todoActions.toggleMissing(todo)}
+                    onClick={() => toggleMissing(todo)}
                   >
                     <ReportProblemIcon fontSize="small" />
                   </IconButton>
@@ -272,14 +306,14 @@ export default function TodoListItem({
                     aria-label={t.todos.edit}
                     sx={{ color: itemTextColor }}
                     onClick={() => {
-                      todoActions.setEditingId(todo._id);
-                      todoActions.setName(todo.name);
-                      todoActions.setDescription(todo.description);
-                      todoActions.setQuantity(todo.quantity);
-                      todoActions.setComment(todo.comment || '');
-                      todoActions.setUnit(todo.unit || '');
-                      todoActions.setColor(todo.color || listActions.listDefaultColor);
-                      todoActions.setCategory(todo.category || '');
+                      setEditingId(todo._id);
+                      setName(todo.name);
+                      setDescription(todo.description);
+                      setQuantity(todo.quantity);
+                      setComment(todo.comment || '');
+                      setUnit(todo.unit || '');
+                      setColor(todo.color || listDefaultColor);
+                      setCategory(todo.category || '');
                     }}
                   >
                     <EditIcon fontSize="small" />
@@ -288,7 +322,7 @@ export default function TodoListItem({
                     edge="end"
                     aria-label={t.todos.delete}
                     sx={{ color: itemTextColor }}
-                    onClick={() => todoActions.deleteTodo(todo._id)}
+                    onClick={() => deleteTodo(todo._id)}
                   >
                     <DeleteIcon />
                   </IconButton>

@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
-import { useLanguage } from '@/contexts/LanguageContext';
+import useAppStore from '@/stores/useAppStore';
 import { Language } from '@/locales';
 
 export default function LanguageSwitcher() {
-  const { language, setLanguage } = useLanguage();
+  const language = useAppStore((s) => s.language);
+  const setLanguage = useAppStore((s) => s.setLanguage);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {

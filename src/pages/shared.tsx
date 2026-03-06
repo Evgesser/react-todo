@@ -28,20 +28,24 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { getLuminance, getTextColor } from '@/utils/color';
 import Header from '@/components/layout/Header';
 import { useLanguage } from '@/contexts/LanguageContext';
+import type { IntlShape } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
 import { useSharedTodos } from '@/hooks/useSharedTodos';
 
 export default function SharedPage() {
   const router = useRouter();
   const { token } = router.query;
-  const { t } = useLanguage();
+  const { t, formatMessage } = useLanguage();
   const theme = useTheme();
+
+    const _formatMessage = (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) =>
+      formatMessage(id, values);
 
   const [snackbarMsg, setSnackbarMsg] = React.useState('');
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
 
   const tokenStr = typeof token === 'string' ? token : '';
-  const todoActions = useSharedTodos(tokenStr, setSnackbarMsg);
+  const todoActions = useSharedTodos(tokenStr, setSnackbarMsg, _formatMessage);
 
   if (!tokenStr) {
     return (
@@ -289,6 +293,7 @@ export default function SharedPage() {
       <Header
         headerColor={headerColor}
         effectiveHeaderTextColor={headerTextColor}
+        t={t}
       />
 
       {/* simple search input */}

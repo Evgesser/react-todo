@@ -21,7 +21,8 @@ import { Template } from '@/types';
 import { categories as defaultCategories, Category, iconMap } from '@/constants';
 import { savePersonalization } from '@/lib/api';
 import type { StoredCategory } from '@/types';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { TranslationKeys } from '@/locales/ru';
+import type { IntlShape } from 'react-intl';
 
 interface PersonalizationDialogProps {
   open: boolean;
@@ -34,6 +35,8 @@ interface PersonalizationDialogProps {
   products: Array<{ name: string; category?: string }>;
   setSnackbarMsg: (msg: string) => void;
   setSnackbarOpen: (open: boolean) => void;
+  t: TranslationKeys;
+  formatMessage: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string;
 }
 
 export default function PersonalizationDialog({
@@ -47,8 +50,9 @@ export default function PersonalizationDialog({
   products,
   setSnackbarMsg,
   setSnackbarOpen,
+  t,
+  formatMessage,
 }: PersonalizationDialogProps) {
-  const { t, formatMessage } = useLanguage();
 
   // adapt dialog for narrow screens (phones)
   const theme = useTheme();

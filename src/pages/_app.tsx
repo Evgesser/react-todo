@@ -6,8 +6,10 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import { ThemeProvider, CssBaseline, PaletteMode } from "@mui/material";
 import { getTheme } from "@/theme";
 import createEmotionCache from "@/createEmotionCache";
-import { LanguageProvider } from "@/contexts/LanguageContext";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { IntlProvider } from 'react-intl';
+import { translations } from '@/locales';
+import { flattenMessages } from '@/contexts/LanguageContext';
+import useAppStore from '@/stores/useAppStore';
 
 // context to toggle color mode
 export const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
@@ -27,6 +29,18 @@ export default function MyApp(props: MyAppProps) {
     const stored = localStorage.getItem('color-mode');
     if (stored === 'dark' || stored === 'light') {
       setMode(stored);
+    }
+    // hydrate auth from localStorage into Zustand store
+    try {
+      useAppStore.getState().hydrateAuth();
+    } catch {
+      // noop
+    }
+    // hydrate language into Zustand store
+    try {
+      useAppStore.getState().hydrateLanguage();
+    } catch {
+      // noop
     }
   }, []);
 
@@ -50,16 +64,21 @@ export default function MyApp(props: MyAppProps) {
       <Head>
         <meta name="viewport" content="initial-scale=1, width=device-width" />
       </Head>
-      <AuthProvider>
-        <LanguageProvider>
-          <ColorModeContext.Provider value={colorMode}>
-            <ThemeProvider theme={theme}>
-              <CssBaseline />
-              <Component {...pageProps} />
-            </ThemeProvider>
-          </ColorModeContext.Provider>
-        </LanguageProvider>
-      </AuthProvider>
+      {/* IntlProvider wired at the top level using Zustand language */}
+      <IntlProvider
+        locale={
+          (useAppStore.getState().language === 'ru' ? 'ru' : useAppStore.getState().language === 'he' ? 'he' : 'en')
+        }
+        messages={flattenMessages(translations[useAppStore.getState().language])}
+        defaultLocale="en"
+      >
+        <ColorModeContext.Provider value={colorMode}>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Component {...pageProps} />
+          </ThemeProvider>
+        </ColorModeContext.Provider>
+      </IntlProvider>
     </CacheProvider>
   );
 }

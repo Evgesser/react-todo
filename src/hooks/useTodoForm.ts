@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Category, iconMap, iconChoices } from '@/constants';
-import { useLanguage } from '@/contexts/LanguageContext';
+import type { TranslationKeys } from '@/locales/ru';
 import { UseTodosReturn } from './useTodos';
 
 interface UseTodoFormParams {
@@ -8,6 +8,7 @@ interface UseTodoFormParams {
   availableCategories: Category[];
   setAvailableCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   updateNameCategory: (name: string, category: string, comment: string) => void;
+  t: TranslationKeys;
 }
 
 interface UseTodoFormReturn {
@@ -23,9 +24,9 @@ export function useTodoForm({
   availableCategories,
   setAvailableCategories,
   updateNameCategory,
+  t,
 }: UseTodoFormParams): UseTodoFormReturn {
   const [tempIconKey, setTempIconKey] = React.useState('');
-  const { t } = useLanguage();
 
   const ensureCategoryExists = React.useCallback(
     async (val: string, iconKey?: string) => {
