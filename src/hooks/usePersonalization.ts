@@ -72,7 +72,7 @@ export function usePersonalization(
     } catch {
       /* ignore malformed local cache */
     }
-  }, [userId]);
+  }, [userId, t]);
 
   // persist categories locally when unauthenticated so they survive reloads
   React.useEffect(() => {
@@ -205,7 +205,7 @@ export function usePersonalization(
     } catch {
       // ignore invalid personalization
     }
-  }, [userId]);
+  }, [userId, t]);
 
   React.useEffect(() => {
     if (userId) loadPersonalization();

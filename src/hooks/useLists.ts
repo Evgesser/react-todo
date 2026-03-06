@@ -6,11 +6,12 @@ import {
   updateList as apiUpdateList,
 } from '@/lib/api';
 import { TranslationKeys } from '@/locales/ru';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface UseListsParams {
   userId: string | null;
   onSnackbar: (message: string) => void;
-  t: TranslationKeys;
+  t?: TranslationKeys;
 }
 
 export interface UseListsReturn {
@@ -39,7 +40,8 @@ export interface UseListsReturn {
   clearAllLists: () => void;
 }
 
-export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsReturn {
+export function useLists({ userId, onSnackbar }: UseListsParams): UseListsReturn {
+  const { formatMessage } = useLanguage();
   const [lists, setLists] = React.useState<ListType[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const abortRef = React.useRef<AbortController | null>(null);
@@ -93,13 +95,13 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
         // aborted by caller, ignore
         return null;
       }
-      onSnackbar(t.messages.loadListsError);
+      onSnackbar(formatMessage('messages.loadListsError'));
       return null;
     } finally {
       setIsLoading(false);
       abortRef.current = null;
     }
-  }, [userId, currentListId, onSnackbar, t]);
+  }, [userId, currentListId, onSnackbar, formatMessage]);
 
   const selectList = React.useCallback(
     async (id: string) => {
@@ -135,12 +137,12 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
             setViewingHistory(false);
           }
         }
-        onSnackbar(t.messages.listDeleted);
+        onSnackbar(formatMessage('messages.listDeleted'));
       } catch {
-        onSnackbar(t.messages.deleteListError);
+        onSnackbar(formatMessage('messages.deleteListError'));
       }
     },
-    [lists, currentListId, onSnackbar, t]
+    [lists, currentListId, onSnackbar, formatMessage]
   );
 
   const updateListColor = React.useCallback(
@@ -154,12 +156,12 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
           setListDefaultColor(color);
           setCurrentList(updated.find((l) => l._id === id) || null);
         }
-        onSnackbar(t.messages.colorSaved);
+        onSnackbar(formatMessage('messages.colorSaved'));
       } catch {
-        onSnackbar(t.messages.colorUpdateError);
+        onSnackbar(formatMessage('messages.colorUpdateError'));
       }
     },
-    [lists, currentListId, onSnackbar, t]
+    [lists, currentListId, onSnackbar, formatMessage]
   );
 
   const updateShareToken = React.useCallback(
@@ -173,10 +175,10 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
           setCurrentList(updated.find((l) => l._id === id) || null);
         }
       } catch {
-        onSnackbar(t.messages.saveError || 'Failed to update share token');
+        onSnackbar(formatMessage('messages.saveError'));
       }
     },
-    [lists, currentListId, onSnackbar, t]
+    [lists, currentListId, onSnackbar, formatMessage]
   );
 
   const completeList = React.useCallback(
@@ -200,12 +202,12 @@ export function useLists({ userId, onSnackbar, t }: UseListsParams): UseListsRet
             setViewingHistory(true);
           }
         }
-        onSnackbar(t.messages.listCompleted);
+        onSnackbar(formatMessage('messages.listCompleted'));
       } catch {
-        onSnackbar(t.messages.completeListError);
+        onSnackbar(formatMessage('messages.completeListError'));
       }
     },
-    [lists, currentListId, onSnackbar, t]
+    [lists, currentListId, onSnackbar, formatMessage]
   );
 
   const clearAllLists = React.useCallback(() => {

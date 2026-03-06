@@ -48,7 +48,7 @@ export default function PersonalizationDialog({
   setSnackbarMsg,
   setSnackbarOpen,
 }: PersonalizationDialogProps) {
-  const { t } = useLanguage();
+  const { t, formatMessage } = useLanguage();
 
   // adapt dialog for narrow screens (phones)
   const theme = useTheme();
@@ -75,11 +75,11 @@ export default function PersonalizationDialog({
       if (!editingCategories.find((c) => c.value === v)) {
         setEditingCategories((prev) => [...prev, { value: v, label: v, icon: '' }]);
         setAutoFocusCategory(v);
-        setSnackbarMsg(t.messages.categoryAdded || `Category "${v}" added. Select an icon.`);
+        setSnackbarMsg(formatMessage('messages.categoryAdded'));
         setSnackbarOpen(true);
       }
     },
-    [editingCategories, setSnackbarMsg, setSnackbarOpen, t.messages]
+    [editingCategories, setSnackbarMsg, setSnackbarOpen, formatMessage]
   );
 
   // list of strings passed to template editors; include current categories and any appearing in products
@@ -114,7 +114,7 @@ export default function PersonalizationDialog({
 
   const handleSave = async () => {
     if (!userId) {
-      setSnackbarMsg(t.messages.notAuthenticated);
+      setSnackbarMsg(formatMessage('messages.notAuthenticated'));
       setSnackbarOpen(true);
       return;
     }
@@ -134,11 +134,11 @@ export default function PersonalizationDialog({
         setAvailableTemplates(saved.templates);
       }
 
-      setSnackbarMsg(t.messages.personalizationSaved);
+      setSnackbarMsg(formatMessage('messages.personalizationSaved'));
       setSnackbarOpen(true);
       onClose();
     } catch {
-      setSnackbarMsg(t.messages.personalizationSaveError);
+      setSnackbarMsg(formatMessage('messages.personalizationSaveError'));
       setSnackbarOpen(true);
     } finally {
       setSaving(false);

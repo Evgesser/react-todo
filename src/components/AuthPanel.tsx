@@ -3,6 +3,7 @@ import { Box, TextField, Button, IconButton, InputAdornment, Alert } from '@mui/
 import ClearIcon from '@mui/icons-material/Clear';
 import RegisterDialog from './dialogs/RegisterDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import type { TranslationKeys } from '@/locales/ru';
 
 interface AuthPanelProps {
@@ -12,6 +13,7 @@ interface AuthPanelProps {
 
 export default function AuthPanel({ t, onSnackbar }: AuthPanelProps) {
   const auth = useAuth();
+  const { formatMessage } = useLanguage();
   const [loginUsername, setLoginUsername] = React.useState('');
   const [loginPassword, setLoginPassword] = React.useState('');
   const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false);
@@ -23,9 +25,9 @@ export default function AuthPanel({ t, onSnackbar }: AuthPanelProps) {
       await auth.loadAvatar(userId);
       setLoginUsername('');
       setLoginPassword('');
-      onSnackbar(t.register.success);
+      onSnackbar(formatMessage('register.success'));
     },
-    [auth, onSnackbar, t.register.success]
+    [auth, onSnackbar, formatMessage]
   );
 
   const handleLogin = React.useCallback(async () => {
@@ -38,10 +40,10 @@ export default function AuthPanel({ t, onSnackbar }: AuthPanelProps) {
       if (result.error && result.error.includes('User not found')) {
         setRegisterDialogOpen(true);
       } else {
-        onSnackbar(result.error || t.auth.loginFailed);
+        onSnackbar(result.error || formatMessage('auth.loginFailed'));
       }
     }
-  }, [auth, loginUsername, loginPassword, onSnackbar, t.auth.loginFailed]);
+  }, [auth, loginUsername, loginPassword, onSnackbar, formatMessage]);
 
   // enable pressing Enter to submit
   const handleKeyPress = (e: React.KeyboardEvent) => {

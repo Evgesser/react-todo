@@ -15,7 +15,7 @@ export const ru = {
 
   // Registration
   register: {
-    title: 'Пользователь не найден',
+    title: 'Регистрация',
     captchaLabel: 'Подтвердите, что вы человек:',
     captchaPlaceholder: 'Введите ответ',
     captchaError: 'Неверный ответ',
@@ -161,6 +161,7 @@ export const ru = {
     notAuthenticated: 'Пользователь не авторизован',
     personalizationSaved: 'Настройки сохранены',
     personalizationSaveError: 'Ошибка при сохранении',
+    itemsAdded: '{count, plural, =0 {Нет добавленных пунктов} one {Добавлен # пункт} few {Добавлено # пункта} many {Добавлено # пунктов} other {Добавлено # пункта}}',
     possibleCategoryMismatch: 'Внимание: категория может быть неверной',
     cannotMoveBetweenCategories: 'Нельзя перемещать элементы между категориями',
     createError: 'Ошибка при создании',
@@ -209,7 +210,7 @@ export const ru = {
     newPassword: 'Новый пароль',
     confirmPassword: 'Подтвердите пароль',
     deleteAccount: 'Удалить аккаунт',
-    deleteWarning: 'Это действие необнеобратимо. Все ваши данные будут удалены навсегда.',
+    deleteWarning: 'Это действие необратимо. Все ваши данные будут удалены навсегда.',
     enterPasswordToConfirm: 'Введите пароль для подтверждения',
     passwordsDoNotMatch: 'Пароли не совпадают',
   },

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemButton, ListItemText, Grow, Box, Skeleton, useTheme, useMediaQuery } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemButton, ListItemText, Grow, useTheme, useMediaQuery } from '@mui/material';
 import { List as ListType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 

@@ -3,7 +3,6 @@ import Document, { Html, Head, Main, NextScript, DocumentContext } from "next/do
 import createEmotionServer from "@emotion/server/create-instance";
 // note: theme is generated dynamically in _app; here we only need palette color
 import createEmotionCache from "@/createEmotionCache";
-import { EmotionCache } from "@emotion/react";
 
 interface MyDocumentProps {
   emotionStyleTags: React.ReactNode[];
@@ -54,7 +53,6 @@ MyDocument.getInitialProps = async (ctx: DocumentContext) => {
     <style
       data-emotion={`${style.key} ${style.ids.join(' ')}`}
       key={style.key}
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: style.css }}
     />
   ));
@@ -73,7 +71,7 @@ MyDocument.getInitialProps = async (ctx: DocumentContext) => {
         dir = 'rtl';
       } else langCode = 'en';
     }
-  } catch (e) {
+  } catch {
     // ignore and fallback to defaults
   }
 

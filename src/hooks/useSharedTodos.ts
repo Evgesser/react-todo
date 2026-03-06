@@ -4,7 +4,7 @@ import {
   fetchSharedList,
   updateSharedTodo,
 } from '@/lib/api';
-import { TranslationKeys } from '@/locales/ru';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface UseSharedTodosReturn {
   list: { name: string; defaultColor?: string } | null;
@@ -29,7 +29,8 @@ interface UseSharedTodosReturn {
   onTouchEnd: (e: React.TouchEvent, dropIndex: number) => void;
 }
 
-export function useSharedTodos(token: string, onSnackbar: (msg: string) => void, t: TranslationKeys): UseSharedTodosReturn {
+export function useSharedTodos(token: string, onSnackbar: (msg: string) => void): UseSharedTodosReturn {
+  const { formatMessage } = useLanguage();
   const [list, setList] = React.useState<{ name: string; defaultColor?: string } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [todos, setTodos] = React.useState<Todo[]>([]);
@@ -44,10 +45,10 @@ export function useSharedTodos(token: string, onSnackbar: (msg: string) => void,
       setTodos(data.todos || []);
       setError(null);
     } catch {
-      onSnackbar(t.messages.loadListsError);
+      onSnackbar(formatMessage('messages.loadListsError'));
       setError('failed');
     }
-  }, [token, onSnackbar, t]);
+  }, [token, onSnackbar, formatMessage]);
 
   React.useEffect(() => {
     if (!token) return;
@@ -65,9 +66,9 @@ export function useSharedTodos(token: string, onSnackbar: (msg: string) => void,
     setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, missing: !todo.missing } : t)));
     await updateSharedTodo(token, { todoId: todo._id, missing: !todo.missing });
     if (todo.missing) {
-      onSnackbar(t.messages.itemUnmarkedMissing || '');
+        onSnackbar(formatMessage('messages.itemUnmarkedMissing'));
     } else {
-      onSnackbar(t.messages.itemMarkedMissing || '');
+      onSnackbar(formatMessage('messages.itemMarkedMissing'));
     }
     fetch();
   };
@@ -151,7 +152,7 @@ export function useSharedTodos(token: string, onSnackbar: (msg: string) => void,
       const movedCategory = moved.category || '';
 
       if (movedCategory !== targetCategory) {
-        onSnackbar(t.messages?.cannotMoveBetweenCategories || 'Нельзя перемещать элементы между категориями');
+        onSnackbar(formatMessage('messages.cannotMoveBetweenCategories'));
         return prev;
       }
 
@@ -224,7 +225,7 @@ export function useSharedTodos(token: string, onSnackbar: (msg: string) => void,
       const targetCategory = (targetItem && targetItem.category) || '';
       const movedCategory = moved.category || '';
       if (movedCategory !== targetCategory) {
-        onSnackbar(t.messages?.cannotMoveBetweenCategories || 'Нельзя перемещать элементы между категориями');
+        onSnackbar(formatMessage('messages.cannotMoveBetweenCategories'));
         return prev;
       }
 

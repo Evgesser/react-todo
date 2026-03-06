@@ -20,7 +20,7 @@ import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
 import OutdoorGrillIcon from '@mui/icons-material/OutdoorGrill';
 import IcecreamIcon from '@mui/icons-material/Icecream';
 import LocalCafeIcon from '@mui/icons-material/LocalCafe';
-import { Template, TemplateItem } from './types';
+import { Template } from './types';
 import { OverridableComponent } from '@mui/material/OverridableComponent';
 import { SvgIconTypeMap } from '@mui/material/SvgIcon';
 

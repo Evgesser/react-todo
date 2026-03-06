@@ -66,7 +66,7 @@ export default function TodoForm({
   const convertNumberWordsToDigits = (input: string, langCode?: string) => {
     if (!input) return input;
     const lang = (langCode || '').toLowerCase();
-    const normalize = (s: string) => s.replace(/[-–—]/g, ' ').replace(/[.,!?;:]/g, '').trim().toLowerCase();
+    
     const joinTokens = (tokens: string[]) => tokens.join(' ');
 
     if (lang.startsWith('ru')) {
@@ -192,7 +192,7 @@ export default function TodoForm({
       try {
         // stop previous instance if any (when changing language)
         recognitionRef.current?.stop?.();
-      } catch (e) {}
+      } catch {}
       const r = new SR();
       const langMap: Record<string, string> = {
         ru: 'ru-RU',
@@ -214,7 +214,7 @@ export default function TodoForm({
           setParsed(p);
           try {
             todoActions.setUnit(p?.unit || '')
-          } catch (e) {}
+          } catch {}
         }
       };
       r.onstart = () => setIsListening(true);
@@ -222,14 +222,14 @@ export default function TodoForm({
       r.onerror = () => setIsListening(false);
       recognitionRef.current = r;
       setSpeechSupported(true);
-    } catch (err) {
+      } catch {
       setSpeechSupported(false);
     }
     // cleanup
     return () => {
       try {
         recognitionRef.current?.stop?.();
-      } catch (e) {}
+      } catch {}
       recognitionRef.current = null;
     };
   }, [todoActions, language]);
@@ -459,7 +459,7 @@ export default function TodoForm({
                           >
                             <IconButton
                               size="small"
-                              onClick={(e) => {
+                                onClick={(e) => {
                                 e.stopPropagation();
                                 try {
                                   if (isListening) {
@@ -467,7 +467,7 @@ export default function TodoForm({
                                   } else {
                                     recognitionRef.current?.start();
                                   }
-                                } catch (err) {}
+                                } catch {}
                               }}
                               edge="end"
                               color={isListening ? 'primary' : undefined}

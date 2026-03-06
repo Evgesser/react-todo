@@ -1,8 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import clientPromise from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
-
-import type { ShoppingList } from '@/types';
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,7 +8,7 @@ export default async function handler(
   const client = await clientPromise;
   const db = client.db();
   const lists = db.collection('lists');
-  const items = db.collection('todos');
+  
 
   if (req.method === 'GET') {
     const { userId } = req.query;
@@ -23,7 +20,7 @@ export default async function handler(
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    let existingLists = await lists.find({ userId }).toArray();
+    const existingLists = await lists.find({ userId }).toArray();
 
     res.status(200).json(existingLists);
   } else if (req.method === 'POST') {

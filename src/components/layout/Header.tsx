@@ -5,7 +5,6 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useTheme } from '@mui/material/styles';
-import { useRouter } from 'next/router';
 import { ColorModeContext } from '@/pages/_app';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +18,6 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor }) => {
   const theme = useTheme();
-  const router = useRouter();
   const colorMode = React.useContext(ColorModeContext);
   const { t } = useLanguage();
   const { userId, username, avatar, logout } = useAuth();

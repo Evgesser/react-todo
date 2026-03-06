@@ -40,7 +40,7 @@ import AuthPanel from '../components/AuthPanel';
 
 
 export default function Home() {
-  const { t } = useLanguage();
+  const { t, formatMessage } = useLanguage();
 
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
   const openMenu = (e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
@@ -263,7 +263,14 @@ export default function Home() {
                 if (templateName) {
                   const tmpl = availableTemplates.find((t) => t.name === templateName);
                   if (tmpl) {
-                    await createTodosBulk(created._id, tmpl.items);
+                    const results = await createTodosBulk(created._id, tmpl.items);
+                    try {
+                      const count = Array.isArray(results) ? results.length : tmpl.items.length;
+                      setSnackbarMsg(formatMessage('messages.itemsAdded', { count }));
+                      setSnackbarOpen(true);
+                    } catch {
+                      // ignore formatting errors
+                    }
                   }
                 }
                 await listActions.loadLists();

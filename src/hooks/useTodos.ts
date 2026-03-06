@@ -7,6 +7,7 @@ import {
   deleteTodo as apiDeleteTodo,
 } from '@/lib/api';
 import { TranslationKeys } from '@/locales/ru';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface UseTodosParams {
   currentListId: string | null;
@@ -100,6 +101,8 @@ export interface UseTodosReturn {
 
 export function useTodos(params: UseTodosParams): UseTodosReturn {
   const { currentListId, listDefaultColor, onSnackbar, t, nameCategoryMap, products } = params;
+
+  const { formatMessage } = useLanguage();
 
   // Todo list state
   const [todos, setTodos] = React.useState<Todo[]>([]);
@@ -331,7 +334,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setAutoAssignedFor(null);
       setEditingId(null);
       setLastAdded(addedName);
-      onSnackbar(editingId ? t.messages.itemUpdated : t.messages.itemAdded);
+      onSnackbar(editingId ? formatMessage('messages.itemUpdated') : formatMessage('messages.itemAdded'));
       if (currentListId) {
         await fetchTodos(currentListId);
       }
@@ -352,9 +355,9 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, missing: !todo.missing } : t)));
     await apiUpdateTodo(todo._id, { listId: currentListId, missing: !todo.missing });
     if (todo.missing) {
-      onSnackbar(t.messages.itemUnmarkedMissing || '');
+      onSnackbar(formatMessage('messages.itemUnmarkedMissing'));
     } else {
-      onSnackbar(t.messages.itemMarkedMissing || '');
+      onSnackbar(formatMessage('messages.itemMarkedMissing'));
     }
     await fetchTodos(currentListId, undefined, true);
   };
@@ -541,10 +544,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
         : newIndex;
 
     if (constrained !== newIndex) {
-      onSnackbar(
-        t.messages?.cannotMoveBetweenCategories ||
-          'Cannot move items between categories'
-      );
+      onSnackbar(formatMessage('messages.cannotMoveBetweenCategories'));
     }
 
     // Don't move if source and target are the same
@@ -629,7 +629,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       const movedCategory = moved.category || '';
 
       if (movedCategory !== targetCategory) {
-        onSnackbar(t.messages?.cannotMoveBetweenCategories || 'Cannot move items between categories');
+        onSnackbar(formatMessage('messages.cannotMoveBetweenCategories'));
         return prev;
       }
 

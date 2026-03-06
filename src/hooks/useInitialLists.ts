@@ -18,16 +18,19 @@ export function useInitialLists(
 
     (async () => {
       const data = await listActions.loadLists();
+
+      // If loadLists returned null it means the request was aborted or failed.
+      // In that case do not open the "new list" dialog (avoid showing it on
+      // transient network errors or during page reloads).
+      if (data === null) return;
+
       if (data && data.length > 0) {
         const firstActive = data.find((l) => !l.completed);
-        if (firstActive) {
-          await listActions.selectList(firstActive._id);
-          todoActions.setColor(firstActive.defaultColor || '#ffffff');
-          setFormOpen(true);
-          await todoActions.fetchTodos(firstActive._id);
-        } else {
-          setNewListDialogOpen(true);
-        }
+        const toSelect = firstActive || data[0];
+        await listActions.selectList(toSelect._id);
+        todoActions.setColor(toSelect.defaultColor || '#ffffff');
+        setFormOpen(true);
+        await todoActions.fetchTodos(toSelect._id);
       } else {
         setNewListDialogOpen(true);
       }

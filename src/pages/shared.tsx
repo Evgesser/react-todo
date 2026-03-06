@@ -41,7 +41,7 @@ export default function SharedPage() {
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
 
   const tokenStr = typeof token === 'string' ? token : '';
-  const todoActions = useSharedTodos(tokenStr, setSnackbarMsg, t);
+  const todoActions = useSharedTodos(tokenStr, setSnackbarMsg);
 
   if (!tokenStr) {
     return (

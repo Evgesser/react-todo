@@ -35,7 +35,6 @@ interface ListToolbarProps {
   menuAnchor: HTMLElement | null;
   openMenu: (e: React.MouseEvent<HTMLElement>) => void;
   closeMenu: () => void;
-  password?: string;
   setSnackbarMsg: (msg: string) => void;
   setSnackbarOpen: (open: boolean) => void;
   openPersonalDialog: () => void;
@@ -61,14 +60,13 @@ export default function ListToolbar({
   menuAnchor,
   openMenu,
   closeMenu,
-  password,
   setSnackbarMsg,
   setSnackbarOpen,
   openPersonalDialog,
   completeCurrentList,
   updateShareToken, // added destructure
 }: ListToolbarProps) {
-    const { t } = useLanguage();
+    const { t, formatMessage } = useLanguage();
   return (
     <Box
       sx={{
@@ -189,7 +187,7 @@ export default function ListToolbar({
               const link = `${window.location.origin}/shared?token=${encodeURIComponent(token)}`;
               // copy to clipboard (do not open)
               navigator.clipboard.writeText(link);
-              setSnackbarMsg(t.lists.linkCopied);
+              setSnackbarMsg(formatMessage('lists.linkCopied'));
               setSnackbarOpen(true);
             }}
           >
@@ -201,7 +199,7 @@ export default function ListToolbar({
                 closeMenu();
                 if (!currentListId) return;
                 await updateShareToken(currentListId, '');
-                setSnackbarMsg(t.lists.linkRevoked);
+                setSnackbarMsg(formatMessage('lists.linkRevoked'));
                 setSnackbarOpen(true);
               }}
             >

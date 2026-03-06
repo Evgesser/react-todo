@@ -33,22 +33,6 @@ export default function TodoList({
 }: TodoListProps) {
   const theme = useTheme();
 
-  if (todoActions.todosLoading) {
-    // render a few skeleton cards while loading
-    return (
-      <Box>
-        {[...Array(6)].map((_, i) => (
-          <Skeleton
-            key={i}
-            variant="rectangular"
-            height={64}
-            sx={{ mb: 1, borderRadius: 1 }}
-          />
-        ))}
-      </Box>
-    );
-  }
-
   const elements = React.useMemo(() => {
     const filtered = todoActions.todos.filter(
       (tt) =>
@@ -152,9 +136,27 @@ export default function TodoList({
     return elementsArray;
   }, [
     todoActions,
-    listActions.viewingHistory,
+    listActions,
     availableCategories,
+    t,
+    theme,
   ]);
+
+  if (todoActions.todosLoading) {
+    // render a few skeleton cards while loading
+    return (
+      <Box>
+        {[...Array(6)].map((_, i) => (
+          <Skeleton
+            key={i}
+            variant="rectangular"
+            height={64}
+            sx={{ mb: 1, borderRadius: 1 }}
+          />
+        ))}
+      </Box>
+    );
+  }
 
   return <List sx={{ width: '100%' }}>{elements}</List>;
 }

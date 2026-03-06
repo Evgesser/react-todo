@@ -81,5 +81,5 @@ export function useFormAutoCollapse(
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
     };
-  }, [menuAnchor, setFormOpen]);
+  }, [menuAnchor, setFormOpen, collapseThreshold, lockDurationMs]);
 }

@@ -17,7 +17,7 @@ export const en: TranslationKeys = {
 
   // Registration
   register: {
-    title: 'User not found',
+    title: 'Register',
     captchaLabel: 'Verify you are human:',
     captchaPlaceholder: 'Enter answer',
     captchaError: 'Incorrect answer',
@@ -163,6 +163,7 @@ export const en: TranslationKeys = {
     notAuthenticated: 'User not authenticated',
     personalizationSaved: 'Settings saved',
     personalizationSaveError: 'Failed to save settings',
+    itemsAdded: '{count, plural, =0 {No items added} one {# item added} other {# items added}}',
     possibleCategoryMismatch: 'Warning: category may be incorrect',
     cannotMoveBetweenCategories: 'Cannot move items between categories',
     createError: 'Creation error',

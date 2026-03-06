@@ -75,7 +75,7 @@ export function useCategoryOptions({
       return full.filter((c) => c.value !== '');
     }
     return full;
-  }, [name, todos, availableCategories, nameCategoryMap, category, clearedForName]);
+  }, [name, todos, availableCategories, nameCategoryMap, category, clearedForName, t]);
 
   const displayed = React.useMemo(() => {
     if (category === '' && clearedForName === name.trim().toLowerCase()) {

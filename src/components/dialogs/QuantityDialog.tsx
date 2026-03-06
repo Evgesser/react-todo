@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box, useTheme, useMediaQuery } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, TextField, Button, Box } from '@mui/material';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface QuantityDialogProps {

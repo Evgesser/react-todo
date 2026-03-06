@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Language } from '@/locales';
 
 export default function LanguageSwitcher() {
   const { language, setLanguage } = useLanguage();
@@ -14,7 +15,7 @@ export default function LanguageSwitcher() {
     setAnchorEl(null);
   };
 
-  const handleSelectLanguage = (lang: any) => {
+  const handleSelectLanguage = (lang: Language) => {
     setLanguage(lang);
     handleClose();
   };
