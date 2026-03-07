@@ -111,6 +111,12 @@ export default function TodoListItem({
 
 
   const { viewingHistory, listDefaultColor } = listActions;
+  // allow callers (like the shared page) to explicitly override which
+  // action buttons should be visible. If not provided, fall back to
+  // the historical behaviour (hide when viewingHistory is true).
+  const la = listActions as any;
+  const canEdit = la.canEdit !== undefined ? la.canEdit : !viewingHistory;
+  const canDelete = la.canDelete !== undefined ? la.canDelete : !viewingHistory;
 
   // background / text colours follow the logic that used to live in TodoList
   let itemBg: string | undefined;
@@ -288,16 +294,16 @@ export default function TodoListItem({
                 )}
               </Box>
 
-              {!viewingHistory && (
-                <Stack direction="row" spacing={1}>
-                  <IconButton
-                    edge="end"
-                    aria-label={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
-                    sx={{ color: todo.missing ? theme.palette.error.main : itemTextColor }}
-                    onClick={() => toggleMissing(todo)}
-                  >
-                    <ReportProblemIcon fontSize="small" />
-                  </IconButton>
+              <Stack direction="row" spacing={1}>
+                <IconButton
+                  edge="end"
+                  aria-label={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
+                  sx={{ color: todo.missing ? theme.palette.error.main : itemTextColor }}
+                  onClick={() => toggleMissing(todo)}
+                >
+                  <ReportProblemIcon fontSize="small" />
+                </IconButton>
+                {canEdit && (
                   <IconButton
                     edge="end"
                     aria-label={t.todos.edit}
@@ -318,6 +324,8 @@ export default function TodoListItem({
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>
+                )}
+                {canDelete && (
                   <IconButton
                     edge="end"
                     aria-label={t.todos.delete}
@@ -326,70 +334,70 @@ export default function TodoListItem({
                   >
                     <DeleteIcon />
                   </IconButton>
-                  {(todo.description || todo.comment) && (
-                    <>
-                      <IconButton
-                        edge="end"
-                        aria-label="info"
-                        sx={{
-                          color: itemTextColor,
-                          ...blinkKeyframes,
-                          animation: infoAnchor ? 'none' : 'blinkBlue 1.5s infinite',
-                        }}
-                        onClick={openInfo}
-                      >
-                        <InfoIcon fontSize="small" />
-                      </IconButton>
-                      <Popover
-                        open={Boolean(infoAnchor)}
-                        anchorEl={infoAnchor}
-                        onClose={closeInfo}
-                        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                      >
-                        <Box sx={{ p: 1, maxWidth: 200 }}>
-                          {todo.image && (
-                            <Box
-                              sx={{ mb: 1, textAlign: 'center', cursor: 'pointer' }}
-                              onClick={() => setInfoImageOpen(true)}
-                            >
-                              <img
-                                src={todo.image}
-                                alt="attachment"
-                                style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 4 }}
-                              />
-                            </Box>
-                          )}
-                          {todo.description && (
-                            <Typography variant="body2" sx={{ mb: todo.comment ? 1 : 0 }}>
-                              {t.todos.description}: {todo.description}
-                            </Typography>
-                          )}
-                          {todo.comment && (
-                            <Typography variant="caption">
-                              {t.todos.comment}: {todo.comment}
-                            </Typography>
-                          )}
-                        </Box>
-                      </Popover>
+                )}
+                {(todo.description || todo.comment) && (
+                  <>
+                    <IconButton
+                      edge="end"
+                      aria-label="info"
+                      sx={{
+                        color: itemTextColor,
+                        ...blinkKeyframes,
+                        animation: infoAnchor ? 'none' : 'blinkBlue 1.5s infinite',
+                      }}
+                      onClick={openInfo}
+                    >
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                    <Popover
+                      open={Boolean(infoAnchor)}
+                      anchorEl={infoAnchor}
+                      onClose={closeInfo}
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                    >
+                      <Box sx={{ p: 1, maxWidth: 200 }}>
+                        {todo.image && (
+                          <Box
+                            sx={{ mb: 1, textAlign: 'center', cursor: 'pointer' }}
+                            onClick={() => setInfoImageOpen(true)}
+                          >
+                            <img
+                              src={todo.image}
+                              alt="attachment"
+                              style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 4 }}
+                            />
+                          </Box>
+                        )}
+                        {todo.description && (
+                          <Typography variant="body2" sx={{ mb: todo.comment ? 1 : 0 }}>
+                            {t.todos.description}: {todo.description}
+                          </Typography>
+                        )}
+                        {todo.comment && (
+                          <Typography variant="caption">
+                            {t.todos.comment}: {todo.comment}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Popover>
 
-                      <Dialog
-                        open={infoImageOpen}
-                        onClose={() => setInfoImageOpen(false)}
-                        maxWidth="md"
-                        sx={{ zIndex: (theme) => theme.zIndex.modal + 200 }}
-                      >
-                        <DialogContent sx={{ p: 0, background: 'black' }}>
-                          <img
-                            src={todo.image || ''}
-                            alt="full"
-                            style={{ width: '100%', height: 'auto' }}
-                          />
-                        </DialogContent>
-                      </Dialog>
-                    </>
-                  )}
-                </Stack>
-              )}
+                    <Dialog
+                      open={infoImageOpen}
+                      onClose={() => setInfoImageOpen(false)}
+                      maxWidth="md"
+                      sx={{ zIndex: (theme) => theme.zIndex.modal + 200 }}
+                    >
+                      <DialogContent sx={{ p: 0, background: 'black' }}>
+                        <img
+                          src={todo.image || ''}
+                          alt="full"
+                          style={{ width: '100%', height: 'auto' }}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                )}
+              </Stack>
             </Stack>
           </ListItem>
         </CardContent>
