@@ -14,7 +14,7 @@ export function getTheme(mode: PaletteMode) {
     },
     background: mode === 'dark'
       ? {
-          default: '#0F172A', // Slate 900
+          default: '#000000', // pure black for mobile-style look
           paper: '#1E293B',   // Slate 800
         }
       : {
@@ -76,12 +76,28 @@ export function getTheme(mode: PaletteMode) {
               transform: 'translateY(0)',
             },
           },
+          // primary buttons use a purple-pink gradient like mobile design
+          containedPrimary: {
+            background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+            color: '#ffffff',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #9333ea 0%, #db2777 100%)',
+            },
+            '&:active': {
+              background: 'linear-gradient(135deg, #7e22ce 0%, #be185d 100%)',
+            },
+          },
+          outlined: {
+            borderColor: mode === 'dark' ? 'rgba(255,255,255,0.3)' : undefined,
+            color: mode === 'dark' ? '#ffffff' : undefined,
+          },
         },
       },
       MuiCard: {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
+            backgroundColor: mode === 'dark' ? '#1a1a1a' : undefined,
             boxShadow: mode === 'dark' 
               ? '0 1px 3px rgba(0,0,0,0.3)' 
               : '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)',
@@ -100,6 +116,9 @@ export function getTheme(mode: PaletteMode) {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
+            // darker paper background for dark theme to match mobile card
+            backgroundColor: mode === 'dark' ? '#121212' : undefined,
+            borderRadius: 16,
           },
         },
       },
@@ -107,9 +126,17 @@ export function getTheme(mode: PaletteMode) {
         defaultProps: {
           margin: 'normal',
           fullWidth: false,
+          variant: 'filled', // use filled style for darker inputs
         },
         styleOverrides: {
           root: {
+            '& .MuiFilledInput-root': {
+              borderRadius: 12,
+              backgroundColor: mode === 'dark' ? '#1f1f1f' : '#f5f5f5',
+              '&:hover': {
+                backgroundColor: mode === 'dark' ? '#272727' : '#e0e0e0',
+              },
+            },
             '& .MuiOutlinedInput-root': {
               borderRadius: 12,
               transition: 'box-shadow 0.2s ease',

@@ -13,8 +13,12 @@ import {
   Collapse,
   Tooltip,
   LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CloseIcon from '@mui/icons-material/Close';
 import ClearIcon from '@mui/icons-material/Clear';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import MicIcon from '@mui/icons-material/Mic';
@@ -40,7 +44,9 @@ interface Props {
   t: TranslationKeys;
   formOpen: boolean;
   setFormOpen: React.Dispatch<React.SetStateAction<boolean>>;
-}
+  // when true, render inside a dialog instead of collapsing inline
+  dialogMode?: boolean;
+} 
 
 
 // parsing logic has been moved to a shared utility so other
@@ -58,6 +64,7 @@ export default function TodoForm({
   t,
   formOpen,
   setFormOpen,
+  dialogMode = false,
 }: Props) {
   // local state needed by the form (icon picker + quantity dialog)
   // language context no longer required for parsing
@@ -370,28 +377,41 @@ export default function TodoForm({
     setParsed(null);
   }, [ensureCategoryExists, addItem, setName, setQuantity, setComment, setUnit, setCategory, name, category, comment, tempIconKey, updateNameCategory, parsed]);
 
-  return (
-    <Collapse in={formOpen} timeout={400}>
-      <Paper sx={{ p: 2, mb: 2, width: '100%' }} elevation={3}>
-        {/* form header with collapse button */}
-        <Box
-          sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}
+  // build inner form container once so dialog/inline both use same markup
+  const formInner = (
+    <>
+      <Paper sx={{ p: 2, mb: 2, width: '100%', borderRadius: 2 }} elevation={3}>
+        {/* form header with collapse button - hidden when dialogMode because dialog title shows it */}
+        {!dialogMode && (
+          <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 1,
+            pb: 1,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
         >
-          <Typography variant="h6">{t.todos.addEdit}</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+            {editingId ? t.todos.editTask || t.todos.addEdit : t.todos.addTask || t.todos.addEdit}
+          </Typography>
           <IconButton size="small" onClick={() => setFormOpen(false)} disabled={todosLoading}>
             <ExpandMoreIcon sx={{ transform: 'rotate(-90deg)' }} />
           </IconButton>
         </Box>
-        {todosLoading && <LinearProgress />}
-        <Stack
-          spacing={2}
-          sx={{
-            opacity: todosLoading ? 0.5 : 1,
-            pointerEvents: todosLoading ? 'none' : undefined,
-          }}
-        >
-          {/* name field now provides autocomplete based on existing todo names */}
-          <Autocomplete
+      )}
+      {todosLoading && <LinearProgress />}
+      <Stack
+        spacing={2}
+        sx={{
+          opacity: todosLoading ? 0.5 : 1,
+          pointerEvents: todosLoading ? 'none' : undefined,
+        }}
+      >
+        {/* name field now provides autocomplete based on existing todo names */}
+        <Autocomplete
             freeSolo
             options={nameOptions}
             getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.name)}
@@ -691,9 +711,13 @@ export default function TodoForm({
 
           
 
-          <Stack direction="row" spacing={2} flexWrap="wrap">
-            <Button variant="contained" onClick={() => handleAdd()}>
-              {editingId ? t.todos.save : t.todos.add}
+          <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ width: '100%' }}>
+            <Button
+              variant="contained"
+              onClick={() => handleAdd()}
+              fullWidth
+            >
+              {editingId ? t.todos.save : t.todos.addTask || t.todos.add}
             </Button>
             {editingId && (
               <Button
@@ -706,6 +730,7 @@ export default function TodoForm({
                   setComment('');
                   setColor(listDefaultColor);
                 }}
+                fullWidth
               >
                 {t.todos.cancel}
               </Button>
@@ -723,6 +748,34 @@ export default function TodoForm({
         onClose={() => setQuantityDialogOpen(false)}
         t={t}
       />
+    </>
+  );
+
+  // render according to mode
+  if (dialogMode) {
+    return (
+      <Dialog
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pr: 1 }}>
+          <Typography sx={{ fontWeight: 600, flex: 1 }}>
+            {editingId ? t.todos.editTask || t.todos.addEdit : t.todos.addTask || t.todos.addEdit}
+          </Typography>
+          <IconButton size="small" onClick={() => setFormOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>{formInner}</DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Collapse in={formOpen} timeout={400}>
+      {formInner}
     </Collapse>
   );
 }

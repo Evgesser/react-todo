@@ -54,8 +54,8 @@ export const ru = {
   
   // Todos
   todos: {
-    addEdit: 'Добавить / редактировать',
-    name: 'Название',
+    addEdit: 'Добавить / редактировать',    addTask: 'Создать задачу',
+    editTask: 'Редактировать задачу',    name: 'Название',
     namePlaceholder: 'Что купить?',
     description: 'Описание',
     descriptionPlaceholder: 'Дополнительная информация',

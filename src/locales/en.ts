@@ -57,6 +57,8 @@ export const en: TranslationKeys = {
   // Todos
   todos: {
     addEdit: 'Add / Edit',
+    addTask: 'Create task',
+    editTask: 'Edit task',
     name: 'Name',
     namePlaceholder: 'What to buy?',
     description: 'Description',

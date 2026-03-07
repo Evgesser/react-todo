@@ -29,7 +29,7 @@ export function useInitialLists(
         const toSelect = firstActive || data[0];
         await listActions.selectList(toSelect._id);
         todoActions.setColor(toSelect.defaultColor || '#ffffff');
-        setFormOpen(true);
+        // do not open the todo form automatically; leave it closed until user taps +
         await todoActions.fetchTodos(toSelect._id);
       } else {
         setNewListDialogOpen(true);

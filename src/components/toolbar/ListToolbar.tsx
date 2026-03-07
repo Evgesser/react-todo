@@ -12,8 +12,8 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import { getLuminance } from '@/utils/color';
 import { List as ListType } from '@/types';
 import type { TranslationKeys } from '@/locales/ru';
@@ -114,8 +114,17 @@ export default function ListToolbar({
         }}
       >
         <Box>
-          <IconButton size="small" onClick={toggleForm} disabled={listsLoading}>
-            {formOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          <IconButton
+            size="small"
+            onClick={toggleForm}
+            disabled={listsLoading}
+            sx={{
+              bgcolor: 'primary.main',
+              color: '#fff',
+              '&:hover': { bgcolor: 'primary.dark' },
+            }}
+          >
+            {formOpen ? <CloseIcon /> : <AddIcon />}
           </IconButton>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

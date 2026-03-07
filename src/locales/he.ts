@@ -57,6 +57,8 @@ export const he: TranslationKeys = {
   // Todos
   todos: {
     addEdit: 'הוסף / ערוך',
+    addTask: 'צור משימה',
+    editTask: 'ערוך משימה',
     name: 'שם',
     namePlaceholder: 'מה לקנות?',
     description: 'תיאור',

@@ -31,7 +31,6 @@ import AppSnackbar from '../components/AppSnackbar';
 // UI components
 import Header from '../components/layout/Header';
 import SearchBulk from '../components/toolbar/SearchBulk';
-import CollapseHandle from '../components/layout/CollapseHandle';
 import HistoryDialog from '../components/dialogs/HistoryDialog';
 import NewListDialog from '../components/dialogs/NewListDialog';
 import PersonalizationDialog from '@/components/dialogs/PersonalizationDialog';
@@ -65,7 +64,7 @@ export default function Home() {
     t,
     formatMessage: _formatMessage,
   });
-  const [formOpen, setFormOpen] = React.useState(true);
+  const [formOpen, setFormOpen] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
 
   // personalization state (categories, templates, products, etc.)
@@ -228,13 +227,7 @@ export default function Home() {
               t={t}
               formOpen={formOpen}
               setFormOpen={setFormOpen}
-            />
-          )}
-
-          {!formOpen && (
-            <CollapseHandle
-              lastAdded={todoActions.lastAdded}
-              onClick={() => setFormOpen(true)}
+              dialogMode // render inside dialog
             />
           )}
 
@@ -245,6 +238,7 @@ export default function Home() {
             listActions={listActions}
             availableCategories={availableCategories}
             t={t}
+            onEdit={() => setFormOpen(true)}
           />
 
           {/* history dialog instead of inline section */}

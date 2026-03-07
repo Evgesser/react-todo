@@ -36,7 +36,10 @@ interface TodoListItemProps {
   listActions: UseListsReturn;
   availableCategories: Category[];
   t: TranslationKeys;
+  // optional callback invoked when user starts editing this item
+  onEdit?: () => void;
 }
+
 
 export default function TodoListItem({
   todo,
@@ -45,6 +48,7 @@ export default function TodoListItem({
   listActions,
   availableCategories,
   t,
+  onEdit,
 }: TodoListItemProps) {
   const theme = useTheme();
 
@@ -314,6 +318,9 @@ export default function TodoListItem({
                       setUnit(todo.unit || '');
                       setColor(todo.color || listDefaultColor);
                       setCategory(todo.category || '');
+                      if (onEdit) {
+                        onEdit();
+                      }
                     }}
                   >
                     <EditIcon fontSize="small" />

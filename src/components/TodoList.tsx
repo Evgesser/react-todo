@@ -23,6 +23,8 @@ interface TodoListProps {
   listActions: UseListsReturn;
   availableCategories: Category[];
   t: TranslationKeys;
+  // called when an item enters edit mode (e.g. open form dialog)
+  onEdit?: () => void;
 }
 
 export default function TodoList({
@@ -30,6 +32,7 @@ export default function TodoList({
   listActions,
   availableCategories,
   t,
+  onEdit,
 }: TodoListProps) {
   const theme = useTheme();
 
@@ -129,6 +132,7 @@ export default function TodoList({
           listActions={listActions}
           availableCategories={availableCategories}
           t={t}
+          onEdit={onEdit}
         />
       );
     });
@@ -140,8 +144,8 @@ export default function TodoList({
     availableCategories,
     t,
     theme,
+    onEdit,
   ]);
-
   if (todoActions.todosLoading) {
     // render a few skeleton cards while loading
     return (
