@@ -258,6 +258,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     unit?: string;
     color?: string;
     category?: string;
+    image?: string;
   }
 
   const addItem = async (override: AddOverride = {}) => {
@@ -272,6 +273,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       unit: override.unit ?? unit,
       color: override.color ?? color,
       category: override.category ?? category,
+      image: override.image ?? undefined,
     };
     // when editing, preserve the missing flag if it already existed
     if (editingId) {
@@ -369,9 +371,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   // new order array by swapping the category positions and then persist the
   // sequential order values back to the server.
   const moveCategory = async (category: string, direction: 'up' | 'down') => {
-    console.log('moveCategory called', category, direction, { todos });
     if (!currentListId) {
-      console.warn('no list id');
       return;
     }
     // sort todos by current order
@@ -387,10 +387,8 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
         blocks[blocks.length - 1].items.push(t);
       }
     });
-    console.log('initial blocks', blocks.map((b) => b.category));
     const blockIdx = blocks.findIndex((b) => b.category === category);
     if (blockIdx === -1) {
-      console.warn('category block not found', category);
       return;
     }
     const targetIdx = direction === 'up' ? blockIdx - 1 : blockIdx + 1;

@@ -5,7 +5,9 @@ import {
   Container,
   Box,
   LinearProgress,
+  Fab,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 
 // shared types, constants and helpers
 // constants not referenced directly in this file
@@ -66,6 +68,29 @@ export default function Home() {
   });
   const [formOpen, setFormOpen] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
+
+  // compute fixed viewport height to avoid page scrolling and Safari vh bug.
+  // useLayoutEffect so we measure before browser paints (prevents white flash)
+  const [viewportHeight, setViewportHeight] = React.useState<number>(
+    typeof window !== 'undefined' ? window.innerHeight : 0
+  );
+  const headerRef = React.useRef<HTMLDivElement>(null);
+  const toolbarRef = React.useRef<HTMLDivElement>(null);
+  const [listHeight, setListHeight] = React.useState<number>(0);
+
+  React.useLayoutEffect(() => {
+    // measure once, ignore any subsequent resize events (including those
+    // triggered by scrolling chrome).  orientation change will reload page.
+    const vh = window.innerHeight;
+    setViewportHeight(vh);
+    const headerH = headerRef.current?.offsetHeight || 0;
+    const toolbarH = toolbarRef.current?.offsetHeight || 0;
+    const margins = 64; // container vertical margins (mt=4,mb=4)
+    const buffer = 50; // extra space for browser chrome
+    const safe = vh - document.documentElement.clientHeight; // approximate bottom inset
+    const newListH = vh - headerH - toolbarH - margins - buffer - safe;
+    setListHeight(newListH > 0 ? newListH : 0);
+  }, []);
 
   // personalization state (categories, templates, products, etc.)
   const {
@@ -151,17 +176,39 @@ export default function Home() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 4, mb: 4 }}>
+    <Container
+      maxWidth="sm"
+      suppressHydrationWarning
+      sx={{
+        mt: 4,
+        mb: 4,
+        // lock overall container to viewport height so the page itself never scrolls
+        // reserve any bottom safe-area inset so content never slides under browser menu
+      // include a small extra buffer (50px) for persistent nav bars that don't report
+      // their height via safe-area-inset. fall back to 100vh initially to avoid blank
+      // screen during SSR/hydration.
+      // subtract vertical margins (4*8px each) plus safe area and buffer
+      height: viewportHeight
+        ? `calc(${viewportHeight}px - env(safe-area-inset-bottom) - 50px - 64px)`
+        : 'calc(100vh - 64px)',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       <Head>
         <title>{t.header.title}</title>
       </Head>
-      <Header headerColor={headerColor} effectiveHeaderTextColor={effectiveHeaderTextColor} t={t} />
+      <div ref={headerRef}>
+        <Header headerColor={headerColor} effectiveHeaderTextColor={effectiveHeaderTextColor} t={t} />
+      </div>
       {!userId ? (
         <AuthPanel t={t} formatMessage={_formatMessage} onSnackbar={(msg) => { setSnackbarMsg(msg); setSnackbarOpen(true); }} />
       ) : (
-        <Box>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {listActions.isLoading && <LinearProgress />}
-          <ListToolbar
+          <div ref={toolbarRef}>
+            <ListToolbar
             lists={listActions.lists}
             listsLoading={listActions.isLoading}
             currentListId={listActions.currentListId}
@@ -175,7 +222,6 @@ export default function Home() {
             openNewListDialog={openNewListDialog}
             setHistoryOpen={setHistoryOpen}
             formOpen={formOpen}
-            toggleForm={() => setFormOpen((v) => !v)}
             bulkMode={todoActions.bulkMode}
             toggleBulkMode={() => todoActions.setBulkMode(!todoActions.bulkMode)}
             menuAnchor={menuAnchor}
@@ -193,6 +239,7 @@ export default function Home() {
             t={t}
             formatMessage={_formatMessage}
           />
+          </div>
 
           {/* search field and optional bulk toolbar */}
           <SearchBulk
@@ -231,15 +278,51 @@ export default function Home() {
             />
           )}
 
+          {/* compute list box height on mount/resize */}
+
 
           {/* always show todos list regardless of history state */}
-          <TodoList
-            todoActions={todoActions}
-            listActions={listActions}
-            availableCategories={availableCategories}
-            t={t}
-            onEdit={() => setFormOpen(true)}
-          />
+          {/* scrollable list takes remaining space; page container never scrolls */}
+          {/* reserve extra space under the list so the fixed add-button doesnt obscure items
+           and ensure the containers bottom sits ~20px below the buttons bottom edge */}
+          <Box
+            sx={{
+              height: listHeight ? `${listHeight}px` : 'auto',
+              overflowY: 'auto',
+              // fab sits 24px above the viewport bottom and is 56px tall; add another 20px gap
+              paddingBottom: `calc(env(safe-area-inset-bottom) + 100px)`,
+            }}
+          >
+            <TodoList
+              todoActions={todoActions}
+              listActions={listActions}
+              availableCategories={availableCategories}
+              t={t}
+              onEdit={() => setFormOpen(true)}
+            />
+          </Box>
+          {/* floating add button bottom-right */}
+          <Box
+            sx={{
+              position: 'fixed',
+              bottom: 24,
+              right: 24,
+              zIndex: 1300,
+            }}
+          >
+            <Fab
+              color="primary"
+              onClick={() => setFormOpen(true)}
+              sx={{
+                bgcolor: 'primary.main',
+                color: '#fff',
+                '&:hover': { bgcolor: 'primary.dark' },
+              }}
+              aria-label="add"
+            >
+              <AddIcon />
+            </Fab>
+          </Box>
 
           {/* history dialog instead of inline section */}
           <HistoryDialog

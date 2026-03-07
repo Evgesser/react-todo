@@ -1,22 +1,21 @@
-import * as React from 'react';
+import type { TranslationKeys } from '@/locales/ru';
+import { List as ListType } from '@/types';
+import AddIcon from '@mui/icons-material/Add';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
   Box,
-  TextField,
-  MenuItem,
-  IconButton,
-  Tooltip,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
   Menu,
+  MenuItem,
   Skeleton,
+  TextField
 } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import AddIcon from '@mui/icons-material/Add';
-import CloseIcon from '@mui/icons-material/Close';
-import { getLuminance } from '@/utils/color';
-import { List as ListType } from '@/types';
-import type { TranslationKeys } from '@/locales/ru';
+import * as React from 'react';
 import type { IntlShape } from 'react-intl';
 
 interface ListToolbarProps {
@@ -30,7 +29,6 @@ interface ListToolbarProps {
   openNewListDialog: () => void;
   setHistoryOpen: (open: boolean) => void;
   formOpen: boolean;
-  toggleForm: () => void;
   bulkMode: boolean;
   toggleBulkMode: () => void;
   menuAnchor: HTMLElement | null;
@@ -56,8 +54,7 @@ export default function ListToolbar({
   saveListColor,
   openNewListDialog,
   setHistoryOpen,
-  formOpen,
-  toggleForm,
+  formOpen: _formOpen,
   bulkMode,
   toggleBulkMode,
   menuAnchor,
@@ -71,36 +68,99 @@ export default function ListToolbar({
   t,
   formatMessage,
 }: ListToolbarProps) {
+  // prop `formOpen` is intentionally unused here; alias to avoid lint warning
+  // (passed down from parent but not required in this component)
+  
+  
+
+  // precompute share token/link when menu opens so copying on click stays within
+  // the user gesture (avoid awaiting network calls before clipboard access)
+  const [precomputedToken, setPrecomputedToken] = React.useState<string>('');
+  const [precomputedLink, setPrecomputedLink] = React.useState<string>('');
+  const [shareModalOpen, setShareModalOpen] = React.useState(false);
+  const [shareModalLink, setShareModalLink] = React.useState('');
+  const [origin, setOrigin] = React.useState<string>('');
+
+  // Initialize origin on client side only to avoid hydration mismatch
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentOrigin = window.location.origin || `${window.location.protocol}//${window.location.host}`;
+      setOrigin(currentOrigin);
+    }
+  }, []);
+
+
+  const handleOpenMenu = (e: React.MouseEvent<HTMLElement>) => {
+    try {
+      const tokenFromList = lists.find((l) => l._id === currentListId)?.shareToken || '';
+      let token = tokenFromList;
+      if (!token && currentListId) {
+        const cryptoObj = (globalThis as unknown as { crypto?: { randomUUID?: () => string } }).crypto;
+        token = cryptoObj && typeof cryptoObj.randomUUID === 'function'
+          ? cryptoObj.randomUUID()
+          : Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+      }
+
+      const link = token ? `${origin}/shared?token=${encodeURIComponent(token)}` : '';
+      
+      if (link) {
+        setPrecomputedToken(token || '');
+        setPrecomputedLink(link || '');
+      }
+    } catch {
+      setPrecomputedToken('');
+      setPrecomputedLink('');
+    }
+    openMenu(e);
+  };
     // `t` and `formatMessage` are passed from parent to avoid internal language context subscription
   return (
     <Box
       sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '7fr 5fr' },
-        gap: 1,
+        gap: 0.25,
         alignItems: 'center',
-        mb: 2,
+        mb: 0.5,
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {listsLoading ? (
           <Skeleton variant="rectangular" width="100%" height={56} />
         ) : (
-          <TextField
-            select
-            label={t.lists.selectList}
-            value={currentListId || ''}
-            onChange={(e) => onSelectList(e.target.value)}
-            fullWidth
-          >
-            {lists
-              .filter((l) => !l.completed)
-              .map((l) => (
-                <MenuItem key={l._id} value={l._id}>
-                  {l.name}
-                </MenuItem>
-              ))}
-          </TextField>
+          <>
+            <TextField
+              size="small"
+              select
+              label={t.lists.selectList}
+              value={currentListId || ''}
+              onChange={(e) => onSelectList(e.target.value)}
+              fullWidth
+            >
+              {lists
+                .filter((l) => !l.completed)
+                .map((l) => (
+                  <MenuItem key={l._id} value={l._id}>
+                    {l.name}
+                  </MenuItem>
+                ))}
+            </TextField>
+            <IconButton
+              size="small"
+              onClick={openNewListDialog}
+              sx={{
+                ml: 1,
+                background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+                color: '#fff',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #9333ea 0%, #db2777 100%)',
+                },
+              }}
+              aria-label="new list"
+            >
+              <AddIcon />
+            </IconButton>
+          </>
         )}
       </Box>
 
@@ -113,47 +173,6 @@ export default function ListToolbar({
           alignItems: 'center',
         }}
       >
-        <Box>
-          <IconButton
-            size="small"
-            onClick={toggleForm}
-            disabled={listsLoading}
-            sx={{
-              bgcolor: 'primary.main',
-              color: '#fff',
-              '&:hover': { bgcolor: 'primary.dark' },
-            }}
-          >
-            {formOpen ? <CloseIcon /> : <AddIcon />}
-          </IconButton>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box
-            sx={{
-              width: 20,
-              height: 20,
-              borderRadius: 1,
-              border: '1px solid rgba(0,0,0,0.12)',
-              bgcolor: listDefaultColor,
-            }}
-          />
-          <Tooltip
-            title={(() => {
-              const lum = getLuminance(listDefaultColor);
-              if (lum < 0.2 || lum > 0.8) return t.contrast.good;
-              return t.contrast.warning;
-            })()}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              {(() => {
-                const lum = getLuminance(listDefaultColor);
-                if (lum < 0.2 || lum > 0.8)
-                  return <CheckCircleOutlineIcon sx={{ color: 'success.main', fontSize: 18 }} />;
-                return <ErrorOutlineIcon sx={{ color: 'warning.main', fontSize: 18 }} />;
-              })()}
-            </Box>
-          </Tooltip>
-        </Box>
 
         <TextField
           label={t.lists.listColor}
@@ -165,16 +184,10 @@ export default function ListToolbar({
                 <Button onClick={saveListColor} sx={{ minWidth: 120 }}>
                   {t.lists.saveColor}
                 </Button>
-                <Button onClick={openNewListDialog} sx={{ minWidth: 120 }}>
-                  {t.lists.newList}
-                </Button>
-                <Button onClick={() => setHistoryOpen(true)} disabled={!lists.some((l) => l.completed)} sx={{ minWidth: 96 }}>
-                  {t.lists.history}
-                </Button>
         <Button onClick={() => toggleBulkMode()} sx={{ minWidth: 100 }}>
           {bulkMode ? t.lists.bulkCancel : t.lists.bulkMode}
         </Button>
-        <IconButton onClick={openMenu} size="small">
+        <IconButton onClick={(e) => handleOpenMenu(e)} size="small">
           <MoreVertIcon />
         </IconButton>
         <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
@@ -187,22 +200,123 @@ export default function ListToolbar({
             {t.buttons.personalize}
           </MenuItem>
           <MenuItem
-            onClick={async () => {
+            onClick={() => {
               closeMenu();
-              if (!currentListId) return;
-              // if we already have a token, reuse it; otherwise generate and persist one
-              let token: string = lists.find((l) => l._id === currentListId)?.shareToken || '';
-              if (!token) {
-                // use crypto API for quality randomness, fallback to Math if unavailable
-                const rnd = (globalThis.crypto as Crypto & { randomUUID?: () => string }).randomUUID;
-                token = typeof rnd === 'function' ? rnd() : Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-                await updateShareToken(currentListId, token);
+              setHistoryOpen(true);
+            }}
+            disabled={!lists.some((l) => l.completed)}
+          >
+            {t.lists.history}
+          </MenuItem>
+          <MenuItem
+            onClick={async () => {
+              if (!currentListId) {
+                return;
               }
-              const link = `${window.location.origin}/shared?token=${encodeURIComponent(token)}`;
-              // copy to clipboard (do not open)
-              navigator.clipboard.writeText(link);
-              setSnackbarMsg(formatMessage('lists.linkCopied'));
-              setSnackbarOpen(true);
+              
+              try {
+                const token = precomputedToken || lists.find((l) => l._id === currentListId)?.shareToken || '';
+                const link = precomputedLink || (token ? `${origin}/shared?token=${encodeURIComponent(token)}` : '');
+                
+                if (!link) {
+                  return;
+                }
+
+                const isiOS = typeof navigator !== 'undefined' && /ipad|iphone|ipod/i.test(navigator.userAgent);
+                
+                // Try Web Share API first on iOS
+                if (isiOS && typeof navigator !== 'undefined' && navigator.share) {
+                  try {
+                    await navigator.share({
+                      title: 'Shared Todo List',
+                      text: 'Check out my todo list',
+                      url: link,
+                    });
+                    setSnackbarMsg(formatMessage('lists.linkCopied'));
+                    setSnackbarOpen(true);
+                    
+                    // Persist token in background
+                    if (token && !lists.find((l) => l._id === currentListId)?.shareToken) {
+                      (async () => {
+                        try {
+                          await updateShareToken(currentListId, token);
+                        } catch {
+                          // Silent fail
+                        }
+                      })();
+                    }
+                    
+                    closeMenu();
+                    return;
+                  } catch (err: any) {
+                    if (err.name === 'AbortError') {
+                      return;
+                    }
+                    // Fall through to clipboard fallback
+                  }
+                }
+                
+                // Fallback: try Clipboard API
+                let clipboardSuccess = false;
+                
+                if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+                  try {
+                    await navigator.clipboard.writeText(link);
+                    clipboardSuccess = true;
+                  } catch {
+                    // Try textarea fallback
+                  }
+                }
+                
+                // Last resort: textarea method
+                if (!clipboardSuccess) {
+                  try {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = link;
+                    textarea.style.position = 'fixed';
+                    textarea.style.top = '0';
+                    textarea.style.left = '0';
+                    textarea.style.opacity = '0';
+                    textarea.style.pointerEvents = 'none';
+                    document.body.appendChild(textarea);
+                    textarea.focus();
+                    textarea.select();
+                    const success = document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    if (success) {
+                      clipboardSuccess = true;
+                    }
+                  } catch {
+                    // Silent fail
+                  }
+                }
+                
+                closeMenu();
+                
+                if (clipboardSuccess) {
+                  setSnackbarMsg(formatMessage('lists.linkCopied'));
+                  setSnackbarOpen(true);
+                } else {
+                  // Show modal with link for manual copying
+                  setShareModalLink(link);
+                  setShareModalOpen(true);
+                }
+
+                // persist token in background if it wasn't persisted yet
+                if (token && !lists.find((l) => l._id === currentListId)?.shareToken) {
+                  (async () => {
+                    try {
+                      await updateShareToken(currentListId, token);
+                    } catch {
+                      // Silent fail
+                    }
+                  })();
+                }
+              } catch {
+                closeMenu();
+                setSnackbarMsg(formatMessage('messages.saveError'));
+                setSnackbarOpen(true);
+              }
             }}
           >
             {t.lists.share}
@@ -212,9 +326,14 @@ export default function ListToolbar({
               onClick={async () => {
                 closeMenu();
                 if (!currentListId) return;
-                await updateShareToken(currentListId, '');
-                setSnackbarMsg(formatMessage('lists.linkRevoked'));
-                setSnackbarOpen(true);
+                try {
+                  await updateShareToken(currentListId, '');
+                  setSnackbarMsg(formatMessage('lists.linkRevoked'));
+                  setSnackbarOpen(true);
+                } catch {
+                  setSnackbarMsg(formatMessage('messages.saveError'));
+                  setSnackbarOpen(true);
+                }
               }}
             >
               {t.lists.revokeLink}
@@ -229,7 +348,36 @@ export default function ListToolbar({
             {t.lists.completeList}
           </MenuItem>
         </Menu>
+
+        {/* Share Link Modal - fallback for iOS */}
+        <Dialog open={shareModalOpen} onClose={() => setShareModalOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>{t.lists.share}</DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <p>{formatMessage('messages.selectAndCopy')}</p>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              value={shareModalLink}
+              inputProps={{ readOnly: true }}
+              onClick={(e) => {
+                const input = e.target as HTMLInputElement;
+                input.select();
+              }}
+              sx={{
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                backgroundColor: '#f5f5f5',
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShareModalOpen(false)}>{formatMessage('buttons.close')}</Button>
+          </DialogActions>
+        </Dialog>
+        
       </Box>
     </Box>
   );
 }
+

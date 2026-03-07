@@ -41,6 +41,7 @@ export default async function handler(
       order,
       missing,
       unit,
+      image,
     } = req.body as {
       listId?: unknown;
       name?: unknown;
@@ -52,6 +53,7 @@ export default async function handler(
       order?: unknown;
       missing?: unknown;
       unit?: unknown;
+      image?: unknown;
     };
 
     if (!listId || typeof listId !== 'string') {
@@ -75,6 +77,7 @@ export default async function handler(
       color: string;
       category: string;
       order: number;
+      image?: string;
     }
     const item: TodoDoc = {
       listId: new ObjectId(listId),
@@ -88,6 +91,7 @@ export default async function handler(
       color: typeof color === 'string' ? color : '',
       category: typeof category === 'string' ? category : '',
       order: typeof order === 'number' ? order : 0,
+      image: typeof image === 'string' ? image : undefined,
     };
 
     const result = await collection.insertOne(item);

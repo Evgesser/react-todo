@@ -15,7 +15,7 @@ export default class MyDocument extends Document<MyDocumentProps> {
     const langAttr = props.__LANG || 'en';
     const dirAttr = props.__DIR || 'ltr';
     return (
-      <Html lang={langAttr} dir={dirAttr}>
+      <Html lang={langAttr} dir={dirAttr} suppressHydrationWarning>
         <Head>
           {/* PWA primary color */}
           <meta name="theme-color" content="#1976d2" />

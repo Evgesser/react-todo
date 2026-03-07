@@ -16,9 +16,11 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  useMediaQuery,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloseIcon from '@mui/icons-material/Close';
+import { useTheme } from '@mui/material/styles';
 import ClearIcon from '@mui/icons-material/Clear';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import MicIcon from '@mui/icons-material/Mic';
@@ -181,6 +183,61 @@ export default function TodoForm({
     todoActions.quantity || 1
   );
 
+  // image attachment data (base64) compressed
+  const [imageData, setImageData] = React.useState<string | null>(null);
+  const [imagePreviewOpen, setImagePreviewOpen] = React.useState(false);
+
+  const compressImage = (file: File, maxWidth = 800): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+        const w = img.width * scale;
+        const h = img.height * scale;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  resolve(reader.result as string);
+                };
+                reader.readAsDataURL(blob);
+              } else {
+                resolve('');
+              }
+            },
+            'image/jpeg',
+            0.7
+          );
+        } else {
+          resolve('');
+        }
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve('');
+      };
+      img.src = url;
+    });
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      const data = await compressImage(file);
+      setImageData(data);
+    }
+  };
+
+
   // Speech recognition for quick voice input (Web Speech API)
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
   const [isListening, setIsListening] = React.useState(false);
@@ -189,6 +246,24 @@ export default function TodoForm({
   const language = useAppStore((s) => s.language);
 
   // pick only the pieces we need from the todoActions object
+  const theme = useTheme();
+  const fullScreenDialog = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // prevent background scrolling when dialog is open
+  React.useEffect(() => {
+    if (dialogMode && formOpen) {
+      const prevBody = document.body.style.overflow;
+      const prevHtml = document.documentElement.style.overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevBody;
+        document.documentElement.style.overflow = prevHtml;
+      };
+    }
+    return undefined;
+  }, [dialogMode, formOpen]);
+
   const {
     name,
     description,
@@ -333,11 +408,11 @@ export default function TodoForm({
   );
 
   // add item using whatever values are currently in state
-  type Override = Partial<{ name: string; quantity: number; comment: string; category: string; unit: string }>;
+  type Override = Partial<{ name: string; quantity: number; comment: string; category: string; unit: string; image: string }>;
 
   const handleAdd = React.useCallback(async (override?: Override) => {
     // compute parse fresh or use override
-    let p = override ?? parsed ?? parseSmartInput(name || '');
+    let p: Override | ParsedInput | null = override ?? parsed ?? parseSmartInput(name || '');
     if (!p && (name || '').trim().includes(' ')) {
       const parts = (name || '').trim().split(/\s+/);
       const first = parts.shift() || '';
@@ -359,14 +434,16 @@ export default function TodoForm({
     }
     await ensureCategoryExists(category, tempIconKey || undefined);
     // add using override so stale state doesn't matter
-    const overridePayload: Partial<{ name: string; quantity: number; comment: string; category: string; unit: string }> = {};
+    const overridePayload: Partial<{ name: string; quantity: number; comment: string; category: string; unit: string; image: string }> = {};
     if (p) {
       if (p.name) overridePayload.name = capitalize(p.name);
       if (p.quantity != null) overridePayload.quantity = p.quantity;
       if (p.comment) overridePayload.comment = p.comment;
       if (p.unit) overridePayload.unit = p.unit;
       if (p.category) overridePayload.category = p.category;
+      if (p && 'image' in p && (p as Override).image) overridePayload.image = (p as Override).image;
     }
+    if (imageData) overridePayload.image = imageData;
     await addItem(overridePayload);
     updateNameCategory(
       overridePayload.name || name || '',
@@ -375,7 +452,8 @@ export default function TodoForm({
     );
     setTempIconKey('');
     setParsed(null);
-  }, [ensureCategoryExists, addItem, setName, setQuantity, setComment, setUnit, setCategory, name, category, comment, tempIconKey, updateNameCategory, parsed]);
+    setImageData(null);
+  }, [ensureCategoryExists, addItem, setName, setQuantity, setComment, setUnit, setCategory, name, category, comment, tempIconKey, updateNameCategory, parsed, imageData]);
 
   // build inner form container once so dialog/inline both use same markup
   const formInner = (
@@ -649,6 +727,53 @@ export default function TodoForm({
               ) : null,
             }}
           />
+          <Box sx={{ mt: 1 }}>
+            <Button variant="outlined" component="label" size="small">
+              {t.todos.attachImage || 'Прикрепить изображение'}
+              <input
+                hidden
+                accept="image/*"
+                type="file"
+                onChange={handleImageChange}
+              />
+            </Button>
+            {imageData && (
+              <Box
+                sx={{ mt: 1, position: 'relative', display: 'inline-block', cursor: 'pointer' }}
+                onClick={(e) => {
+                  setImagePreviewOpen(true);
+                }}
+              >
+                <img
+                  src={imageData}
+                  alt="preview"
+                  style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 4 }}
+                  onClick={(e) => {
+                    setImagePreviewOpen(true);
+                  }}
+                />
+                <IconButton
+                  size="small"
+                  sx={{ position: 'absolute', top: 2, right: 2 }}
+                  onClick={(e) => { e.stopPropagation(); setImageData(null); }}
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            )}
+          </Box>
+
+          <Dialog
+            open={imagePreviewOpen}
+            onClose={() => setImagePreviewOpen(false)}
+            maxWidth="md"
+            sx={{ zIndex: (theme) => theme.zIndex.modal + 200 }}
+          >
+            <DialogContent sx={{ p: 0, background: 'black' }}>
+              <img src={imageData || ''} alt="full" style={{ width: '100%', height: 'auto' }} />
+            </DialogContent>
+          </Dialog>
+
           <TextField
             label={t.todos.color}
             type="color"
@@ -711,11 +836,11 @@ export default function TodoForm({
 
           
 
-          <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ width: '100%' }}>
+          <Stack direction="row" flexWrap="wrap" sx={{ width: '100%' }}>
             <Button
               variant="contained"
               onClick={() => handleAdd()}
-              fullWidth
+              sx={{ flex: 1, mx: editingId ? '2px' : 0 }}
             >
               {editingId ? t.todos.save : t.todos.addTask || t.todos.add}
             </Button>
@@ -730,7 +855,7 @@ export default function TodoForm({
                   setComment('');
                   setColor(listDefaultColor);
                 }}
-                fullWidth
+                sx={{ flex: 1, mx: '2px' }}
               >
                 {t.todos.cancel}
               </Button>
@@ -759,6 +884,7 @@ export default function TodoForm({
         onClose={() => setFormOpen(false)}
         fullWidth
         maxWidth="sm"
+        fullScreen={fullScreenDialog}
       >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pr: 1 }}>
           <Typography sx={{ fontWeight: 600, flex: 1 }}>

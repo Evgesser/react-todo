@@ -51,6 +51,8 @@ export const he: TranslationKeys = {
     linkCopied: 'הקישור הועתק',
     linkRevoked: 'הקישור בוטל',
     revokeLink: 'בטל קישור',
+    linkCopyFailed: 'העתקה נכשלה',
+    linkCopyPrompt: 'העתק את הקישור באופן ידני',
     noLists: 'אין רשימות',
   },
   
@@ -73,6 +75,7 @@ export const he: TranslationKeys = {
     commentPlaceholder: 'הערות לפריט',
     color: 'צבע',
     category: 'קטגוריה',
+    attachImage: 'צרף תמונה',
     add: 'הוסף',
     save: 'שמור',
     cancel: 'בטל',
@@ -173,6 +176,7 @@ export const he: TranslationKeys = {
     loading: 'טוען...',
     saveError: 'שגיאה בשמירה',
     error: 'שגיאה',
+    selectAndCopy: 'הקש על הקישור כדי לבחור, ואז העתק:',
   },
   
   // Buttons

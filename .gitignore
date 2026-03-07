@@ -41,3 +41,4 @@ yarn-error.log*
 next-env.d.ts
 .github/agents/my agent.agent.md
 .vscode/launch.json
+image.png

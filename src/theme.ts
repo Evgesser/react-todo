@@ -93,6 +93,18 @@ export function getTheme(mode: PaletteMode) {
           },
         },
       },
+      MuiFab: {
+        styleOverrides: {
+          root: {
+            background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+            color: '#ffffff',
+            boxShadow: 'none',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #9333ea 0%, #db2777 100%)',
+            },
+          },
+        },
+      },
       MuiCard: {
         styleOverrides: {
           root: {
@@ -122,6 +134,32 @@ export function getTheme(mode: PaletteMode) {
           },
         },
       },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: mode === 'dark' ? '#121212' : undefined,
+            borderRadius: 16,
+          },
+        },
+      },
+      MuiAlert: {
+        styleOverrides: {
+          standardSuccess: {
+            // more distinguishable green
+            backgroundColor: mode === 'dark' ? '#2e7d32' : '#a5d6a7',
+            color: mode === 'dark' ? '#e8f5e9' : '#0b3d0b',
+          },
+        },
+      },
+      MuiFilledInput: {
+        styleOverrides: {
+          underline: {
+            '&:before, &:after': {
+              borderBottom: 'none !important',
+            },
+          },
+        },
+      },
       MuiTextField: {
         defaultProps: {
           margin: 'normal',
@@ -133,6 +171,7 @@ export function getTheme(mode: PaletteMode) {
             '& .MuiFilledInput-root': {
               borderRadius: 12,
               backgroundColor: mode === 'dark' ? '#1f1f1f' : '#f5f5f5',
+              border: mode === 'dark' ? '1px solid #333' : '1px solid #ccc',
               '&:hover': {
                 backgroundColor: mode === 'dark' ? '#272727' : '#e0e0e0',
               },
