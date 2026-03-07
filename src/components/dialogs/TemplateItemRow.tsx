@@ -59,7 +59,7 @@ export default function TemplateItemRow({
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           handle('name', e.target.value)
         }
-        sx={{ mr: 1, width: { xs: '100%', sm: 'auto' } }}
+        sx={{ marginInlineEnd: 1, width: { xs: '100%', sm: 'auto' } }}
       />
 
       <ClearableTextField
@@ -69,7 +69,7 @@ export default function TemplateItemRow({
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           handle('quantity', parseInt(e.target.value, 10) || 0)
         }
-        sx={{ mr: 1, width: { xs: '100%', sm: 100, md: 120 } }}
+        sx={{ marginInlineEnd: 1, width: { xs: '100%', sm: 100, md: 120 } }}
       />
 
       <Autocomplete
@@ -118,7 +118,7 @@ export default function TemplateItemRow({
           <ClearableTextField
             {...params}
             label={t.dialogs.personalization.itemCategory}
-            sx={{ mr: { xs: 0, sm: 1 }, width: { xs: '100%', sm: 160 } }}
+            sx={{ marginInlineEnd: { xs: 0, sm: 1 }, width: { xs: '100%', sm: 160 } }}
           />
         )}
       />

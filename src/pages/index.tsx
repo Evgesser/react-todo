@@ -6,6 +6,7 @@ import {
   Box,
   LinearProgress,
   Fab,
+  Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 
@@ -77,6 +78,7 @@ export default function Home() {
   const headerRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   const [listHeight, setListHeight] = React.useState<number>(0);
+  const [progressTop, setProgressTop] = React.useState<number>(0);
 
   React.useLayoutEffect(() => {
     // measure once, ignore any subsequent resize events (including those
@@ -90,6 +92,8 @@ export default function Home() {
     const safe = vh - document.documentElement.clientHeight; // approximate bottom inset
     const newListH = vh - headerH - toolbarH - margins - buffer - safe;
     setListHeight(newListH > 0 ? newListH : 0);
+    // compute sticky top for pinned progress (just under header+toolbar)
+    setProgressTop(headerH + toolbarH + 8);
   }, []);
 
   // personalization state (categories, templates, products, etc.)
@@ -262,6 +266,68 @@ export default function Home() {
             t={t}
           />
 
+          {/* pinned progress under search */}
+          {(() => {
+            const completedCount = todoActions.todos.filter((t) => t.completed).length;
+            const totalTodos = todoActions.todos.length;
+            const progressValue = totalTodos === 0 ? 0 : (completedCount / totalTodos) * 100;
+
+            return (
+              <Box
+                sx={{
+                  position: 'sticky',
+                  top: progressTop,
+                  zIndex: 700,
+                  px: 0,
+                  py: 0,
+                  bgcolor: 'transparent',
+                  borderBottom: `1px solid theme.palette.divider`,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
+                  <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                    <Box
+                      aria-hidden
+                      sx={{
+                        height: 10,
+                        borderRadius: 9999,
+                        backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.06)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        border: (theme) => theme.palette.mode === 'dark' ? 'none' : '1px solid rgba(15,23,42,0.04)',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          bottom: 0,
+                          width: `${progressValue}%`,
+                          background: 'linear-gradient(90deg, #ECCE8E 0%, #DBCF96 100%)',
+                          borderRadius: 9999,
+                          transition: 'width 280ms ease',
+                          boxShadow: (theme) => theme.palette.mode === 'light' ? '0 2px 8px rgba(15,23,42,0.06)' : 'none',
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    sx={(theme) => ({
+                      color: theme.palette.mode === 'light' ? theme.palette.secondary.contrastText : theme.palette.secondary.main,
+                      marginInlineStart: 1,
+                      minWidth: 56,
+                      textAlign: 'right',
+                    })}
+                  >
+                    {completedCount} / {totalTodos}
+                  </Typography>
+                </Box>
+              </Box>
+            );
+          })()}
+
           {!listActions.viewingHistory && (
             <TodoForm
               todoActions={todoActions}
@@ -306,20 +372,11 @@ export default function Home() {
             sx={{
               position: 'fixed',
               bottom: 24,
-              right: 24,
+              insetInlineEnd: 24,
               zIndex: 1300,
             }}
           >
-            <Fab
-              color="primary"
-              onClick={() => setFormOpen(true)}
-              sx={{
-                bgcolor: 'primary.main',
-                color: '#fff',
-                '&:hover': { bgcolor: 'primary.dark' },
-              }}
-              aria-label="add"
-            >
+            <Fab onClick={() => setFormOpen(true)} aria-label="add">
               <AddIcon />
             </Fab>
           </Box>

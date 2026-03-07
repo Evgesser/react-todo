@@ -2,6 +2,42 @@
    interfering with MUI's dynamic theme.  The theme provider and CssBaseline
    now handle coloring, so we keep the layout resets only. */
 
+:root {
+  /* Palette from image: deep maroon, warm gold, beige, sage, muted cyan */
+  --color-deep: #270722; /* deep maroon */
+  --color-gold: #ECCE8E; /* warm gold */
+  --color-beige: #DBCF96; /* light beige */
+  --color-sage: #C2C6A7; /* sage */
+  --color-cyan: #9AC2C5; /* muted cyan */
+  --bg: #FFFFFF;
+  --text: #0F172A;
+}
+
+/* Allow app-controlled theme via `data-theme` on <html> (overrides prefers-color-scheme)
+   This keeps CSS modules in sync with MUI's theme toggle. */
+[data-theme="dark"] {
+  --bg: #0F172A;
+  --text: #F8FAFC;
+  --text-primary: #ededed;
+  --text-secondary: #94A3B8;
+  --background-paper: #121212;
+}
+
+[data-theme="light"] {
+  --bg: #FFFFFF;
+  --text: #0F172A;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --background-paper: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0F172A;
+    --text: #F8FAFC;
+  }
+}
+
 html,
 body {
   max-width: 100vw;
@@ -87,10 +123,10 @@ html[dir="rtl"] .MuiFormLabel-root.Mui-focused {
 
 /* Ensure input padding mirrors correctly in RTL so text doesn't overlap label */
 html[dir="rtl"] .MuiOutlinedInput-input {
-  padding-right: 14px; /* space for label */
-  padding-left: 12px;
+  padding-inline-end: 14px; /* space for label */
+  padding-inline-start: 12px;
 }
 html[dir="rtl"] .MuiInputBase-input {
-  padding-right: 14px;
-  padding-left: 12px;
+  padding-inline-end: 14px;
+  padding-inline-start: 12px;
 }

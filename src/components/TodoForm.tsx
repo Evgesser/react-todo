@@ -754,7 +754,7 @@ export default function TodoForm({
                 />
                 <IconButton
                   size="small"
-                  sx={{ position: 'absolute', top: 2, right: 2 }}
+                  sx={{ position: 'absolute', top: 2, insetInlineEnd: 2 }}
                   onClick={(e) => { e.stopPropagation(); setImageData(null); }}
                 >
                   <ClearIcon fontSize="small" />
@@ -807,7 +807,7 @@ export default function TodoForm({
             renderOption={(props, option) => (
               <li {...props}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  {option.icon ? <option.icon fontSize="small" sx={{ mr: 0.5 }} /> : null}
+                  {option.icon ? <option.icon fontSize="small" sx={{ marginInlineEnd: 0.5 }} /> : null}
                   {option.label || option.value}
                 </Box>
               </li>

@@ -17,8 +17,14 @@ export default class MyDocument extends Document<MyDocumentProps> {
     return (
       <Html lang={langAttr} dir={dirAttr} suppressHydrationWarning>
         <Head>
-          {/* PWA primary color */}
-          <meta name="theme-color" content="#1976d2" />
+          {/* PWA primary color (default to brand maroon). */}
+          <meta name="theme-color" content="#270722" id="meta-theme-color" />
+          {/* Update meta theme-color on the client based on stored color-mode or prefers-color-scheme */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{var m=document.querySelector('meta[name="theme-color"]');var mode=null;try{mode=localStorage.getItem('color-mode')}catch(e){}if(!mode&&window.matchMedia){mode=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}if(m){m.setAttribute('content', mode==='dark'?'#0F172A':'#270722')}}catch(e){}})();`,
+            }}
+          />
           <link rel="shortcut icon" href="/favicon.ico" />
           {/* Inject MUI styles first to match with the prepend: true configuration. */}
           {(this.props as MyDocumentProps).emotionStyleTags}

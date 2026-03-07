@@ -5,12 +5,23 @@ export function getTheme(mode: PaletteMode) {
   const palette: ThemeOptions['palette'] = {
     mode,
     primary: {
-      main: '#3B82F6', // Modern blue
-      light: '#60A5FA',
-      dark: '#2563EB',
+      main: '#270722', // deep maroon (brand)
+      light: '#6B2740',
+      dark: '#130311',
+      contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#8B5CF6', // Purple base
+      main: '#ECCE8E', // warm gold
+      contrastText: '#0F172A',
+    },
+    info: {
+      main: '#9AC2C5', // muted cyan
+    },
+    success: {
+      main: '#C2C6A7', // sage
+    },
+    warning: {
+      main: '#DBCF96', // beige
     },
     background: mode === 'dark'
       ? {
@@ -78,13 +89,13 @@ export function getTheme(mode: PaletteMode) {
           },
           // primary buttons use a purple-pink gradient like mobile design
           containedPrimary: {
-            background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
-            color: '#ffffff',
+            background: 'linear-gradient(135deg, #270722 0%, #ECCE8E 100%)',
+            color: '#FFFFFF',
             '&:hover': {
-              background: 'linear-gradient(135deg, #9333ea 0%, #db2777 100%)',
+              background: 'linear-gradient(135deg, #4b112b 0%, #e6d28a 100%)',
             },
             '&:active': {
-              background: 'linear-gradient(135deg, #7e22ce 0%, #be185d 100%)',
+              background: 'linear-gradient(135deg, #31021a 0%, #d8c57a 100%)',
             },
           },
           outlined: {
@@ -96,11 +107,11 @@ export function getTheme(mode: PaletteMode) {
       MuiFab: {
         styleOverrides: {
           root: {
-            background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
-            color: '#ffffff',
+            background: 'linear-gradient(135deg, #ECCE8E 0%, #DBCF96 100%)',
+            color: '#0F172A',
             boxShadow: 'none',
             '&:hover': {
-              background: 'linear-gradient(135deg, #9333ea 0%, #db2777 100%)',
+              background: 'linear-gradient(135deg, #d8c57a 0%, #c2b57a 100%)',
             },
           },
         },
@@ -145,9 +156,9 @@ export function getTheme(mode: PaletteMode) {
       MuiAlert: {
         styleOverrides: {
           standardSuccess: {
-            // more distinguishable green
-            backgroundColor: mode === 'dark' ? '#2e7d32' : '#a5d6a7',
-            color: mode === 'dark' ? '#e8f5e9' : '#0b3d0b',
+            // slightly lighter green for snackbars (improves visibility)
+            backgroundColor: mode === 'dark' ? '#388e3c' : '#bbf7d0',
+            color: mode === 'dark' ? '#e8f5e9' : '#064e3b',
           },
         },
       },

@@ -46,7 +46,7 @@ export default function TemplateEditor({ template, t, onChange, onRemove, catego
             handleName(e.target.value)
           }
           fullWidth
-          sx={{ mr: 1 }}
+          sx={{ marginInlineEnd: 1 }}
         />
         <IconButton onClick={onRemove}>
           <DeleteIcon />

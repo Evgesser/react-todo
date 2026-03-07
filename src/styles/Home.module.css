@@ -139,3 +139,16 @@ a.secondary {
     --button-secondary-border: #1a1a1a;
   }
 }
+
+/* Also respond to app theme (data-theme attribute set on <html>) */
+[data-theme="dark"] .page {
+  --background: #000;
+  --foreground: #000;
+
+  --text-primary: #ededed;
+  --text-secondary: #999;
+
+  --button-primary-hover: #ccc;
+  --button-secondary-hover: #1a1a1a;
+  --button-secondary-border: #1a1a1a;
+}

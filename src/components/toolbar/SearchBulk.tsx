@@ -73,13 +73,13 @@ const SearchBulk: React.FC<Props> = ({
     </Box>
     {bulkMode && (
       <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-        <Button size="small" variant="contained" onClick={onBulkComplete} disabled={selectedCount === 0}>
+        <Button size="small" variant="contained" color="secondary" onClick={onBulkComplete} disabled={selectedCount === 0}>
           {t.search.bulkComplete}
         </Button>
         <Button size="small" variant="outlined" onClick={onBulkDelete} disabled={selectedCount === 0}>
           {t.search.bulkDelete}
         </Button>
-        <Button size="small" onClick={onCancelBulk}>{t.search.cancelBulk}</Button>
+        <Button size="small" color="inherit" onClick={onCancelBulk}>{t.search.cancelBulk}</Button>
       </Box>
     )}
   </Box>

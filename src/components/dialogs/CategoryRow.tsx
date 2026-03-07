@@ -40,7 +40,7 @@ export default function CategoryRow({
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           handleField('value', e.target.value)
         }
-        sx={{ mr: 1, width: { xs: '100%', sm: 120 } }}
+        sx={{ marginInlineEnd: 1, width: { xs: '100%', sm: 120 } }}
       />
 
       <ClearableTextField
@@ -49,7 +49,7 @@ export default function CategoryRow({
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           handleField('label', e.target.value)
         }
-        sx={{ mr: 1, width: { xs: '100%', sm: 120 } }}
+        sx={{ marginInlineEnd: 1, width: { xs: '100%', sm: 120 } }}
       />
 
       <ClearableTextField
@@ -60,7 +60,7 @@ export default function CategoryRow({
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           handleField('icon', e.target.value)
         }
-        sx={{ mr: 1, width: { xs: '100%', sm: 160, md: 200 } }}
+        sx={{ marginInlineEnd: 1, width: { xs: '100%', sm: 160, md: 200 } }}
       >
         <MenuItem value="">{t.dialogs.personalization.noIcon}</MenuItem>
         {iconChoices.map((ic) => (
@@ -69,7 +69,7 @@ export default function CategoryRow({
             value={ic.key}
             sx={{ display: 'flex', alignItems: 'center' }}
           >
-            <Box component="span" sx={{ mr: 1 }}>
+            <Box component="span" sx={{ marginInlineEnd: 1 }}>
               <ic.icon fontSize="small" />
             </Box>
             {(t.categoryLabels as Record<string, string>)?.[ic.key] || ic.label}

@@ -26,11 +26,34 @@ export default function SharedPage() {
   const { t, formatMessage } = useLanguage();
   const theme = useTheme();
 
-    const _formatMessage = (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) =>
-      formatMessage(id, values);
+    const _formatMessage = React.useCallback(
+      (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) =>
+        formatMessage(id, values),
+      [formatMessage]
+    );
 
   const [snackbarMsg, setSnackbarMsg] = React.useState('');
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+
+  // viewport/list sizing to make the todos scrollable like the main page
+  const [viewportHeight, setViewportHeight] = React.useState<number>(
+    typeof window !== 'undefined' ? window.innerHeight : 0
+  );
+  const headerRef = React.useRef<HTMLDivElement>(null);
+  const toolbarRef = React.useRef<HTMLDivElement>(null);
+  const [listHeight, setListHeight] = React.useState<number>(0);
+
+  React.useLayoutEffect(() => {
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 0;
+    setViewportHeight(vh);
+    const headerH = headerRef.current?.offsetHeight || 0;
+    const toolbarH = toolbarRef.current?.offsetHeight || 0;
+    const margins = 64; // container vertical margins (mt=4,mb=4)
+    const buffer = 50;
+    const safe = vh - (typeof document !== 'undefined' ? document.documentElement.clientHeight : vh);
+    const newListH = vh - headerH - toolbarH - margins - buffer - safe;
+    setListHeight(newListH > 0 ? newListH : 0);
+  }, []);
 
   const tokenStr = typeof token === 'string' ? token : '';
   const todoActions = useSharedTodos(tokenStr, setSnackbarMsg, _formatMessage);
@@ -171,18 +194,34 @@ export default function SharedPage() {
   } as unknown as any;
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 4, mb: 4 }}>
+    <Container
+      maxWidth="sm"
+      suppressHydrationWarning
+      sx={{
+        mt: 4,
+        mb: 4,
+        height: viewportHeight
+          ? `calc(${viewportHeight}px - env(safe-area-inset-bottom) - 50px - 64px)`
+          : 'calc(100vh - 64px)',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       <Head>
         <title>{todoActions.list?.name || t.header.title}</title>
       </Head>
-      <Header
-        headerColor={headerColor}
-        effectiveHeaderTextColor={headerTextColor}
-        t={t}
-      />
+      <div ref={headerRef}>
+        <Header
+          headerColor={headerColor}
+          effectiveHeaderTextColor={headerTextColor}
+          t={t}
+        />
+      </div>
 
       {/* simple search input */}
-      <Box sx={{ mb: 2 }}>
+      <div ref={toolbarRef}>
+        <Box sx={{ mb: 2 }}>
         <TextField
           label={t.search.placeholder}
           value={todoActions.filterText}
@@ -202,15 +241,24 @@ export default function SharedPage() {
             ) : null,
           }}
         />
-      </Box>
+        </Box>
+      </div>
 
-      <TodoList
-        todoActions={todoActionsAdapter}
-        listActions={listActionsStub}
-        availableCategories={[]}
-        t={t as any}
-        onEdit={() => {}}
-      />
+      <Box
+        sx={{
+          height: listHeight ? `${listHeight}px` : 'auto',
+          overflowY: 'auto',
+          paddingBottom: `calc(env(safe-area-inset-bottom) + 100px)`,
+        }}
+      >
+        <TodoList
+          todoActions={todoActionsAdapter}
+          listActions={listActionsStub}
+          availableCategories={[]}
+          t={t as any}
+          onEdit={() => {}}
+        />
+      </Box>
 
       <Snackbar
         open={snackbarOpen}
