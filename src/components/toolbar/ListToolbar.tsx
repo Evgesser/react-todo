@@ -149,7 +149,7 @@ export default function ListToolbar({
               size="small"
               onClick={openNewListDialog}
               sx={{
-                ml: 1,
+                marginInlineStart: 1,
                 background: 'linear-gradient(135deg, #ECCE8E 0%, #DBCF96 100%)',
                 color: '#0F172A',
                 '&:hover': {

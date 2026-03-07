@@ -178,7 +178,7 @@ export default function TodoListItem({
           '&::before': todo.completed ? {
             content: '""',
             position: 'absolute',
-            top: 0, left: 0, right: 0, bottom: 0,
+            top: 0, insetInlineStart: 0, insetInlineEnd: 0, bottom: 0,
             backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.5)',
             pointerEvents: 'none',
           } : {},

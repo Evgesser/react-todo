@@ -24,7 +24,7 @@ export default function CategoryIconPicker({ selected, onChange, title }: Props)
       <IconButton
         size="small"
         onClick={() => onChange('')}
-        sx={{ ml: 1 }}
+        sx={{ marginInlineStart: 1 }}
         title={title ? `${title}: ${'no icon'}` : 'no icon'}
       >
         ✖️

@@ -123,10 +123,10 @@ html[dir="rtl"] .MuiFormLabel-root.Mui-focused {
 
 /* Ensure input padding mirrors correctly in RTL so text doesn't overlap label */
 html[dir="rtl"] .MuiOutlinedInput-input {
-  padding-right: 14px; /* space for label */
-  padding-left: 12px;
+  padding-inline-end: 14px; /* space for label */
+  padding-inline-start: 12px;
 }
 html[dir="rtl"] .MuiInputBase-input {
-  padding-right: 14px;
-  padding-left: 12px;
+  padding-inline-end: 14px;
+  padding-inline-start: 12px;
 }

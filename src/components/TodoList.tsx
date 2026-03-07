@@ -92,7 +92,7 @@ export default function TodoList({
             <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
               {label}
             </Typography>
-            <Box sx={{ marginLeft: 'auto', display: 'flex', gap: 0.5 }}>
+            <Box sx={{ marginInlineStart: 'auto', display: 'flex', gap: 0.5 }}>
               <IconButton
                 size="small"
                 onClick={async () => {

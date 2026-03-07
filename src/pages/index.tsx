@@ -267,39 +267,66 @@ export default function Home() {
           />
 
           {/* pinned progress under search */}
-          <Box
-            sx={{
-              position: 'sticky',
-              top: progressTop,
-              zIndex: 700,
-              px: 0,
-              py: 0,
-              bgcolor: 'transparent',
-              borderBottom: `1px solid theme.palette.divider`,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}> 
-              <Box sx={{ flex: 1, overflow: 'hidden' }}>
-                <LinearProgress
-                  variant="determinate"
-                  value={todoActions.todos.length === 0 ? 0 : (todoActions.todos.filter((t) => t.completed).length / todoActions.todos.length) * 100}
-                  sx={{
-                    height: 8,
-                    borderRadius: 9999,
-                    backgroundColor: 'transparent',
-                    '& .MuiLinearProgress-bar': {
-                      background: 'linear-gradient(90deg, #ECCE8E 0%, #DBCF96 100%)',
-                      borderRadius: 9999,
-                    },
-                  }}
-                  aria-label={`progress ${todoActions.todos.filter((t) => t.completed).length} of ${todoActions.todos.length}`}
-                />
+          {(() => {
+            const completedCount = todoActions.todos.filter((t) => t.completed).length;
+            const totalTodos = todoActions.todos.length;
+            const progressValue = totalTodos === 0 ? 0 : (completedCount / totalTodos) * 100;
+
+            return (
+              <Box
+                sx={{
+                  position: 'sticky',
+                  top: progressTop,
+                  zIndex: 700,
+                  px: 0,
+                  py: 0,
+                  bgcolor: 'transparent',
+                  borderBottom: `1px solid theme.palette.divider`,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
+                  <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                    <Box
+                      aria-hidden
+                      sx={{
+                        height: 10,
+                        borderRadius: 9999,
+                        backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.06)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        border: (theme) => theme.palette.mode === 'dark' ? 'none' : '1px solid rgba(15,23,42,0.04)',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          bottom: 0,
+                          width: `${progressValue}%`,
+                          background: 'linear-gradient(90deg, #ECCE8E 0%, #DBCF96 100%)',
+                          borderRadius: 9999,
+                          transition: 'width 280ms ease',
+                          boxShadow: (theme) => theme.palette.mode === 'light' ? '0 2px 8px rgba(15,23,42,0.06)' : 'none',
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    sx={(theme) => ({
+                      color: theme.palette.mode === 'light' ? theme.palette.secondary.contrastText : theme.palette.secondary.main,
+                      marginInlineStart: 1,
+                      minWidth: 56,
+                      textAlign: 'right',
+                    })}
+                  >
+                    {completedCount} / {totalTodos}
+                  </Typography>
+                </Box>
               </Box>
-              <Typography variant="caption" sx={{ color: 'secondary.main', ml: 1, minWidth: 56, textAlign: 'right' }}>
-                {todoActions.todos.filter((t) => t.completed).length} / {todoActions.todos.length}
-              </Typography>
-            </Box>
-          </Box>
+            );
+          })()}
 
           {!listActions.viewingHistory && (
             <TodoForm
@@ -345,7 +372,7 @@ export default function Home() {
             sx={{
               position: 'fixed',
               bottom: 24,
-              right: 24,
+              insetInlineEnd: 24,
               zIndex: 1300,
             }}
           >

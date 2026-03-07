@@ -143,11 +143,11 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
                   href={`/profile/${userId}`}
                   onClick={handleMenuClose}
                 >
-                  <PersonIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
+                  <PersonIcon sx={{ marginInlineEnd: 1, fontSize: '1.2rem' }} />
                   <Typography variant="body2">{t.header.profile}</Typography>
                 </MenuItem>
                 <MenuItem onClick={handleLogout}>
-                  <LogoutIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
+                  <LogoutIcon sx={{ marginInlineEnd: 1, fontSize: '1.2rem' }} />
                   <Typography variant="body2">{t.header.logout}</Typography>
                 </MenuItem>
               </Menu>
