@@ -6,6 +6,7 @@ import {
   Box,
   LinearProgress,
   Fab,
+  Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 
@@ -77,6 +78,7 @@ export default function Home() {
   const headerRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   const [listHeight, setListHeight] = React.useState<number>(0);
+  const [progressTop, setProgressTop] = React.useState<number>(0);
 
   React.useLayoutEffect(() => {
     // measure once, ignore any subsequent resize events (including those
@@ -90,6 +92,8 @@ export default function Home() {
     const safe = vh - document.documentElement.clientHeight; // approximate bottom inset
     const newListH = vh - headerH - toolbarH - margins - buffer - safe;
     setListHeight(newListH > 0 ? newListH : 0);
+    // compute sticky top for pinned progress (just under header+toolbar)
+    setProgressTop(headerH + toolbarH + 8);
   }, []);
 
   // personalization state (categories, templates, products, etc.)
@@ -261,6 +265,41 @@ export default function Home() {
             }}
             t={t}
           />
+
+          {/* pinned progress under search */}
+          <Box
+            sx={{
+              position: 'sticky',
+              top: progressTop,
+              zIndex: 700,
+              px: 0,
+              py: 0,
+              bgcolor: 'transparent',
+              borderBottom: `1px solid theme.palette.divider`,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}> 
+              <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                <LinearProgress
+                  variant="determinate"
+                  value={todoActions.todos.length === 0 ? 0 : (todoActions.todos.filter((t) => t.completed).length / todoActions.todos.length) * 100}
+                  sx={{
+                    height: 8,
+                    borderRadius: 9999,
+                    backgroundColor: 'transparent',
+                    '& .MuiLinearProgress-bar': {
+                      background: 'linear-gradient(90deg, #ECCE8E 0%, #DBCF96 100%)',
+                      borderRadius: 9999,
+                    },
+                  }}
+                  aria-label={`progress ${todoActions.todos.filter((t) => t.completed).length} of ${todoActions.todos.length}`}
+                />
+              </Box>
+              <Typography variant="caption" sx={{ color: 'secondary.main', ml: 1, minWidth: 56, textAlign: 'right' }}>
+                {todoActions.todos.filter((t) => t.completed).length} / {todoActions.todos.length}
+              </Typography>
+            </Box>
+          </Box>
 
           {!listActions.viewingHistory && (
             <TodoForm

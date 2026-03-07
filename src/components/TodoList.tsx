@@ -5,12 +5,13 @@ import {
   Typography,
   IconButton,
   Skeleton,
+  LinearProgress,
 } from '@mui/material';
 import {
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
 } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import TodoListItem from './TodoListItem';
 import type { Category } from '@/constants';
 import type { TranslationKeys } from '@/locales/ru';
@@ -146,6 +147,12 @@ export default function TodoList({
     theme,
     onEdit,
   ]);
+  const totalCount = todoActions.todos.length;
+  const completedCount = todoActions.todos.filter((t) => t.completed).length;
+  const progressValue = totalCount === 0 ? 0 : (completedCount / totalCount) * 100;
+  const trackBg = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.secondary.main, 0.12)
+    : alpha(theme.palette.secondary.main, 0.18);
   if (todoActions.todosLoading) {
     // render a few skeleton cards while loading
     return (
@@ -162,5 +169,10 @@ export default function TodoList({
     );
   }
 
-  return <List sx={{ width: '100%' }}>{elements}</List>;
+  return (
+    <Box sx={{ width: '100%' }}>
+      
+      <List sx={{ width: '100%' }}>{elements}</List>
+    </Box>
+  );
 }
