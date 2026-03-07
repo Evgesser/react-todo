@@ -150,10 +150,10 @@ export default function ListToolbar({
               onClick={openNewListDialog}
               sx={{
                 ml: 1,
-                background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
-                color: '#fff',
+                background: 'linear-gradient(135deg, #ECCE8E 0%, #DBCF96 100%)',
+                color: '#0F172A',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #9333ea 0%, #db2777 100%)',
+                  background: 'linear-gradient(135deg, #d8c57a 0%, #c2b57a 100%)',
                 },
               }}
               aria-label="new list"
@@ -181,10 +181,10 @@ export default function ListToolbar({
           onChange={(e) => setListDefaultColor(e.target.value)}
           sx={{ width: 64 }}
         />
-                <Button onClick={saveListColor} sx={{ minWidth: 120 }}>
+                <Button onClick={saveListColor} variant="contained" color="secondary" sx={{ minWidth: 120 }}>
                   {t.lists.saveColor}
                 </Button>
-        <Button onClick={() => toggleBulkMode()} sx={{ minWidth: 100 }}>
+        <Button onClick={() => toggleBulkMode()} variant="contained" color="secondary" sx={{ minWidth: 100 }}>
           {bulkMode ? t.lists.bulkCancel : t.lists.bulkMode}
         </Button>
         <IconButton onClick={(e) => handleOpenMenu(e)} size="small">
@@ -367,7 +367,7 @@ export default function ListToolbar({
               sx={{
                 fontFamily: 'monospace',
                 fontSize: '12px',
-                backgroundColor: '#f5f5f5',
+                bgcolor: 'background.paper',
               }}
             />
           </DialogContent>

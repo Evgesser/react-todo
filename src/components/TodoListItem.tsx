@@ -17,17 +17,17 @@ import {
   DialogContent,
 } from '@mui/material';
 
-// keyframe definitions for blinking blue info icon
+// keyframe definitions for blinking info icon (use muted cyan from palette)
 const blinkKeyframes = {
-  '@keyframes blinkBlue': {
+  '@keyframes blinkInfo': {
     '0%,100%': { color: 'inherit' },
-    '50%': { color: '#42a5f5' }, // light blue
+    '50%': { color: '#9AC2C5' }, // muted cyan from palette
   },
 };
 
 import {
   RadioButtonUnchecked as RadioButtonUncheckedIcon,
-  RadioButtonChecked as RadioButtonCheckedIcon,
+  Check as CheckIcon,
   ReportProblem as ReportProblemIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -193,7 +193,20 @@ export default function TodoListItem({
                   checked={selectedIds.has(todo._id)}
                   onChange={() => toggleSelect(todo._id)}
                   icon={<RadioButtonUncheckedIcon />}
-                  checkedIcon={<RadioButtonCheckedIcon />}
+                  checkedIcon={
+                    <Box sx={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: '#4ade80',
+                      color: 'common.white',
+                    }}>
+                      <CheckIcon fontSize="small" />
+                    </Box>
+                  }
                   sx={{
                     color: itemTextColor,
                     '& .MuiSvgIcon-root': { borderRadius: '50%' },
@@ -205,7 +218,20 @@ export default function TodoListItem({
                 onChange={() => !viewingHistory && toggleComplete(todo)}
                 disabled={viewingHistory}
                 icon={<RadioButtonUncheckedIcon />}
-                checkedIcon={<RadioButtonCheckedIcon />}
+                checkedIcon={
+                  <Box sx={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: '#4ade80',
+                    color: 'common.white',
+                  }}>
+                    <CheckIcon fontSize="small" />
+                  </Box>
+                }
                 sx={{
                   color: itemTextColor,
                   '& .MuiSvgIcon-root': { borderRadius: '50%' },
@@ -343,7 +369,7 @@ export default function TodoListItem({
                       sx={{
                         color: itemTextColor,
                         ...blinkKeyframes,
-                        animation: infoAnchor ? 'none' : 'blinkBlue 1.5s infinite',
+                        animation: infoAnchor ? 'none' : 'blinkInfo 1.5s infinite',
                       }}
                       onClick={openInfo}
                     >

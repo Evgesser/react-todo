@@ -59,6 +59,14 @@ export default function MyApp(props: MyAppProps) {
 
   const theme = React.useMemo(() => getTheme(mode), [mode]);
 
+  React.useEffect(() => {
+    try {
+      document.documentElement.setAttribute('data-theme', mode);
+    } catch {
+      // noop on SSR or if document unavailable
+    }
+  }, [mode]);
+
   return (
     <CacheProvider value={emotionCache}>
       <Head>

@@ -310,16 +310,7 @@ export default function Home() {
               zIndex: 1300,
             }}
           >
-            <Fab
-              color="primary"
-              onClick={() => setFormOpen(true)}
-              sx={{
-                bgcolor: 'primary.main',
-                color: '#fff',
-                '&:hover': { bgcolor: 'primary.dark' },
-              }}
-              aria-label="add"
-            >
+            <Fab onClick={() => setFormOpen(true)} aria-label="add">
               <AddIcon />
             </Fab>
           </Box>

@@ -42,3 +42,5 @@ next-env.d.ts
 .github/agents/my agent.agent.md
 .vscode/launch.json
 image.png
+pallete-color.png
+image-colors.png
