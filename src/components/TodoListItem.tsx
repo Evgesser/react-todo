@@ -12,7 +12,19 @@ import {
   InputAdornment,
   TextField,
   Button,
+  Popover,
+  Dialog,
+  DialogContent,
 } from '@mui/material';
+
+// keyframe definitions for blinking blue info icon
+const blinkKeyframes = {
+  '@keyframes blinkBlue': {
+    '0%,100%': { color: 'inherit' },
+    '50%': { color: '#42a5f5' }, // light blue
+  },
+};
+
 import {
   RadioButtonUnchecked as RadioButtonUncheckedIcon,
   RadioButtonChecked as RadioButtonCheckedIcon,
@@ -20,6 +32,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Clear as ClearIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { getTextColor, getLuminance } from '@/utils/color';
@@ -36,7 +49,10 @@ interface TodoListItemProps {
   listActions: UseListsReturn;
   availableCategories: Category[];
   t: TranslationKeys;
+  // optional callback invoked when user starts editing this item
+  onEdit?: () => void;
 }
+
 
 export default function TodoListItem({
   todo,
@@ -45,6 +61,7 @@ export default function TodoListItem({
   listActions,
   availableCategories,
   t,
+  onEdit,
 }: TodoListItemProps) {
   const theme = useTheme();
 
@@ -84,7 +101,22 @@ export default function TodoListItem({
     toggleComplete,
   } = todoActions;
 
+  const [infoAnchor, setInfoAnchor] = React.useState<HTMLElement | null>(null);
+  const [infoImageOpen, setInfoImageOpen] = React.useState(false);
+  const openInfo = (e: React.MouseEvent<HTMLElement>) => setInfoAnchor(e.currentTarget);
+  const closeInfo = () => {
+    setInfoAnchor(null);
+    setInfoImageOpen(false);
+  };
+
+
   const { viewingHistory, listDefaultColor } = listActions;
+  // allow callers (like the shared page) to explicitly override which
+  // action buttons should be visible. If not provided, fall back to
+  // the historical behaviour (hide when viewingHistory is true).
+  const la = listActions as any;
+  const canEdit = la.canEdit !== undefined ? la.canEdit : !viewingHistory;
+  const canDelete = la.canDelete !== undefined ? la.canDelete : !viewingHistory;
 
   // background / text colours follow the logic that used to live in TodoList
   let itemBg: string | undefined;
@@ -168,27 +200,17 @@ export default function TodoListItem({
                   }}
                 />
               )}
-              <Stack spacing={0.25} alignItems="center">
-                {todo.category && (
-                  <Box sx={{ fontSize: 16, color: itemTextColor }}>
-                    {(() => {
-                      const IconComp = availableCategories.find((c) => c.value === todo.category)?.icon;
-                      return IconComp ? <IconComp fontSize="small" /> : null;
-                    })()}
-                  </Box>
-                )}
-                <Checkbox
-                  checked={todo.completed}
-                  onChange={() => !viewingHistory && toggleComplete(todo)}
-                  disabled={viewingHistory}
-                  icon={<RadioButtonUncheckedIcon />}
-                  checkedIcon={<RadioButtonCheckedIcon />}
-                  sx={{
-                    color: itemTextColor,
-                    '& .MuiSvgIcon-root': { borderRadius: '50%' },
-                  }}
-                />
-              </Stack>
+              <Checkbox
+                checked={todo.completed}
+                onChange={() => !viewingHistory && toggleComplete(todo)}
+                disabled={viewingHistory}
+                icon={<RadioButtonUncheckedIcon />}
+                checkedIcon={<RadioButtonCheckedIcon />}
+                sx={{
+                  color: itemTextColor,
+                  '& .MuiSvgIcon-root': { borderRadius: '50%' },
+                }}
+              />
 
               <Box sx={{ flex: 1 }}>
                 {inlineEditId === todo._id ? (
@@ -252,17 +274,8 @@ export default function TodoListItem({
                     </Stack>
                   </Stack>
                 ) : (
-                  <Box
-                    onClick={() => {
-                      if (!bulkMode && !viewingHistory) startInlineEdit(todo);
-                    }}
-                    sx={{
-                      cursor:
-                        !bulkMode && !viewingHistory
-                          ? 'pointer'
-                          : 'default',
-                    }}
-                  >
+                  <Box>
+
                     <Typography
                       variant="subtitle1"
                       sx={{
@@ -277,30 +290,20 @@ export default function TodoListItem({
                         ? ` (${todo.quantity}${todo.unit ? ' ' + todo.unit : ''})`
                         : ''}
                     </Typography>
-                    {todo.description && (
-                      <Typography variant="body2" sx={{ color: itemTextColor, mt: 0.25, opacity: todo.completed ? 0.6 : 0.85 }}>
-                        {todo.description}
-                      </Typography>
-                    )}
-                    {todo.comment && (
-                      <Typography variant="caption" sx={{ color: itemTextColor, opacity: todo.completed ? 0.5 : 0.7 }}>
-                        {todo.comment}
-                      </Typography>
-                    )}
                   </Box>
                 )}
               </Box>
 
-              {!viewingHistory && (
-                <Stack direction="row" spacing={1}>
-                  <IconButton
-                    edge="end"
-                    aria-label={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
-                    sx={{ color: todo.missing ? theme.palette.error.main : itemTextColor }}
-                    onClick={() => toggleMissing(todo)}
-                  >
-                    <ReportProblemIcon fontSize="small" />
-                  </IconButton>
+              <Stack direction="row" spacing={1}>
+                <IconButton
+                  edge="end"
+                  aria-label={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
+                  sx={{ color: todo.missing ? theme.palette.error.main : itemTextColor }}
+                  onClick={() => toggleMissing(todo)}
+                >
+                  <ReportProblemIcon fontSize="small" />
+                </IconButton>
+                {canEdit && (
                   <IconButton
                     edge="end"
                     aria-label={t.todos.edit}
@@ -314,10 +317,15 @@ export default function TodoListItem({
                       setUnit(todo.unit || '');
                       setColor(todo.color || listDefaultColor);
                       setCategory(todo.category || '');
+                      if (onEdit) {
+                        onEdit();
+                      }
                     }}
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>
+                )}
+                {canDelete && (
                   <IconButton
                     edge="end"
                     aria-label={t.todos.delete}
@@ -326,8 +334,70 @@ export default function TodoListItem({
                   >
                     <DeleteIcon />
                   </IconButton>
-                </Stack>
-              )}
+                )}
+                {(todo.description || todo.comment) && (
+                  <>
+                    <IconButton
+                      edge="end"
+                      aria-label="info"
+                      sx={{
+                        color: itemTextColor,
+                        ...blinkKeyframes,
+                        animation: infoAnchor ? 'none' : 'blinkBlue 1.5s infinite',
+                      }}
+                      onClick={openInfo}
+                    >
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                    <Popover
+                      open={Boolean(infoAnchor)}
+                      anchorEl={infoAnchor}
+                      onClose={closeInfo}
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                    >
+                      <Box sx={{ p: 1, maxWidth: 200 }}>
+                        {todo.image && (
+                          <Box
+                            sx={{ mb: 1, textAlign: 'center', cursor: 'pointer' }}
+                            onClick={() => setInfoImageOpen(true)}
+                          >
+                            <img
+                              src={todo.image}
+                              alt="attachment"
+                              style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 4 }}
+                            />
+                          </Box>
+                        )}
+                        {todo.description && (
+                          <Typography variant="body2" sx={{ mb: todo.comment ? 1 : 0 }}>
+                            {t.todos.description}: {todo.description}
+                          </Typography>
+                        )}
+                        {todo.comment && (
+                          <Typography variant="caption">
+                            {t.todos.comment}: {todo.comment}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Popover>
+
+                    <Dialog
+                      open={infoImageOpen}
+                      onClose={() => setInfoImageOpen(false)}
+                      maxWidth="md"
+                      sx={{ zIndex: (theme) => theme.zIndex.modal + 200 }}
+                    >
+                      <DialogContent sx={{ p: 0, background: 'black' }}>
+                        <img
+                          src={todo.image || ''}
+                          alt="full"
+                          style={{ width: '100%', height: 'auto' }}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                )}
+              </Stack>
             </Stack>
           </ListItem>
         </CardContent>

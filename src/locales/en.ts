@@ -51,12 +51,16 @@ export const en: TranslationKeys = {
     linkCopied: 'Link copied',
     linkRevoked: 'Link revoked',
     revokeLink: 'Revoke link',
+    linkCopyFailed: 'Copy failed',
+    linkCopyPrompt: 'Copy link manually',
     noLists: 'No Lists',
   },
   
   // Todos
   todos: {
     addEdit: 'Add / Edit',
+    addTask: 'Create task',
+    editTask: 'Edit task',
     name: 'Name',
     namePlaceholder: 'What to buy?',
     description: 'Description',
@@ -71,6 +75,7 @@ export const en: TranslationKeys = {
     commentPlaceholder: 'Item notes',
     color: 'Color',
     category: 'Category',
+    attachImage: 'Attach image',
     add: 'Add',
     save: 'Save',
     cancel: 'Cancel',
@@ -171,6 +176,7 @@ export const en: TranslationKeys = {
     loading: 'Loading...',
     saveError: 'Save failed',
     error: 'Error',
+    selectAndCopy: 'Tap to select the link, then copy it:',
   },
   
   // Buttons

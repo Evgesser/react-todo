@@ -34,6 +34,7 @@ const SearchBulk: React.FC<Props> = ({
     <Box sx={{ mb: 2 }}>
       <Box sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
         <TextField
+          size="small"
           label={t.search.placeholder}
       value={filterText}
       onChange={(e) => onFilterChange(e.target.value)}
@@ -72,13 +73,13 @@ const SearchBulk: React.FC<Props> = ({
     </Box>
     {bulkMode && (
       <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-        <Button variant="contained" onClick={onBulkComplete} disabled={selectedCount === 0}>
+        <Button size="small" variant="contained" onClick={onBulkComplete} disabled={selectedCount === 0}>
           {t.search.bulkComplete}
         </Button>
-        <Button variant="outlined" onClick={onBulkDelete} disabled={selectedCount === 0}>
+        <Button size="small" variant="outlined" onClick={onBulkDelete} disabled={selectedCount === 0}>
           {t.search.bulkDelete}
         </Button>
-        <Button onClick={onCancelBulk}>{t.search.cancelBulk}</Button>
+        <Button size="small" onClick={onCancelBulk}>{t.search.cancelBulk}</Button>
       </Box>
     )}
   </Box>

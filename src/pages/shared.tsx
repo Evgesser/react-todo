@@ -8,22 +8,9 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  List,
-  Card,
-  CardContent,
-  Checkbox,
-  Stack,
-  Grow,
-  alpha,
   Snackbar,
 } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
 import { getLuminance, getTextColor } from '@/utils/color';
 import Header from '@/components/layout/Header';
@@ -31,6 +18,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import type { IntlShape } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
 import { useSharedTodos } from '@/hooks/useSharedTodos';
+import TodoList from '@/components/TodoList';
 
 export default function SharedPage() {
   const router = useRouter();
@@ -101,189 +89,86 @@ export default function SharedPage() {
 
   const LIGHT_WHITE2 = LIGHT_WHITE; // reuse
 
-  // render todo list elements (similar to index but stripped)
-  const renderTodos = () => {
-    const filtered = todoActions.todos.filter(
-      (t) =>
-        t.name.toLowerCase().includes(todoActions.filterText.toLowerCase()) ||
-        t.description.toLowerCase().includes(todoActions.filterText.toLowerCase())
-    );
-    const orderSorted = [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
-    const cats = Array.from(new Set(orderSorted.map((t) => t.category || '')));
-    const sorted = [...filtered].sort((a, b) => {
-      const ca = cats.indexOf(a.category || '');
-      const cb = cats.indexOf(b.category || '');
-      if (ca !== cb) return ca - cb;
-      return (a.order || 0) - (b.order || 0);
-    });
-    const allSorted = [...todoActions.todos].sort((a, b) => {
-      const ca = cats.indexOf(a.category || '');
-      const cb = cats.indexOf(b.category || '');
-      if (ca !== cb) return ca - cb;
-      return (a.order || 0) - (b.order || 0);
-    });
-    const groupCats = Array.from(new Set(allSorted.map((t) => t.category || '')));
+  // Reuse the same `TodoList` UI as the main page by adapting the shared hook.
+  // `useSharedTodos` exposes a smaller API; create a minimal adapter that
+  // satisfies `TodoList` / `TodoListItem` expectations and renders the same look.
+  const todoActionsAdapter = {
+    // map basic state from shared hook
+    todos: todoActions.todos,
+    todosLoading: false,
+    filterText: todoActions.filterText,
+    filterCategory: todoActions.filterCategory,
+    dragOverIndex: todoActions.dragOverIndex,
 
-    const elements: React.ReactNode[] = [];
-    const seenCategories = new Set<string>();
+    // no-op form/inline state (shared view is read-only)
+    name: '',
+    description: '',
+    quantity: 1,
+    comment: '',
+    unit: '',
+    color: '',
+    category: '',
+    editingId: null,
+    bulkMode: false,
+    selectedIds: new Set<string>(),
+    inlineEditId: null,
+    inlineName: '',
+    inlineDescription: '',
+    lastAdded: null,
+    categoryWarning: '',
+    clearedForName: null,
 
-    sorted.forEach((todo) => {
-      const catKey = todo.category || '__none';
-      if (!seenCategories.has(catKey)) {
-        seenCategories.add(catKey);
-        const realCat = todo.category || '';
-        const label = realCat;
-        elements.push(
-          <Box
-            key={`header-${catKey}`}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              mt: 2,
-              mb: 0.5,
-              px: 1,
-              py: 0.5,
-              bgcolor: theme.palette.action.hover,
-              borderRadius: 1,
-              borderBottom: `1px solid ${theme.palette.divider}`,
-            }}
-          >
-            <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-              {label}
-            </Typography>
-            <Box sx={{ marginLeft: 'auto', display: 'flex', gap: 0.5 }}>
-              <IconButton
-                size="small"
-                onClick={async () => {
-                  todoActions.setFilterText('');
-                  todoActions.setFilterCategory('');
-                  await todoActions.moveCategory(realCat, 'up');
-                }}
-                edge="end"
-                disabled={groupCats.indexOf(realCat) <= 0}
-              >
-                <ArrowUpwardIcon fontSize="small" />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={async () => {
-                  todoActions.setFilterText('');
-                  todoActions.setFilterCategory('');
-                  await todoActions.moveCategory(realCat, 'down');
-                }}
-                edge="end"
-                disabled={groupCats.indexOf(realCat) === groupCats.length - 1}
-              >
-                <ArrowDownwardIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          </Box>
-        );
-      }
+    // setters (no-op or delegated where sensible)
+    setTodos: () => {},
+    setName: () => {},
+    setDescription: () => {},
+    setQuantity: () => {},
+    setComment: () => {},
+    setUnit: () => {},
+    setColor: () => {},
+    setCategory: () => {},
+    setCategoryManual: () => {},
+    setEditingId: () => {},
+    setFilterText: todoActions.setFilterText,
+    setFilterCategory: todoActions.setFilterCategory,
+    setBulkMode: () => {},
+    setSelectedIds: () => {},
+    setInlineEditId: () => {},
+    setInlineName: () => {},
+    setInlineDescription: () => {},
+    setLastAdded: () => {},
 
-      let itemBg: string | undefined;
-      if (todo.completed) {
-        itemBg = theme.palette.action.disabledBackground;
-      } else if (todo.missing) {
-        itemBg = alpha(theme.palette.error.light, 0.4);
-      } else {
-        itemBg = todo.color && todo.color.trim() ? todo.color : undefined;
-      }
+    // methods (delegate to shared hook where available)
+    fetchTodos: async () => {},
+    addItem: async () => {},
+    toggleComplete: todoActions.toggleComplete,
+    toggleMissing: todoActions.toggleMissing,
+    deleteTodo: async () => {},
+    toggleSelect: () => {},
+    clearSelection: () => {},
+    bulkComplete: async () => {},
+    bulkDelete: async () => {},
+    onDragStart: todoActions.onDragStart,
+    onDragOver: todoActions.onDragOver,
+    onDragEnter: todoActions.onDragEnter,
+    onDragLeave: todoActions.onDragLeave,
+    onDrop: todoActions.onDrop,
+    onTouchStart: todoActions.onTouchStart,
+    onTouchMove: todoActions.onTouchMove,
+    onTouchEnd: todoActions.onTouchEnd,
+    startInlineEdit: () => {},
+    finishInlineEdit: async () => {},
+    moveCategory: todoActions.moveCategory,
+  } as unknown as any;
 
-      let itemTextColor = theme.palette.text.primary as string;
-      if (!todo.completed && todo.color && todo.color.trim()) {
-        const bg = todo.color;
-        const itemBgLum = getLuminance(bg);
-        if (!isNaN(itemBgLum)) {
-          itemTextColor = itemBgLum > 0.5 ? 'rgba(0,0,0,0.87)' : (theme.palette.mode === 'dark' ? LIGHT_WHITE2 : '#ffffff');
-        } else {
-          try {
-            itemTextColor = theme.palette.getContrastText ? theme.palette.getContrastText(bg) : getTextColor(bg);
-          } catch {
-            itemTextColor = theme.palette.text.primary as string;
-          }
-        }
-      }
-      if (todo.missing) {
-        itemTextColor = theme.palette.text.primary as string;
-      }
-
-      const globalIndex = todoActions.todos.findIndex((t) => t._id === todo._id);
-
-      elements.push(
-        <Grow key={todo._id} in timeout={300}>
-          <Card
-            draggable
-            onDragStart={(e) => todoActions.onDragStart(e, globalIndex)}
-            onDragOver={todoActions.onDragOver}
-            onDrop={(e) => todoActions.onDrop(e, globalIndex)}
-            onTouchStart={(e) => todoActions.onTouchStart(e, globalIndex)}
-            onDragEnter={(e) => todoActions.onDragEnter(e, globalIndex)}
-            onDragLeave={todoActions.onDragLeave}
-            onTouchMove={todoActions.onTouchMove}
-            onTouchEnd={(e) => todoActions.onTouchEnd(e, globalIndex)}
-            sx={{
-              mb: 1,
-              backgroundColor: itemBg || 'inherit',
-              boxShadow:
-                todoActions.dragOverIndex === globalIndex
-                  ? '0 0 0 3px rgba(25,118,210,0.12)'
-                  : undefined,
-              transition: 'background-color 0.3s ease',
-              color: itemTextColor,
-              cursor: 'move',
-              touchAction: 'pan-y',
-            }}
-            elevation={1}
-          >
-            <CardContent sx={{ p: 1 }}>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
-                <Stack spacing={0.25} alignItems="center">
-                  <Checkbox
-                    checked={todo.completed}
-                    onChange={() => todoActions.toggleComplete(todo)}
-                    icon={<RadioButtonUncheckedIcon />}
-                    checkedIcon={<RadioButtonCheckedIcon />}
-                    sx={{
-                      color: itemTextColor,
-                      '& .MuiSvgIcon-root': { borderRadius: '50%' },
-                    }}
-                  />
-                </Stack>
-                <Box sx={{ flex: 1 }}>
-                  <Typography>{todo.name}</Typography>
-                  {todo.description && (
-                    <Typography variant="body2" color="text.secondary">
-                      {todo.description}
-                    </Typography>
-                  )}
-                  {todo.comment && (
-                    <Typography variant="caption" color="text.secondary">
-                      {todo.comment}
-                    </Typography>
-                  )}
-                </Box>
-                {todo.missing && (
-                  <Typography variant="caption" color="error">
-                    {t.todos.missing}
-                  </Typography>
-                )}
-                <IconButton
-                  size="small"
-                  onClick={() => todoActions.toggleMissing(todo)}
-                >
-                  {todo.missing ? <CheckCircleOutlineIcon /> : <ErrorOutlineIcon />}
-                </IconButton>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grow>
-      );
-    });
-
-    return elements;
-  };
+  const listActionsStub = {
+    // keep most interactions available for shared view, but disable
+    // editing and deleting so the list cannot be modified from a shared link
+    viewingHistory: false,
+    listDefaultColor: todoActions.list?.defaultColor || '#ffffff',
+    canEdit: false,
+    canDelete: false,
+  } as unknown as any;
 
   return (
     <Container maxWidth="sm" sx={{ mt: 4, mb: 4 }}>
@@ -319,7 +204,13 @@ export default function SharedPage() {
         />
       </Box>
 
-      <List sx={{ width: '100%' }}>{renderTodos()}</List>
+      <TodoList
+        todoActions={todoActionsAdapter}
+        listActions={listActionsStub}
+        availableCategories={[]}
+        t={t as any}
+        onEdit={() => {}}
+      />
 
       <Snackbar
         open={snackbarOpen}

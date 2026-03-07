@@ -35,6 +35,7 @@ export default async function handler(
         order,
         missing,
         unit,
+        image,
       } = body as {
         listId?: unknown;
         name?: unknown;
@@ -47,6 +48,7 @@ export default async function handler(
         order?: unknown;
         missing?: unknown;
         unit?: unknown;
+        image?: unknown;
       };
 
       if (!listId || typeof listId !== 'string') {
@@ -65,6 +67,7 @@ export default async function handler(
         color?: string;
         category?: string;
         order?: number;
+        image?: string;
       } = {};
 
       if (typeof name === 'string') update.name = name;
@@ -77,6 +80,7 @@ export default async function handler(
       if (typeof color === 'string') update.color = color;
       if (typeof category === 'string') update.category = category;
       if (typeof order === 'number') update.order = order;
+      if (typeof image === 'string') update.image = image;
 
       if (Object.keys(update).length === 0) {
         res.status(400).json({ error: 'Nothing to update' });

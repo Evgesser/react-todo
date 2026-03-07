@@ -175,7 +175,10 @@ export function useLists({ userId, onSnackbar, formatMessage }: UseListsParams):
   const updateShareToken = React.useCallback(
     async (id: string, token: string) => {
       try {
-        await apiUpdateList(id, { shareToken: token });
+        const ok = await apiUpdateList(id, { shareToken: token });
+        if (!ok) {
+          throw new Error('Failed to update share token');
+        }
         const updated = lists.map((l) => (l._id === id ? { ...l, shareToken: token } : l));
         setLists(updated);
 
@@ -184,6 +187,7 @@ export function useLists({ userId, onSnackbar, formatMessage }: UseListsParams):
         }
       } catch {
         onSnackbar(formatMessage('messages.saveError'));
+        throw new Error('Failed to save share token');
       }
     },
     [lists, currentListId, onSnackbar, formatMessage, setLists, setCurrentList]

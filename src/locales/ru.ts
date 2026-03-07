@@ -49,13 +49,15 @@ export const ru = {
     linkCopied: 'Ссылка скопирована',
     linkRevoked: 'Ссылка отозвана',
     revokeLink: 'Отозвать ссылку',
+    linkCopyFailed: 'Не удалось скопировать',
+    linkCopyPrompt: 'Скопируйте ссылку вручную',
     noLists: 'Нет списков',
   },
   
   // Todos
   todos: {
-    addEdit: 'Добавить / редактировать',
-    name: 'Название',
+    addEdit: 'Добавить / редактировать',    addTask: 'Создать задачу',
+    editTask: 'Редактировать задачу',    name: 'Название',
     namePlaceholder: 'Что купить?',
     description: 'Описание',
     descriptionPlaceholder: 'Дополнительная информация',
@@ -69,6 +71,7 @@ export const ru = {
     commentPlaceholder: 'Заметки к товару',
     color: 'Цвет',
     category: 'Категория',
+    attachImage: 'Прикрепить изображение',
     add: 'Добавить',
     save: 'Сохранить',
     cancel: 'Отменить',
@@ -90,7 +93,7 @@ export const ru = {
   search: {
     placeholder: 'Поиск',
     bulkComplete: 'Пометить выполненными',
-    bulkDelete: 'Удалить выбранные',
+    bulkDelete: 'Удалить',
     cancelBulk: 'Отменить',
   },
   
@@ -169,6 +172,7 @@ export const ru = {
     loading: 'Загрузка...',
     saveError: 'Ошибка при сохранении',
     error: 'Ошибка',
+    selectAndCopy: 'Нажмите на ссылку, чтобы выделить, затем скопируйте:',
   },
   
   // Buttons

@@ -11,6 +11,8 @@ export interface Todo {
   color?: string;
   category?: string;
   order?: number;
+  // optional base64-encoded image attachment
+  image?: string;
 }
 
 export interface TemplateItem {
