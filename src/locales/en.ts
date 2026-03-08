@@ -236,9 +236,11 @@ export const en: TranslationKeys = {
 
   // Default data (localized labels for built-in categories/icons and templates)
   categoryLabels: {
-    '': '(none)',
-    groceries: 'Groceries',
-    electronics: 'Electronics',
+  '': '(none)',
+  groceries: 'Groceries',
+  fruits: 'Fruits',
+  vegetables: 'Vegetables',
+  electronics: 'Electronics',
     clothing: 'Clothing',
     dining: 'Dining',
     gas: 'Gas',

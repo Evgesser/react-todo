@@ -236,9 +236,11 @@ export const he: TranslationKeys = {
 
   // Default data (localized labels for built-in categories/icons and templates)
   categoryLabels: {
-    '': '(ללא)',
-    groceries: 'מזון',
-    electronics: 'אלקטרוניקה',
+  '': '(ללא)',
+  groceries: 'מזון',
+  fruits: 'פירות',
+  vegetables: 'ירקות',
+  electronics: 'אלקטרוניקה',
     clothing: 'בגדים',
     dining: 'אוכל',
     gas: 'דלק',

@@ -9,6 +9,8 @@ import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import HomeIcon from '@mui/icons-material/Home';
 import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
+import AgricultureIcon from '@mui/icons-material/Agriculture';
+import LocalGroceryStoreIcon from '@mui/icons-material/LocalGroceryStore';
 import BuildIcon from '@mui/icons-material/Build';
 import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
 import LiquorIcon from '@mui/icons-material/Liquor';
@@ -45,6 +47,8 @@ export interface Category {
 export const categories: Category[] = [
   { value: '', label: 'Нет', icon: null },
   { value: 'groceries', label: 'Продукты', icon: ShoppingCartIcon },
+  { value: 'fruits', label: 'Фрукты', icon: LocalGroceryStoreIcon },
+  { value: 'vegetables', label: 'Овощи', icon: AgricultureIcon },
   { value: 'electronics', label: 'Электроника', icon: DevicesIcon },
   { value: 'clothing', label: 'Одежда', icon: CheckroomIcon },
 ];
@@ -62,6 +66,8 @@ export const iconChoices: { key: string; label: string; icon: SvgIconComponent }
   { key: 'favorite', label: 'Избранное', icon: FavoriteIcon },
   { key: 'home', label: 'Дом', icon: HomeIcon },
   { key: 'flora', label: 'Цветы', icon: LocalFloristIcon },
+  { key: 'fruits', label: 'Фрукты', icon: LocalGroceryStoreIcon },
+  { key: 'vegetables', label: 'Овощи', icon: AgricultureIcon },
   { key: 'tools', label: 'Инструменты', icon: BuildIcon },
   { key: 'milk', label: 'Молоко / Напитки', icon: LocalDrinkIcon },
   { key: 'beverages', label: 'Напитки (алко/безалко)', icon: LiquorIcon },
@@ -93,7 +99,9 @@ export const iconMap: Record<string, SvgIconComponent> = iconChoices.reduce(
 // keys are iconChoice keys, values are arrays of lowercase tokens to match
 export const categoryKeywords: Record<string, Record<string, string[]>> = {
   ru: {
-    groceries: ['продукты', 'еда', 'кухня', 'холодильник', 'супермаркет', 'бакалея', 'магазин', 'капуста', 'авокадо', 'огурец', 'огурцы', 'помидор', 'помидоры', 'апельсин', 'апельсины', 'яблоко', 'яблоки', 'банан', 'бананы', 'лимон', 'лимоны', 'картофель', 'картошка', 'лук', 'морковь', 'перец', 'салат', 'шпинат', 'брокколи', 'виноград', 'груша', 'манго', 'мандарин', 'мандарины', 'слива', 'сливы', 'персик', 'персики', 'нектарин', 'киви', 'клубника', 'клубника', 'малина', 'черника', 'вишня', 'черешня', 'абрикос', 'абрикосы', 'арбуз', 'дыня', 'канталупа', 'кабачок', 'кабачки', 'баклажан', 'тыква', 'свекла', 'редис', 'сельдерей', 'чеснок', 'имбирь', 'петрушка', 'кинза', 'укроп', 'базилик', 'руккола', 'кале', 'кукуруза', 'горох', 'фасоль', 'спаржа', 'бамия', 'шампиньоны', 'грибы'],
+    groceries: ['продукты', 'еда', 'кухня', 'холодильник', 'супермаркет', 'бакалея', 'магазин'],
+    fruits: ['апельсин','апельсины','яблоко','яблоки','банан','бананы','лимон','лимоны','виноград','груша','манго','мандарин','мандарины','слива','сливы','персик','персики','нектарин','киви','клубника','малина','черника','вишня','черешня','абрикос','абрикосы','арбуз','дыня','канталупа'],
+    vegetables: ['капуста','огурец','огурцы','помидор','помидоры','картофель','картошка','лук','морковь','перец','салат','шпинат','брокколи','кабачок','кабачки','баклажан','тыква','свекла','редис','сельдерей','чеснок','имбирь','петрушка','кинза','укроп','базилик','руккола','кале','кукуруза','горох','фасоль','спаржа','бамия','шампиньоны','грибы'],
     electronics: ['электроника', 'гаджет', 'телефон', 'компьютер', 'ноутбук', 'зарядка', 'батарейки', 'наушники', 'кабель', 'техника', 'провод'],
     clothing: ['одежда', 'футболка', 'штаны', 'носки', 'обувь', 'куртка', 'платье', 'джинсы', 'белье', 'шапка', 'шарф'],
     dining: ['ресторан', 'кафе', 'ужин', 'обед', 'завтрак', 'столовая', 'на вынос'],
@@ -124,7 +132,9 @@ export const categoryKeywords: Record<string, Record<string, string[]>> = {
     seafood: ['рыба', 'морепродукты', 'креветки', 'кальмары', 'мидии', 'лосось', 'тунец', 'икра', 'осьминог', 'краб'],
   },
   en: {
-    groceries: ['groceries', 'food', 'kitchen', 'fridge', 'supermarket', 'pantry', 'cabbage', 'avocado', 'cucumber', 'cucumbers', 'tomato', 'tomatoes', 'orange', 'oranges', 'apple', 'apples', 'banana', 'bananas', 'lemon', 'lemons', 'potato', 'potatoes', 'onion', 'onions', 'carrot', 'carrots', 'pepper', 'peppers', 'lettuce', 'spinach', 'broccoli', 'grape', 'grapes', 'pear', 'mango', 'mandarin', 'tangerine', 'clementine', 'plum', 'plums', 'peach', 'peaches', 'nectarine', 'kiwi', 'strawberry', 'strawberries', 'raspberry', 'raspberries', 'blueberry', 'blueberries', 'cherry', 'cherries', 'apricot', 'apricots', 'watermelon', 'melon', 'cantaloupe', 'zucchini', 'courgette', 'eggplant', 'aubergine', 'pumpkin', 'beet', 'beetroot', 'radish', 'radishes', 'celery', 'garlic', 'ginger', 'parsley', 'cilantro', 'coriander', 'dill', 'basil', 'arugula', 'rocket', 'kale', 'corn', 'sweetcorn', 'pea', 'peas', 'bean', 'beans', 'green beans', 'asparagus', 'okra', 'mushroom', 'mushrooms', 'sprouts'],
+    groceries: ['groceries', 'food', 'kitchen', 'fridge', 'supermarket', 'pantry'],
+    fruits: ['orange','oranges','apple','apples','banana','bananas','lemon','lemons','grape','grapes','pear','mango','mandarin','tangerine','clementine','plum','plums','peach','peaches','nectarine','kiwi','strawberry','strawberries','raspberry','raspberries','blueberry','blueberries','cherry','cherries','apricot','apricots','watermelon','melon','cantaloupe','avocado'],
+    vegetables: ['cabbage','cucumber','cucumbers','tomato','tomatoes','potato','potatoes','onion','onions','carrot','carrots','pepper','peppers','lettuce','spinach','broccoli','zucchini','courgette','eggplant','aubergine','pumpkin','beet','beetroot','radish','radishes','celery','garlic','ginger','parsley','cilantro','coriander','dill','basil','arugula','rocket','kale','corn','sweetcorn','pea','peas','bean','beans','green beans','asparagus','okra','mushroom','mushrooms','sprouts'],
     electronics: ['electronics', 'gadget', 'phone', 'computer', 'laptop', 'charger', 'batteries', 'headphones', 'cable', 'tech', 'wire'],
     clothing: ['clothing', 'shirt', 'pants', 'socks', 'shoes', 'jacket', 'dress', 'jeans', 'underwear', 'hat', 'scarf'],
     dining: ['dining', 'dinner', 'lunch', 'breakfast', 'eating out', 'takeaway', 'restaurant'],
@@ -155,7 +165,9 @@ export const categoryKeywords: Record<string, Record<string, string[]>> = {
     seafood: ['seafood', 'fish', 'shrimp', 'salmon', 'tuna', 'caviar', 'squid', 'mussels', 'octopus', 'crab'],
   },
   he: {
-    groceries: ['מצרכים', 'אוכל', 'מטבח', 'מקרר', 'סופר', 'מזווה', 'כרוב', 'אבוקדו', 'מלפפון', 'מלפפונים', 'עגבנייה', 'עגבניות', 'תפוז', 'תפוזים', 'תפוח', 'תפוחים', 'בננה', 'בננות', 'לימון', 'לימונים', 'תפוח אדמה', 'בצל', 'גזר', 'פלפל', 'חסה', 'תרד', 'ברוקולי', 'ענבים', 'אגס', 'מנגו', 'מנדרינה', 'מנדרינות', 'שזיף', 'שזיפים', 'אפרסק', 'נקטארין', 'קיווי', 'תות', 'תותים', 'פטל', 'אוכמניות', 'דובדבן', 'משמש', 'משמשים', 'אבטיח', 'מלון', 'קישוא', 'קישואים', 'חציל', 'דלעת', 'סלק', 'צנון', 'סלרי', 'שום', 'גינגר', 'פטרוזיליה', 'כוסברה', 'שמיר', 'בזיליקום', 'רוקט', 'קייל', 'תירס', 'אפונה', 'שעועית', 'אספרגוס', 'במיה', 'פטריות', 'נבטים'],
+    groceries: ['מצרכים', 'אוכל', 'מטבח', 'מקרר', 'סופר', 'מזווה'],
+    fruits: ['תפוז','תפוזים','תפוח','תפוחים','בננה','בננות','לימון','לימונים','ענבים','אגס','מנגו','מנדרינה','מנדרינות','שזיף','שזיפים','אפרסק','נקטארין','קיווי','תות','תותים','פטל','אוכמניות','דובדבן','משמש','משמשים','אבטיח','מלון','אבוקادو'],
+    vegetables: ['כרוב','מלפפון','מלפפונים','עגבנייה','עגבניות','תפוח אדמה','בצל','גזר','פלפל','חסה','תרד','ברוקולי','קישוא','קישואים','חציל','דלעת','סלק','צנון','סלרי','שום','גינגר','פטרוזיליה','כוסברה','שמיר','בזיליקום','רוקט','קייל','תירס','אפונה','שעועית','אספרגוס','במיה','פטריות','נבטים'],
     electronics: ['אלקטרוניקה', 'גאדג\'ט', 'טלפון', 'מחשב', 'מטען', 'סוללות', 'אוזניות', 'כבל', 'טכנולוגיה'],
     clothing: ['בגדים', 'חולצה', 'מכנסיים', 'גרביים', 'נעליים', 'מעיל', 'שמלה', 'ג\'ינס', 'תחתונים', 'כובע', 'צעיף'],
     dining: ['מסעדה', 'ארוחת ערב', 'ארוחת צהריים', 'בוקר', 'אוכל בחוץ', 'טייקאווי'],

@@ -113,7 +113,9 @@ export default function NewListDialog({
         </TextField>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t.dialogs.newList.cancel}</Button>
+        <Button onClick={onClose} sx={{ color: 'text.primary' }}>
+          {t.dialogs.newList.cancel}
+        </Button>
         <Button variant="contained" onClick={handleCreate} disabled={!name.trim()}>
           {t.dialogs.newList.create}
         </Button>

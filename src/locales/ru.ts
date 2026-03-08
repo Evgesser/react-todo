@@ -232,9 +232,11 @@ export const ru = {
 
   // Default data (localized labels for built-in categories/icons and templates)
   categoryLabels: {
-    '': '(нет)',
-    groceries: 'Продукты',
-    electronics: 'Электроника',
+  '': '(нет)',
+  groceries: 'Продукты',
+  fruits: 'Фрукты',
+  vegetables: 'Овощи',
+  electronics: 'Электроника',
     clothing: 'Одежда',
     dining: 'Еда',
     gas: 'Бензин',
