@@ -259,6 +259,14 @@ export const he: TranslationKeys = {
     icecream: 'גלידה',
     coffee: 'קפה / משקאות',
     foodbank: 'דגנים / מצרכים',
+    health: 'בריאות / תרופות',
+    pets: 'חיות מחמד',
+    baby: 'תינוקות / ילדים',
+    sports: 'ספורט',
+    car: 'רכב',
+    frozen: 'קפואים',
+    snacks: 'חטיפים',
+    seafood: 'פירות ים',
   },
 
   defaultTemplates: {

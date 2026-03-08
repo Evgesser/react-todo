@@ -128,6 +128,24 @@ export default function Home() {
     products,
   });
 
+  // derive categories that actually appear in the current todos list
+  const filterCategories = React.useMemo(() => {
+    const present = new Set(
+      (todoActions.todos || [])
+        .map((x) => (x.category || '').trim())
+        .filter((v) => v)
+    );
+    const result = availableCategories.filter((c) => present.has(c.value));
+    // add any categories seen in todos that are not part of availableCategories
+    present.forEach((val) => {
+      if (!result.find((r) => r.value === val)) {
+        const label = (t.categoryLabels as Record<string, string>)?.[val] || val;
+        result.push({ value: val, label, icon: null });
+      }
+    });
+    return result.map((c) => ({ value: c.value, label: c.label }));
+  }, [todoActions.todos, availableCategories, t]);
+
 
 
   // wrapper used when user wants to add an item; create category first
@@ -249,7 +267,7 @@ export default function Home() {
           <SearchBulk
             filterText={todoActions.filterText}
             onFilterChange={todoActions.setFilterText}
-            categories={availableCategories}
+            categories={filterCategories}
             currentCategory={todoActions.filterCategory}
             onCategoryChange={async (val: string) => {
               todoActions.setFilterCategory(val);

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Box, TextField, MenuItem, Button, InputAdornment, IconButton } from '@mui/material';
+import { iconChoices } from '@/constants';
 import ClearIcon from '@mui/icons-material/Clear';
 import type { TranslationKeys } from '@/locales/ru';
 
@@ -65,7 +66,13 @@ const SearchBulk: React.FC<Props> = ({
           <MenuItem value="">{t.todos.all}</MenuItem>
           {categories.map((c) => (
             <MenuItem key={c.value} value={c.value}>
-              {c.label}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {(() => {
+                  const ic = iconChoices.find((x) => x.key === c.value);
+                  return ic ? React.createElement(ic.icon, { fontSize: 'small' }) : null;
+                })()}
+                <Box>{c.label}</Box>
+              </Box>
             </MenuItem>
           ))}
         </TextField>

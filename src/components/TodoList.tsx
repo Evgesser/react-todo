@@ -14,6 +14,7 @@ import {
 import { useTheme, alpha } from '@mui/material/styles';
 import TodoListItem from './TodoListItem';
 import type { Category } from '@/constants';
+import { iconChoices } from '@/constants';
 import type { TranslationKeys } from '@/locales/ru';
 
 import type { UseTodosReturn } from '@/hooks/useTodos';
@@ -70,8 +71,15 @@ export default function TodoList({
         seenCategories.add(catKey);
         const realCat = todo.category || '';
         const catObj = availableCategories.find((c) => c.value === todo.category);
-        const IconComp = catObj?.icon || null;
-        const label = catObj?.label || realCat;
+        const IconComp =
+          catObj?.icon ||
+          (iconChoices.find((x) => x.key === realCat)?.icon as any) ||
+          null;
+        const label =
+          catObj?.label ||
+          (t.categoryLabels as Record<string, string>)?.[realCat] ||
+          iconChoices.find((x) => x.key === realCat)?.label ||
+          realCat;
         elementsArray.push(
           <Box
             key={`header-${catKey}`}

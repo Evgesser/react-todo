@@ -87,21 +87,22 @@ export default function PersonalizationDialog({
   );
 
   // list of strings passed to template editors; include current categories and any appearing in products
-  interface CatOpt { value: string; label: string; }
+  interface CatOpt { value: string; label: string; icon?: string }
   const templateCategoryOptions = React.useMemo<CatOpt[]>(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, { label: string; icon?: string }>();
     editingCategories.forEach((c) => {
-      if (c.value && c.value.trim()) map.set(c.value, c.label || c.value);
+      if (c.value && c.value.trim()) map.set(c.value, { label: c.label || c.value, icon: c.icon || undefined });
     });
     availableCategories.forEach((c) => {
-      if (c.value && c.value.trim() && !map.has(c.value))
-        map.set(c.value, c.label || c.value);
+      if (c.value && c.value.trim() && !map.has(c.value)) {
+        const key = Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || undefined;
+        map.set(c.value, { label: c.label || c.value, icon: key });
+      }
     });
     products.forEach((p) => {
-      if (p.category && p.category.trim() && !map.has(p.category))
-        map.set(p.category, p.category);
+      if (p.category && p.category.trim() && !map.has(p.category)) map.set(p.category, { label: p.category, icon: undefined });
     });
-    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+    return Array.from(map.entries()).map(([value, obj]) => ({ value, label: obj.label, icon: obj.icon }));
   }, [editingCategories, availableCategories, products]);
 
   React.useEffect(() => {

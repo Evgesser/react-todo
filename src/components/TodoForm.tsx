@@ -377,14 +377,22 @@ export default function TodoForm({
     return found ? found.label : category;
   }, [availableCategories, category, name, clearedForName]);
 
-  // label to show in the preview area; prefer parser's category but
-  // map it to a human-readable label if possible
-  const previewCategoryLabel = React.useMemo(() => {
+  // info for preview area: prefer parser's category but map to
+  // a human-readable label and pick an icon when available
+  const previewCategory = React.useMemo(() => {
     const cat = parsed?.category || category;
-    if (!cat) return '';
+    if (!cat) return { label: '', Icon: null as any };
     const found = availableCategories.find((c) => c.value === cat);
-    return found ? found.label : cat;
-  }, [parsed, category, availableCategories]);
+    if (found) return { label: found.label, Icon: found.icon };
+    const localized = (t.categoryLabels as Record<string, string>)?.[cat];
+    if (localized) {
+      const choice = iconChoices.find((x) => x.key === cat);
+      return { label: localized, Icon: choice ? choice.icon : null };
+    }
+    const choice = iconChoices.find((x) => x.key === cat);
+    if (choice) return { label: choice.label, Icon: choice.icon };
+    return { label: cat, Icon: null };
+  }, [parsed, category, availableCategories, t]);
 
   const ensureCategoryExists = React.useCallback(
     async (val: string, iconKey?: string) => {
@@ -634,9 +642,15 @@ export default function TodoForm({
                   <strong>{t.todos.commentLabel || 'Comment'}:</strong> {parsed.comment}
                 </Typography>
               )}
-              {previewCategoryLabel && (
-                <Typography variant="body2">
-                  <strong>{t.todos.category}:</strong> {previewCategoryLabel}
+              {previewCategory.label && (
+                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <strong>{t.todos.category}:</strong>
+                  {previewCategory.Icon ? (
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                      {React.createElement(previewCategory.Icon, { fontSize: 'small' })}
+                    </Box>
+                  ) : null}
+                  <Box>{previewCategory.label}</Box>
                 </Typography>
               )}
               <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
@@ -789,7 +803,21 @@ export default function TodoForm({
             getOptionLabel={(opt) =>
               typeof opt === 'string' ? opt : opt.label || opt.value
             }
-            value={category === '' ? null : availableCategories.find((c) => c.value === category) || (category ? { value: category, label: category, icon: null } : null)}
+            value={
+              category === ''
+                ? null
+                : availableCategories.find((c) => c.value === category) ||
+                  (category
+                    ? {
+                        value: category,
+                        label:
+                          (t.categoryLabels as Record<string, string>)?.[category] ||
+                          iconChoices.find((x) => x.key === category)?.label ||
+                          category,
+                        icon: iconChoices.find((x) => x.key === category)?.icon || null,
+                      }
+                    : null)
+            }
             inputValue={category === '' ? '' : displayedCategory}
             onInputChange={(_, v, reason) => {
               if (reason === 'input') {

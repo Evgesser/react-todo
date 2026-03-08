@@ -255,6 +255,14 @@ export const ru = {
     icecream: 'Мороженое',
     coffee: 'Кофе/Напитки',
     foodbank: 'Крупы/Запасы',
+    health: 'Здоровье/Аптека',
+    pets: 'Питомцы',
+    baby: 'Дети',
+    sports: 'Спорт',
+    car: 'Авто',
+    frozen: 'Заморозка',
+    snacks: 'Снеки/Закуски',
+    seafood: 'Рыба/Морепродукты',
   },
 
   defaultTemplates: {

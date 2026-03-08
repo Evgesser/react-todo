@@ -177,6 +177,17 @@ export const en: TranslationKeys = {
     saveError: 'Save failed',
     error: 'Error',
     selectAndCopy: 'Tap to select the link, then copy it:',
+    usernameRequired: 'Username is required',
+    passwordRequired: 'Password is required',
+    captchaRequired: 'Captcha answer is required',
+    usernameTooShort: 'Username must be at least 3 characters',
+    passwordTooShort: 'Password must be at least 3 characters',
+    invalidCaptcha: 'Invalid captcha answer',
+    usernameExists: 'User already exists',
+    userCreationFailed: 'Failed to create user',
+    methodNotAllowed: 'Method not allowed',
+    tooManyAttempts: 'Too many failed attempts',
+    invalidCredentials: 'Invalid username or password',
   },
   
   // Buttons
@@ -248,6 +259,14 @@ export const en: TranslationKeys = {
     icecream: 'Ice Cream',
     coffee: 'Coffee / Drinks',
     foodbank: 'Grains / Staples',
+    health: 'Health / Pharmacy',
+    pets: 'Pets',
+    baby: 'Baby / Kids',
+    sports: 'Sports',
+    car: 'Car / Auto',
+    frozen: 'Frozen',
+    snacks: 'Snacks',
+    seafood: 'Seafood',
   },
 
   defaultTemplates: {

@@ -197,6 +197,25 @@ export function getTheme(mode: PaletteMode) {
                 boxShadow: mode === 'dark' ? '0 0 0 3px rgba(59, 130, 246, 0.3)' : '0 0 0 3px rgba(59, 130, 246, 0.2)',
               }
             },
+            // ensure input text, placeholder and labels are visible in dark mode
+            '& .MuiFilledInput-input': {
+              color: mode === 'dark' ? '#F8FAFC' : undefined,
+              '&::placeholder': {
+                color: mode === 'dark' ? 'rgba(248,250,252,0.6)' : undefined,
+              },
+            },
+            '& .MuiOutlinedInput-input': {
+              color: mode === 'dark' ? '#F8FAFC' : undefined,
+              '&::placeholder': {
+                color: mode === 'dark' ? 'rgba(248,250,252,0.6)' : undefined,
+              },
+            },
+            '& .MuiInputLabel-root': {
+              color: mode === 'dark' ? '#F8FAFC' : undefined,
+            },
+            '& .MuiInputLabel-root.Mui-focused, & .MuiInputLabel-root.MuiInputLabel-shrink': {
+              color: mode === 'dark' ? '#F8FAFC' : undefined,
+            },
           },
         },
       },

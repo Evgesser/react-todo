@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { Box, IconButton, Autocomplete } from '@mui/material';
+import { Box, IconButton, Autocomplete, InputAdornment } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ClearableTextField from '../ClearableTextField';
 import type { TranslationKeys } from '@/locales/ru';
+import { iconChoices } from '@/constants';
 
 export interface TemplateItem {
   name: string;
@@ -10,7 +11,7 @@ export interface TemplateItem {
   category?: string;
 }
 
-interface CatOpt { value: string; label: string }
+interface CatOpt { value: string; label: string; icon?: string }
 interface Props {
   item: TemplateItem;
   t: TranslationKeys;
@@ -81,7 +82,7 @@ export default function TemplateItemRow({
           item.category
             ?
               (categoryOptions || []).find((o) => o.value === item.category) ||
-              { value: item.category, label: item.category }
+              { value: item.category, label: item.category, icon: undefined }
             : null
         }
         inputValue={displayText}
@@ -114,13 +115,45 @@ export default function TemplateItemRow({
             onCategoryAdd(item.category);
           }
         }}
-        renderInput={(params) => (
-          <ClearableTextField
-            {...params}
-            label={t.dialogs.personalization.itemCategory}
-            sx={{ marginInlineEnd: { xs: 0, sm: 1 }, width: { xs: '100%', sm: 160 } }}
-          />
+        renderOption={(props, option) => (
+          <li {...props}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {option.icon ? (
+                (() => {
+                  const ic = iconChoices.find((x) => x.key === option.icon);
+                  return ic ? React.createElement(ic.icon, { fontSize: 'small' }) : null;
+                })()
+              ) : null}
+              <Box sx={{ ml: option.icon ? 1 : 0 }}>{option.label}</Box>
+            </Box>
+          </li>
         )}
+        renderInput={(params) => {
+          const sel = (categoryOptions || []).find((o) => o.value === item.category) as CatOpt | undefined;
+          let IconComp: any = null;
+          if (sel && sel.icon) {
+            const found = iconChoices.find((x) => x.key === sel.icon);
+            IconComp = found ? found.icon : null;
+          } else if (item.category) {
+            const found = iconChoices.find((x) => x.key === item.category);
+            IconComp = found ? found.icon : null;
+          }
+          return (
+            <ClearableTextField
+              {...params}
+              label={t.dialogs.personalization.itemCategory}
+              sx={{ marginInlineEnd: { xs: 0, sm: 1 }, width: { xs: '100%', sm: 160 } }}
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: IconComp ? (
+                  <InputAdornment position="start">
+                    {React.createElement(IconComp, { fontSize: 'small' })}
+                  </InputAdornment>
+                ) : params.InputProps?.startAdornment,
+              }}
+            />
+          );
+        }}
       />
 
 

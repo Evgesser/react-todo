@@ -7,7 +7,7 @@ import TemplateItemRow, { TemplateItem } from './TemplateItemRow';
 import type { TranslationKeys } from '@/locales/ru';
 import type { Template } from '@/types';
 
-interface CatOpt { value: string; label: string }
+interface CatOpt { value: string; label: string; icon?: string }
 interface Props {
   template: Template;
   t: TranslationKeys;
