@@ -16,6 +16,7 @@ interface UseCategoryOptionsParams {
   category: string;
   clearedForName: string | null;
   t: TranslationKeys;
+  language: string;
 }
 
 /**
@@ -31,6 +32,7 @@ export function useCategoryOptions({
   category,
   clearedForName,
   t,
+  language,
 }: UseCategoryOptionsParams): CategoryOptionsResult {
   const options = React.useMemo(() => {
     const lowerName = name.trim().toLowerCase();
@@ -42,7 +44,8 @@ export function useCategoryOptions({
         if (cat) priority.push(cat);
       } else {
         // heuristics: try to match known keywords to icon keys and suggest that category
-        for (const [iconKey, kws] of Object.entries(categoryKeywords)) {
+        const langKeywords = categoryKeywords[language] || categoryKeywords.en; // fallback to en
+        for (const [iconKey, kws] of Object.entries(langKeywords)) {
           if (kws.some((k) => lowerName.includes(k))) {
             const cat = availableCategories.find((c) => c.value === iconKey);
             if (cat) priority.push(cat);
@@ -76,7 +79,7 @@ export function useCategoryOptions({
       return full.filter((c) => c.value !== '');
     }
     return full;
-  }, [name, todos, availableCategories, nameCategoryMap, category, clearedForName, t]);
+  }, [name, todos, availableCategories, nameCategoryMap, category, clearedForName, t, language]);
 
   const displayed = React.useMemo(() => {
     if (category === '' && clearedForName === name.trim().toLowerCase()) {

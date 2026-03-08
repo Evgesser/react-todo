@@ -23,7 +23,7 @@ export default async function handler(
   res: NextApiResponse<RegisterResponse | ErrorResponse>
 ) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
+    res.status(405).json({ error: 'messages.methodNotAllowed' });
     return;
   }
 
@@ -35,24 +35,24 @@ export default async function handler(
 
   // Validate input
   if (!username || typeof username !== 'string' || username.trim().length === 0) {
-    res.status(400).json({ error: 'Username is required' });
+    res.status(400).json({ error: 'messages.usernameRequired' });
     return;
   }
   if (!password || typeof password !== 'string' || password.trim().length === 0) {
-    res.status(400).json({ error: 'Password is required' });
+    res.status(400).json({ error: 'messages.passwordRequired' });
     return;
   }
   if (typeof captchaAnswer !== 'number') {
-    res.status(400).json({ error: 'Captcha answer is required' });
+    res.status(400).json({ error: 'messages.captchaRequired' });
     return;
   }
 
   if (username.length < 3) {
-    res.status(400).json({ error: 'Username must be at least 3 characters' });
+    res.status(400).json({ error: 'messages.usernameTooShort' });
     return;
   }
   if (password.length < 3) {
-    res.status(400).json({ error: 'Password must be at least 3 characters' });
+    res.status(400).json({ error: 'messages.passwordTooShort' });
     return;
   }
 
@@ -61,7 +61,7 @@ export default async function handler(
   const bruteForceCheck = await checkBruteForce(clientIp, username.trim().toLowerCase());
 
   if (!bruteForceCheck.allowed) {
-    res.status(429).json({ error: `Too many registration attempts. Try again later.` });
+    res.status(429).json({ error: 'messages.tooManyAttempts' });
     return;
   }
 
@@ -74,7 +74,7 @@ export default async function handler(
 
   if (captchaAnswer !== expectedAnswer) {
     await recordFailedAttempt(clientIp, username.trim().toLowerCase());
-    res.status(400).json({ error: 'Incorrect captcha answer' });
+    res.status(400).json({ error: 'messages.invalidCaptcha' });
     return;
   }
 
@@ -90,7 +90,7 @@ export default async function handler(
     const existingUser = await users.findOne({ username: normalizedUsername });
     if (existingUser) {
       await recordFailedAttempt(clientIp, normalizedUsername);
-      res.status(409).json({ error: 'User already exists' });
+      res.status(409).json({ error: 'messages.usernameExists' });
       return;
     }
 
@@ -122,6 +122,6 @@ export default async function handler(
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'messages.userCreationFailed' });
   }
 }

@@ -75,17 +75,43 @@ export const iconMap: Record<string, SvgIconComponent> = iconChoices.reduce(
 
 // keywords to heuristically map product/category names to icon keys
 // keys are iconChoice keys, values are arrays of lowercase tokens to match
-export const categoryKeywords: Record<string, string[]> = {
-  milk: ['молоко', 'кефир', 'йогурт', 'молочные', 'milk', 'dairy'],
-  beverages: ['вода', 'сок', 'напиток', 'напитки', 'вино', 'пиво', 'сода', 'juice', 'drink', 'water'],
-  meat: ['мясо', 'свинина', 'говядина', 'курица', 'бекон', 'стейк', 'meat', 'chicken', 'pork', 'beef'],
-  grill: ['гриль', 'барбекю', 'шашлык', 'grill', 'barbecue'],
-  fastfood: ['фастфуд', 'бург', 'гамбургер', 'картофель фри', 'pizza', 'fastfood'],
-  restaurant: ['еда', 'блюдо', 'готовая еда', 'restaurant', 'meal'],
-  bakery: ['хлеб', 'булочка', 'выпечка', 'булки', 'пирог', 'cake', 'bread', 'bakery'],
-  icecream: ['мороженое', 'icecream', 'морож'],
-  coffee: ['кофе', 'капучино', 'латте', 'эспрессо', 'кофейня', 'coffee', 'cafe'],
-  foodbank: ['крупа', 'рис', 'макароны', 'мука', 'запас', 'консервы', 'grains', 'rice', 'pasta'],
+export const categoryKeywords: Record<string, Record<string, string[]>> = {
+  ru: {
+    milk: ['молоко', 'кефир', 'йогурт', 'молочные'],
+    beverages: ['вода', 'сок', 'напиток', 'напитки', 'вино', 'пиво', 'сода'],
+    meat: ['мясо', 'свинина', 'говядина', 'курица', 'бекон', 'стейк'],
+    grill: ['гриль', 'барбекю', 'шашлык'],
+    fastfood: ['фастфуд', 'бург', 'гамбургер', 'картофель фри', 'пицца'],
+    restaurant: ['еда', 'блюдо', 'готовая еда'],
+    bakery: ['хлеб', 'булочка', 'выпечка', 'булки', 'пирог'],
+    icecream: ['мороженое'],
+    coffee: ['кофе', 'капучино', 'латте', 'эспрессо', 'кофейня'],
+    foodbank: ['крупа', 'рис', 'макароны', 'мука', 'запас', 'консервы'],
+  },
+  en: {
+    milk: ['milk', 'dairy'],
+    beverages: ['juice', 'drink', 'water'],
+    meat: ['meat', 'chicken', 'pork', 'beef'],
+    grill: ['grill', 'barbecue'],
+    fastfood: ['fastfood', 'burger', 'pizza'],
+    restaurant: ['restaurant', 'meal'],
+    bakery: ['cake', 'bread', 'bakery'],
+    icecream: ['icecream'],
+    coffee: ['coffee', 'cafe'],
+    foodbank: ['grains', 'rice', 'pasta'],
+  },
+  he: {
+    milk: ['חלב', 'יוגורט', 'מוצרי חלב'],
+    beverages: ['מים', 'מיץ', 'משקה', 'יין', 'בירה', 'סודה'],
+    meat: ['בשר', 'חזיר', 'בקר', 'עוף', 'בקון', 'סטייק'],
+    grill: ['גריל', 'ברביקיו', 'שווארמה'],
+    fastfood: ['אוכל מהיר', 'המבורגר', 'פיצה'],
+    restaurant: ['אוכל', 'מנה', 'אוכל מוכן'],
+    bakery: ['לחם', 'עוגה', 'מאפה'],
+    icecream: ['גלידה'],
+    coffee: ['קפה', 'קפוצ׳ינו', 'לאטה', 'אספרסו', 'בית קפה'],
+    foodbank: ['דגנים', 'אורז', 'פסטה', 'קמח', 'מלאי', 'שימורים'],
+  },
 };
 
 export const templates: Template[] = [

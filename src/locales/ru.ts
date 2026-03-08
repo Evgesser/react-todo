@@ -173,6 +173,17 @@ export const ru = {
     saveError: 'Ошибка при сохранении',
     error: 'Ошибка',
     selectAndCopy: 'Нажмите на ссылку, чтобы выделить, затем скопируйте:',
+    usernameRequired: 'Имя пользователя обязательно',
+    passwordRequired: 'Пароль обязателен',
+    captchaRequired: 'Ответ на капчу обязателен',
+    usernameTooShort: 'Имя пользователя должно быть не менее 3 символов',
+    passwordTooShort: 'Пароль должен быть не менее 3 символов',
+    invalidCaptcha: 'Неверный ответ на капчу',
+    usernameExists: 'Пользователь уже существует',
+    userCreationFailed: 'Не удалось создать пользователя',
+    methodNotAllowed: 'Метод не разрешен',
+    tooManyAttempts: 'Слишком много неудачных попыток',
+    invalidCredentials: 'Неверное имя пользователя или пароль',
   },
   
   // Buttons

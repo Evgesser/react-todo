@@ -22,7 +22,7 @@ export default async function handler(
   res: NextApiResponse<LoginResponse | ErrorResponse>
 ) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
+    res.status(405).json({ error: 'messages.methodNotAllowed' });
     return;
   }
 
@@ -30,20 +30,20 @@ export default async function handler(
 
   // Validate input
   if (!username || typeof username !== 'string' || username.trim().length === 0) {
-    res.status(400).json({ error: 'Username is required' });
+    res.status(400).json({ error: 'messages.usernameRequired' });
     return;
   }
   if (!password || typeof password !== 'string' || password.trim().length === 0) {
-    res.status(400).json({ error: 'Password is required' });
+    res.status(400).json({ error: 'messages.passwordRequired' });
     return;
   }
 
   if (username.length < 3) {
-    res.status(400).json({ error: 'Username must be at least 3 characters' });
+    res.status(400).json({ error: 'messages.usernameTooShort' });
     return;
   }
   if (password.length < 3) {
-    res.status(400).json({ error: 'Password must be at least 3 characters' });
+    res.status(400).json({ error: 'messages.passwordTooShort' });
     return;
   }
 
@@ -52,7 +52,7 @@ export default async function handler(
   const bruteForceCheck = await checkBruteForce(clientIp, username.trim().toLowerCase());
 
   if (!bruteForceCheck.allowed) {
-    res.status(429).json({ error: `Too many login attempts. Try again later.` });
+    res.status(429).json({ error: 'messages.tooManyAttempts' });
     return;
   }
 
@@ -70,14 +70,14 @@ export default async function handler(
     if (!user) {
       // User doesn't exist
       await recordFailedAttempt(clientIp, normalizedUsername);
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: 'messages.userNotFound' });
       return;
     }
 
     // User exists, verify password
     if (user.passwordHash !== passwordHash) {
       await recordFailedAttempt(clientIp, normalizedUsername);
-      res.status(401).json({ error: 'Invalid username or password' });
+      res.status(401).json({ error: 'messages.invalidCredentials' });
       return;
     }
 

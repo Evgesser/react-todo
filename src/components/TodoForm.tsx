@@ -319,7 +319,7 @@ export default function TodoForm({
             const converted = convertNumberWordsToDigits(transcript, language);
             const capitalized = capitalize(converted);
             setName(capitalized);
-            const p = parseSmartInput(converted);
+            const p = parseSmartInput(converted, language);
             setParsed(p);
             try {
               setUnit(p?.unit || '')
@@ -357,6 +357,7 @@ export default function TodoForm({
 
   // computed helpers
   const nameOptions = useNameOptions(todos, products);
+
   const { categoryOptions } = useCategoryOptions({
     name,
     todos,
@@ -365,6 +366,7 @@ export default function TodoForm({
     category,
     clearedForName: clearedForName || '',
     t,
+    language,
   });
 
   const displayedCategory = React.useMemo(() => {
@@ -412,7 +414,7 @@ export default function TodoForm({
 
   const handleAdd = React.useCallback(async (override?: Override) => {
     // compute parse fresh or use override
-    let p: Override | ParsedInput | null = override ?? parsed ?? parseSmartInput(name || '');
+    let p: Override | ParsedInput | null = override ?? parsed ?? parseSmartInput(name || '', language);
     if (!p && (name || '').trim().includes(' ')) {
       const parts = (name || '').trim().split(/\s+/);
       const first = parts.shift() || '';
@@ -496,7 +498,7 @@ export default function TodoForm({
             inputValue={name || ''}
             onInputChange={(_, v) => {
               setName(capitalize(v));
-              const p = parseSmartInput(v);
+              const p = parseSmartInput(v, language);
               setParsed(p);
               setUnit(p?.unit || '');
             }}
@@ -510,7 +512,7 @@ export default function TodoForm({
                 setName(newName);
                 if (v.category) todoActions.setCategory(v.category);
               }
-              const p = parseSmartInput(newName);
+              const p = parseSmartInput(newName, language);
               setParsed(p);
               setUnit(p?.unit || '');
             }}
@@ -554,7 +556,7 @@ export default function TodoForm({
                   }
                   if (e.key === ' ' || e.key === 'Spacebar') {
                     // space pressed - update parsed preview
-                      const p = parseSmartInput(name || '');
+                      const p = parseSmartInput(name || '', language);
                       setParsed(p);
                       setUnit(p?.unit || '');
                   }
@@ -787,8 +789,8 @@ export default function TodoForm({
             getOptionLabel={(opt) =>
               typeof opt === 'string' ? opt : opt.label || opt.value
             }
-            value={category === '' && clearedForName === (name || '').trim().toLowerCase() ? null : availableCategories.find((c) => c.value === category) || (category ? { value: category, label: category, icon: null } : null)}
-            inputValue={displayedCategory}
+            value={category === '' ? null : availableCategories.find((c) => c.value === category) || (category ? { value: category, label: category, icon: null } : null)}
+            inputValue={category === '' ? '' : displayedCategory}
             onInputChange={(_, v, reason) => {
               if (reason === 'input') {
                 setCategoryManual(v);

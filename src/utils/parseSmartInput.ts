@@ -1,6 +1,8 @@
 // utility for interpreting a single-line description string into structured fields
 // extracted from TodoForm.tsx so it can be reused and tested independently
 
+import { categoryKeywords } from '@/constants';
+
 export interface ParsedInput {
   name: string;
   quantity: number;
@@ -33,7 +35,7 @@ export function getUnitOptions(lang?: string): string[] {
   return Array.from(new Set([...RU_UNITS, ...EN_UNITS, ...HE_UNITS]));
 }
 
-export function parseSmartInput(text: string): ParsedInput | null {
+export function parseSmartInput(text: string, language?: string): ParsedInput | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
   // always include known sets so parser works regardless of UI language
@@ -52,11 +54,14 @@ export function parseSmartInput(text: string): ParsedInput | null {
     const qty = parseFloat(m[2].replace(',', '.'));
     const comment = m[4] ? m[4].trim() : '';
     const unit = m[3] ? m[3].trim() : undefined;
+    const name = m[1].trim();
+    const category = inferCategory(name, language);
     return {
-      name: m[1].trim(),
+      name,
       quantity: qty,
       comment,
       unit,
+      category,
     };
   }
 
@@ -77,13 +82,28 @@ export function parseSmartInput(text: string): ParsedInput | null {
       name = parts.shift() || '';
       comment = parts.join(' ');
     }
+    const category = inferCategory(name, language);
     return {
       name: name.trim(),
       quantity: qty,
       comment: comment.trim(),
       unit: unitPart || undefined,
+      category,
     };
   }
 
   return null;
+}
+
+function inferCategory(name: string, language?: string): string | undefined {
+  if (!name) return undefined;
+  const lowerName = name.toLowerCase();
+  const lang = language || 'en';
+  const langKeywords = categoryKeywords[lang] || categoryKeywords.en;
+  for (const [iconKey, kws] of Object.entries(langKeywords)) {
+    if (kws.some((k) => lowerName.includes(k))) {
+      return iconKey;
+    }
+  }
+  return undefined;
 }

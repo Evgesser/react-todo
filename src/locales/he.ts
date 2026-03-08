@@ -177,6 +177,17 @@ export const he: TranslationKeys = {
     saveError: 'שגיאה בשמירה',
     error: 'שגיאה',
     selectAndCopy: 'הקש על הקישור כדי לבחור, ואז העתק:',
+    usernameRequired: 'שם משתמש נדרש',
+    passwordRequired: 'סיסמה נדרשת',
+    captchaRequired: 'תשובה לקפצ׳ה נדרשת',
+    usernameTooShort: 'שם משתמש חייב להיות לפחות 3 תווים',
+    passwordTooShort: 'סיסמה חייבת להיות לפחות 3 תווים',
+    invalidCaptcha: 'תשובה שגויה לקפצ׳ה',
+    usernameExists: 'שם משתמש כבר קיים',
+    userCreationFailed: 'יצירת משתמש נכשלה',
+    methodNotAllowed: 'שיטה לא מותרת',
+    tooManyAttempts: 'יותר מדי ניסיונות כושלים',
+    invalidCredentials: 'שם משתמש או סיסמה שגויים',
   },
   
   // Buttons

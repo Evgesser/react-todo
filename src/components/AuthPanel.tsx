@@ -43,10 +43,11 @@ export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelPro
       setLoginUsername('');
       setLoginPassword('');
     } else {
-      if (result.error && result.error.includes('User not found')) {
+      if (result.error && result.error === 'messages.userNotFound') {
         setRegisterDialogOpen(true);
       } else {
-        onSnackbar(result.error || formatMessage('auth.loginFailed'));
+        const errorMsg = result.error && result.error.startsWith('messages.') ? formatMessage(result.error) : (result.error || formatMessage('auth.loginFailed'));
+        onSnackbar(errorMsg);
       }
     }
   }, [clearError, login, loginUsername, loginPassword, onSnackbar, formatMessage]);
