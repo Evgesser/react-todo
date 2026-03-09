@@ -99,9 +99,18 @@ export const iconMap: Record<string, SvgIconComponent> = iconChoices.reduce(
 // keys are iconChoice keys, values are arrays of lowercase tokens to match
 export const categoryKeywords: Record<string, Record<string, string[]>> = {
   ru: {
-    groceries: ['продукты', 'еда', 'кухня', 'холодильник', 'супермаркет', 'бакалея', 'магазин'],
-    fruits: ['апельсин','апельсины','яблоко','яблоки','банан','бананы','лимон','лимоны','виноград','груша','манго','мандарин','мандарины','слива','сливы','персик','персики','нектарин','киви','клубника','малина','черника','вишня','черешня','абрикос','абрикосы','арбуз','дыня','канталупа'],
-    vegetables: ['капуста','огурец','огурцы','помидор','помидоры','картофель','картошка','лук','морковь','перец','салат','шпинат','брокколи','кабачок','кабачки','баклажан','тыква','свекла','редис','сельдерей','чеснок','имбирь','петрушка','кинза','укроп','базилик','руккола','кале','кукуруза','горох','фасоль','спаржа','бамия','шампиньоны','грибы'],
+    groceries: [
+      'продукты','продуктики','продуктосы','продовольствие','еды','кушанье','съестное','провиант','харчи','жратва','жрачка','пожрать','перекус','закуп','закупка','покупки','покупочка','провиантик','супермаркет','супермаркетик','магазин','магазинчик','гипермаркет','гипермаркетик','бакалея','кухня','холодильник'
+    ],
+    fruits: [
+      'апельсин','апельсины','апельсинка','апельсинчик','яблоко','яблоки','яблочко','яблочки','яблочко','банан','бананы','бананчик','бананчик','бананчик','лимон','лимоны','лимончик','лимонка','лимончик','виноград','виноградинка','виноградина','груша','грушка','манго','мангосик','мандарин','мандарины','мандаринка','мандаринчик','мандаринчик','слива','сливы','сливка','сливочка','персик','персики','персичек','персичка','нектарин','киви','кивичка','клубника','клубничка','малинка','малина','черника','черничка','вишня','вишенка','черешня','черешенка','абрикос','абрикосы','абрикосик','арбуз','арбузик','дыня','дынька','канталупа','фрукт','фрукты','фруктик','фруктосик','ягода','ягодка'
+    ],
+        berries: [
+          'ягода','ягоды','ягодка','ягодки','черника','черничка','малина','малинка','клубника','клубничка','ежевика','ежевичка','голубика','голубичка','брусника','брусничка','смородина','смородинка','крыжовник','крыжовничек','шиповник','шиповничек','облепиха','облепихка','жимолость','жимолостка'
+        ],
+    vegetables: [
+      'капуста','капустка','капусточка','огурец','огурцы','огурчик','огурчики','помидор','помидоры','помидорка','помидорчики','картофель','картошка','картошечка','картофан','лук','лучок','морковь','морковка','морковочка','перец','перчик','салат','шпинат','брокколи','кабачок','кабачки','кабачочек','баклажан','тыква','тыквочка','тыквенка','свекла','свеколка','редис','редиска','редисочка','сельдерей','чеснок','имбирь','петрушка','кинза','укроп','базилик','руккола','кале','кукуруза','кукурузка','горох','фасоль','спаржа','бамия','шампиньоны','грибы','грибочек','овощ','овощи','овощечка','овощик'
+    ],
     electronics: ['электроника', 'гаджет', 'телефон', 'компьютер', 'ноутбук', 'зарядка', 'батарейки', 'наушники', 'кабель', 'техника', 'провод'],
     clothing: ['одежда', 'футболка', 'штаны', 'носки', 'обувь', 'куртка', 'платье', 'джинсы', 'белье', 'шапка', 'шарф'],
     dining: ['ресторан', 'кафе', 'ужин', 'обед', 'завтрак', 'столовая', 'на вынос'],
@@ -113,7 +122,7 @@ export const categoryKeywords: Record<string, Record<string, string[]>> = {
     flora: ['цветы', 'растение', 'сад', 'земля', 'горшок', 'букет', 'семена', 'удобрение'],
     tools: ['инструменты', 'ремонт', 'гвозди', 'молоток', 'отвертка', 'дрель', 'шуруп', 'клей', 'скотч', 'лампочка'],
     milk: ['молоко', 'кефир', 'йогурт', 'молочные', 'сметана', 'творог', 'сыр', 'масло сливочное'],
-    beverages: ['вода', 'сок', 'напиток', 'напитки', 'вино', 'пиво', 'сода', 'лимонад', 'квас', 'энергетик', 'алкоголь'],
+    beverages: ['вода', 'водичка', 'сок', 'сочек', 'напиток', 'напитки', 'напиточек', 'вино', 'винцо', 'пиво', 'пивко', 'сода', 'лимонад', 'лимонадик', 'квас', 'энергетик', 'алкоголь', 'алко'],
     meat: ['мясо', 'свинина', 'говядина', 'курица', 'бекон', 'стейк', 'фарш', 'колбаса', 'сосиски', 'индейка'],
     grill: ['гриль', 'барбекю', 'шашлык', 'мангал', 'угли', 'шампуры'],
     fastfood: ['фастфуд', 'бургер', 'гамбургер', 'картофель фри', 'пицца', 'шаурма', 'суши', 'роллы'],
@@ -128,13 +137,22 @@ export const categoryKeywords: Record<string, Record<string, string[]>> = {
     sports: ['спорт', 'фитнес', 'мяч', 'тренировка', 'зал', 'гантели', 'протеин'],
     car: ['машина', 'авто', 'запчасти', 'масло', 'шины', 'мойка', 'колесо', 'омывайка', 'антифриз'],
     frozen: ['заморозка', 'замороженные', 'пельмени', 'вареники', 'пицца замороженная', 'лед', 'овощи замороженные', 'полуфабрикаты', 'котлеты замороженные', 'наггетсы'],
-    snacks: ['снеки', 'чипсы', 'сухарики', 'орехи', 'крекеры', 'попкорн', 'закуска', 'сухофрукты', 'батончик'],
+    snacks: ['снеки', 'снечки', 'чипсы', 'чипсики', 'сухарики', 'орехи', 'орешки', 'крекеры', 'попкорн', 'закуска', 'закусочка', 'сухофрукты', 'батончик', 'батончик', 'батончик'],
     seafood: ['рыба', 'морепродукты', 'креветки', 'кальмары', 'мидии', 'лосось', 'тунец', 'икра', 'осьминог', 'краб'],
   },
   en: {
-    groceries: ['groceries', 'food', 'kitchen', 'fridge', 'supermarket', 'pantry'],
-    fruits: ['orange','oranges','apple','apples','banana','bananas','lemon','lemons','grape','grapes','pear','mango','mandarin','tangerine','clementine','plum','plums','peach','peaches','nectarine','kiwi','strawberry','strawberries','raspberry','raspberries','blueberry','blueberries','cherry','cherries','apricot','apricots','watermelon','melon','cantaloupe','avocado'],
-    vegetables: ['cabbage','cucumber','cucumbers','tomato','tomatoes','potato','potatoes','onion','onions','carrot','carrots','pepper','peppers','lettuce','spinach','broccoli','zucchini','courgette','eggplant','aubergine','pumpkin','beet','beetroot','radish','radishes','celery','garlic','ginger','parsley','cilantro','coriander','dill','basil','arugula','rocket','kale','corn','sweetcorn','pea','peas','bean','beans','green beans','asparagus','okra','mushroom','mushrooms','sprouts'],
+    groceries: [
+      'groceries','grocery','grocer','food','foodstuff','provisions','edibles','eatables','nosh','snack','snacks','shopping','shop','superstore','supermart','hypermarket','mart','market','minimart','corner shop','pantry','pantry item','pantry stock','kitchen','fridge','supermarket','pantry','pantry items','pantry stock','foodies','foodie','foods','foodies','foodstuff','foodstuffs'
+    ],
+    fruits: [
+      'orange','oranges','orangette','orangy','apple','apples','applet','applette','applish','banana','bananas','bananito','bananilla','lemon','lemons','lemonade','lemony','grape','grapes','grapette','grapey','pear','peary','mango','mangy','mandarin','tangerine','clementine','plum','plums','plumette','plummy','peach','peaches','peachette','peachy','nectarine','kiwi','kiwifruit','kiwiberry','strawberry','strawberries','strawb','strawbette','raspberry','raspberries','rasp','raspy','blueberry','blueberries','blueb','blueby','cherry','cherries','cherr','cherrylet','apricot','apricots','apric','apricoty','watermelon','melon','cantaloupe','avocado','avo','fruit','fruits','fruitlet','fruity','fruitling','fruitish','fruit snack','fruit bar','fruit cup'
+    ],
+        berries: [
+          'berry','berries','strawberry','strawberries','blueberry','blueberries','raspberry','raspberries','blackberry','blackberries','cranberry','cranberries','gooseberry','gooseberries','currant','currants','cloudberry','cloudberries','lingonberry','lingonberries','honeysuckle','honeysuckles','elderberry','elderberries','rowanberry','rowanberries','barberry','barberries','dogrose','dogroses','hip','hips','berrylet','berryling'
+        ],
+    vegetables: [
+      'cabbage','cabbages','cabbagette','cabbagy','cucumber','cucumbers','cuke','cukes','cucumberette','tomato','tomatoes','tom','tommy','potato','potatoes','spud','spuds','onion','onions','onio','carrot','carrots','carro','carroty','pepper','peppers','pep','lettuce','lettuces','lettu','spinach','spinaches','broccoli','zucchini','courgette','eggplant','aubergine','pumpkin','beet','beetroot','radish','radishes','radishy','celery','celeries','garlic','ginger','parsley','cilantro','coriander','dill','basil','arugula','rocket','kale','corn','sweetcorn','pea','peas','bean','beans','green beans','asparagus','okra','mushroom','mushrooms','shroom','shrooms','sprouts','veggie','veggies','veg','vege','vegetable','vegetables','veggielet','veggieling','veggie snack','veggie bar'
+    ],
     electronics: ['electronics', 'gadget', 'phone', 'computer', 'laptop', 'charger', 'batteries', 'headphones', 'cable', 'tech', 'wire'],
     clothing: ['clothing', 'shirt', 'pants', 'socks', 'shoes', 'jacket', 'dress', 'jeans', 'underwear', 'hat', 'scarf'],
     dining: ['dining', 'dinner', 'lunch', 'breakfast', 'eating out', 'takeaway', 'restaurant'],
@@ -146,7 +164,7 @@ export const categoryKeywords: Record<string, Record<string, string[]>> = {
     flora: ['flowers', 'plant', 'garden', 'soil', 'pot', 'seeds', 'bouquet', 'fertilizer'],
     tools: ['tools', 'repair', 'nails', 'hammer', 'screwdriver', 'drill', 'screw', 'glue', 'tape', 'lightbulb'],
     milk: ['milk', 'dairy', 'kefir', 'yogurt', 'sour cream', 'cottage cheese', 'cheese', 'butter'],
-    beverages: ['juice', 'drink', 'water', 'wine', 'beer', 'soda', 'lemonade', 'soft drink', 'energy drink', 'alcohol'],
+    beverages: ['juice', 'juicy', 'drink', 'drinks', 'water', 'wine', 'beer', 'soda', 'lemonade', 'lemonadey', 'soft drink', 'energy drink', 'alcohol', 'alco', 'cocktail', 'mocktail', 'beverage', 'beverages'],
     meat: ['meat', 'chicken', 'pork', 'beef', 'bacon', 'steak', 'minced meat', 'sausage', 'turkey'],
     grill: ['grill', 'barbecue', 'bbq', 'charcoal', 'skewers'],
     fastfood: ['fastfood', 'burger', 'pizza', 'sushi', 'rolls', 'fries'],
@@ -161,18 +179,24 @@ export const categoryKeywords: Record<string, Record<string, string[]>> = {
     sports: ['sports', 'fitness', 'ball', 'workout', 'gym', 'training', 'protein', 'dumbbells'],
     car: ['car', 'auto', 'parts', 'oil', 'tires', 'wash', 'wheel', 'antifreeze', 'washer fluid'],
     frozen: ['frozen', 'frozen food', 'dumplings', 'frozen pizza', 'ice', 'frozen vegetables', 'semi-finished', 'nuggets'],
-    snacks: ['snacks', 'chips', 'crisps', 'nuts', 'crackers', 'popcorn', 'dried fruit', 'bar'],
+    snacks: ['snack', 'snacks', 'snacky', 'chips', 'chip', 'crisps', 'crisp', 'nuts', 'nut', 'crackers', 'cracker', 'popcorn', 'corn', 'dried fruit', 'fruit bar', 'bar', 'snacklet', 'snackling'],
     seafood: ['seafood', 'fish', 'shrimp', 'salmon', 'tuna', 'caviar', 'squid', 'mussels', 'octopus', 'crab'],
   },
   he: {
-    groceries: ['מצרכים', 'אוכל', 'מטבח', 'מקרר', 'סופר', 'מזווה'],
-    fruits: ['תפוז','תפוזים','תפוח','תפוחים','בננה','בננות','לימון','לימונים','ענבים','אגס','מנגו','מנדרינה','מנדרינות','שזיף','שזיפים','אפרסק','נקטארין','קיווי','תות','תותים','פטל','אוכמניות','דובדבן','משמש','משמשים','אבטיח','מלון','אבוקادو'],
-    vegetables: ['כרוב','מלפפון','מלפפונים','עגבנייה','עגבניות','תפוח אדמה','בצל','גזר','פלפל','חסה','תרד','ברוקולי','קישוא','קישואים','חציל','דלעת','סלק','צנון','סלרי','שום','גינגר','פטרוזיליה','כוסברה','שמיר','בזיליקום','רוקט','קייל','תירס','אפונה','שעועית','אספרגוס','במיה','פטריות','נבטים'],
+    groceries: [
+      'מצרכים','אוכל','מאכל','מאכלים','מטבח','מקרר','סופר','סופרמרקט','סופרמרקטון','מזווה','קניות','קניה','קניית אוכל','קניית מצרכים','קניית מזון','מזון','מזונות','אוכלוסיה','אוכלון','אוכליק','אוכלוש','אוכלות','אוכלותי'
+    ],
+    fruits: [
+      'תפוז','תפוזים','תפוזון','תפוזית','תפוח','תפוחים','תפוחון','תפוחית','בננה','בננות','בננון','בננית','לימון','לימונים','לימונון','לימונית','ענבים','ענב','ענבון','ענבית','אגס','אגסים','אגסון','אגסית','מנגו','מנגואים','מנגואון','מנגואית','מנדרינה','מנדרינות','מנדרינון','מנדרינית','שזיף','שזיפים','שזיפון','שזיפית','אפרסק','אפרסקים','אפרסקון','אפרסקית','נקטארין','נקטארינים','נקטארינון','נקטארינית','קיווי','קיוויון','קיווית','תות','תותים','תותון','תותית','פטל','פטלון','פטלית','אוכמניות','אוכמנון','אוכמנית','דובדבן','דובדבנים','דובדבנית','דובדבנון','משמש','משמשים','משמשון','משמשית','אבטיח','אבטיחון','אבטיחית','מלון','מלונים','מלונון','מלונית','אבוקדו','אבוקדון','אבוקדית','פרי','פירות','פרי קטן','פירותון','פירותית'
+    ],
+    vegetables: [
+      'כרוב','כרובית','כרובון','מלפפון','מלפפונים','מלפפונון','מלפפונית','עגבנייה','עגבניות','עגבנון','עגבנית','תפוח אדמה','תפוחי אדמה','תפוחון','בצל','בצלון','גזר','גזרון','פלפל','פלפלון','חסה','חסון','תרד','תרדון','ברוקולי','ברוקולון','קישוא','קישואים','קישואון','חציל','חצילון','דלעת','דלעתון','סלק','סלקון','צנון','צנונית','סלרי','סלרון','שום','שומון','גינגר','פטרוזיליה','פטרוזיליון','כוסברה','כוסברון','שמיר','שמירון','בזיליקום','בזיליקון','רוקט','קייל','קיילון','תירס','תירסון','אפונה','אפונון','שעועית','שעועיתון','אספרגוס','אספרגוסון','במיה','במיהון','פטריות','פטריה','פטריון','נבטים','נבטון','ירק','ירקות','ירקון','ירקית'
+    ],
     electronics: ['אלקטרוניקה', 'גאדג\'ט', 'טלפון', 'מחשב', 'מטען', 'סוללות', 'אוזניות', 'כבל', 'טכנולוגיה'],
     clothing: ['בגדים', 'חולצה', 'מכנסיים', 'גרביים', 'נעליים', 'מעיל', 'שמלה', 'ג\'ינס', 'תחתונים', 'כובע', 'צעיף'],
     dining: ['מסעדה', 'ארוחת ערב', 'ארוחת צהריים', 'בוקר', 'אוכל בחוץ', 'טייקאווי'],
     gas: ['דלק', 'בנזין', 'סולר', 'תחנת דלק', 'גז'],
-    library: ['ספר', 'מחברת', 'עט', 'עיפרון', 'נייר', 'משרד', 'ציוד משרדי', 'מגזין'],
+    library: ['ספר', 'מחברת', 'עט', 'עיפרון', 'נייר', 'משרד', 'ציוד משרדי', 'aggi'],
     offer: ['מבצע', 'הנחה', 'מכירה', 'קופון'],
     games: ['משחקים', 'צעצוע', 'קונסולה', 'אקס בוקס', 'פלייסטיישן', 'נינטנדו', 'משחק קופסא'],
     home: ['בית', 'רהיטים', 'ניקיון', 'אבקת כביסה', 'סבון', 'מפיות', 'נייר טואלט', 'ספוג', 'שמפו', 'ג\'ל רחצה', 'משחת שיניים', 'מברשת שיניים', 'חומרי ניקוי'],

@@ -1,8 +1,26 @@
 import * as React from 'react';
 import { Category, iconMap, categories as defaultCategories, iconChoices, categoryKeywords } from '@/constants';
+import Snowball from 'snowball-stemmers';
+
+// ES + CommonJS совместимость для Turbopack
+const Stemmer = Snowball.Stemmer || Snowball.default?.Stemmer;
+// Возвращает функцию-стеммер по языку ('ru'|'en'), иначе null
+function getStemmer(language: string): ((word: string) => string) | null {
+  if (!Stemmer) return null;
+  if (language === 'ru') {
+    const ruStemmer = Stemmer.newStemmer('russian');
+    return (word: string) => ruStemmer.stem(word);
+  }
+  if (language === 'en') {
+    const enStemmer = Stemmer.newStemmer('english');
+    return (word: string) => enStemmer.stem(word);
+  }
+  return null;
+}
 import type { Template, StoredProduct } from '@/types';
 import { fetchPersonalization, fetchProducts, savePersonalization, saveProduct } from '@/lib/api';
 import type { TranslationKeys } from '@/locales/ru';
+import type { Language } from '@/locales';
 import useAppStore from '@/stores/useAppStore';
 
 // hook that wraps all of the "personalization" state and side effects
@@ -25,6 +43,19 @@ export function usePersonalization(
 
   const personalDialogOpen = useAppStore((s) => s.personalDialogOpen);
   const setPersonalDialogOpen = useAppStore((s) => s.setPersonalDialogOpen);
+
+  // Получаем выбранный пользователем язык напрямую из стора
+  const language = useAppStore((s) => s.language) as Language;
+  const flatCategoryKeywords: Record<string, string[]> = React.useMemo(() => {
+    const langMap = categoryKeywords[language] || {};
+    return Object.entries(langMap).reduce((acc, [key, arr]) => {
+      acc[key] = [...arr];
+      return acc;
+    }, {} as Record<string, string[]>);
+  }, [language]);
+
+  // Стеммер для текущего языка (только ru/en)
+  const stem = React.useMemo(() => getStemmer(language), [language]);
 
   // load any categories the user added while offline (stored locally)
   React.useEffect(() => {
@@ -51,10 +82,16 @@ export function usePersonalization(
             // enrich merged by matching labels to known keywords
             const mergedLower = merged.map((c) => c.label.toLowerCase());
             const mergedValues = new Set(merged.map((c) => c.value));
-            Object.keys(categoryKeywords).forEach((iconKey) => {
+            Object.keys(flatCategoryKeywords).forEach((iconKey) => {
               if (mergedValues.has(iconKey)) return;
-              const keywords = categoryKeywords[iconKey];
-              const matchesLabel = mergedLower.some((lbl) => keywords.some((k) => lbl.includes(k)));
+              const keywords = flatCategoryKeywords[iconKey] || [];
+              const matchesLabel = mergedLower.some((lbl) => {
+                if (stem) {
+                  const stemLbl = stem(lbl);
+                  return keywords.some((k) => stem(k) === stemLbl);
+                }
+                return keywords.some((k) => lbl.includes(k));
+              });
               if (matchesLabel) {
                 const ic = iconMap[iconKey] || null;
                 const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
@@ -69,7 +106,7 @@ export function usePersonalization(
     } catch {
       /* ignore malformed local cache */
     }
-  }, [userId, t, setAvailableCategories]);
+  }, [userId, t, setAvailableCategories, flatCategoryKeywords, stem]);
 
   // persist categories locally when unauthenticated so they survive reloads
   React.useEffect(() => {
@@ -117,11 +154,17 @@ export function usePersonalization(
           const mergedLowerLabels = merged.map((c) => c.label.toLowerCase());
           const mergedValues = new Set(merged.map((c) => c.value));
           const toAdd: Category[] = [];
-          Object.keys(categoryKeywords).forEach((iconKey) => {
+          Object.keys(flatCategoryKeywords).forEach((iconKey) => {
             if (mergedValues.has(iconKey)) return; // already present
-            const keywords = categoryKeywords[iconKey];
+            const keywords = flatCategoryKeywords[iconKey] || [];
             // match against existing category labels
-            const matchesLabel = mergedLowerLabels.some((lbl) => keywords.some((k) => lbl.includes(k)));
+            const matchesLabel = mergedLowerLabels.some((lbl) => {
+              if (stem) {
+                const stemLbl = stem(lbl);
+                return keywords.some((k) => stem(k) === stemLbl);
+              }
+              return keywords.some((k) => lbl.includes(k));
+            });
             if (matchesLabel) {
               const ic = iconMap[iconKey] || null;
               const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
@@ -133,11 +176,18 @@ export function usePersonalization(
             (data.products as Array<{ name?: string }> ).forEach((p) => {
               if (!p?.name) return;
               const name = p.name.toLowerCase();
-              Object.keys(categoryKeywords).forEach((iconKey) => {
+              Object.keys(flatCategoryKeywords).forEach((iconKey) => {
                 if (mergedValues.has(iconKey)) return;
                 if (toAdd.find((c) => c.value === iconKey)) return;
-                const keywords = categoryKeywords[iconKey];
-                if (keywords.some((k) => name.includes(k))) {
+                const keywords = flatCategoryKeywords[iconKey] || [];
+                let match = false;
+                if (stem) {
+                  const stemName = stem(name);
+                  match = keywords.some((k) => stem(k) === stemName);
+                } else {
+                  match = keywords.some((k) => name.includes(k));
+                }
+                if (match) {
                   const ic = iconMap[iconKey] || null;
                     const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
                   toAdd.push({ value: iconKey, label, icon: ic });
@@ -175,9 +225,16 @@ export function usePersonalization(
               }
               // if no explicit category, try heuristic mapping by keywords
               if (!p.category || !next[lower]) {
-                Object.keys(categoryKeywords).some((iconKey) => {
-                  const kws = categoryKeywords[iconKey];
-                  if (kws.some((k) => lower.includes(k))) {
+                Object.keys(flatCategoryKeywords).some((iconKey) => {
+                  const kws = flatCategoryKeywords[iconKey] || [];
+                  let found = false;
+                  if (stem) {
+                    const stemLower = stem(lower);
+                    found = kws.some((k) => stem(k) === stemLower);
+                  } else {
+                    found = kws.some((k) => lower.includes(k));
+                  }
+                  if (found) {
                     next[lower] = iconKey;
                     return true;
                   }
@@ -202,7 +259,7 @@ export function usePersonalization(
     } catch {
       // ignore invalid personalization
     }
-  }, [userId, t, setAvailableCategories, setAvailableTemplates, setNameCategoryMap, setProducts]);
+  }, [userId, t, setAvailableCategories, setAvailableTemplates, setNameCategoryMap, setProducts, flatCategoryKeywords, stem]);
 
   React.useEffect(() => {
     if (userId) loadPersonalization();
