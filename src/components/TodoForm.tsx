@@ -16,6 +16,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  Chip,
   useMediaQuery,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -846,6 +847,17 @@ export default function TodoForm({
               <TextField {...params} label={t.todos.category} fullWidth />
             )}
           />
+          {category && (
+            <Box sx={{ mt: 1 }}>
+              <Chip
+                label={displayedCategory}
+                icon={iconChoices.find((x) => x.key === category)?.icon ? React.createElement(iconChoices.find((x) => x.key === category)!.icon, { fontSize: 'small' }) : undefined}
+                onDelete={() => setCategoryManual('')}
+                color="primary"
+                variant="outlined"
+              />
+            </Box>
+          )}
           {categoryWarning && (
             <Box sx={{ mt: 1 }}>
               <Alert
@@ -930,7 +942,17 @@ export default function TodoForm({
   }
 
   return (
-    <Collapse in={formOpen} timeout={400}>
+    <Collapse
+      in={formOpen}
+      timeout={{
+        enter: 400,
+        exit: 300,
+      }}
+      easing={{
+        enter: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        exit: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
       {formInner}
     </Collapse>
   );

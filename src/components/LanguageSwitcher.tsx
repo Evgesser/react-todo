@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
+import { useIntl } from 'react-intl';
 import useAppStore from '@/stores/useAppStore';
 import { Language } from '@/locales';
 
 export default function LanguageSwitcher() {
+  const intl = useIntl();
   const language = useAppStore((s) => s.language);
   const setLanguage = useAppStore((s) => s.setLanguage);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -29,7 +31,7 @@ export default function LanguageSwitcher() {
 
   return (
     <>
-      <Tooltip title={language === 'ru' ? 'Русский' : language === 'he' ? 'עברית' : 'English'}>
+      <Tooltip title={intl.formatMessage({ id: 'header.language' })}>
         <IconButton onClick={handleClick} color="inherit" size="small">
           <span style={{ fontSize: 20, lineHeight: 1 }}>{flagMap[language] || '🌐'}</span>
         </IconButton>

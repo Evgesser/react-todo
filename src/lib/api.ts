@@ -90,6 +90,7 @@ export async function updateSharedTodo(
     missing?: boolean;
     order?: number;
     category?: string;
+    status?: string;
   }
 ) {
   const res = await fetch(`${BASE}/shared/${encodeURIComponent(token)}`, {

@@ -349,8 +349,10 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   // Toggle todo completion status
   const toggleComplete = async (todo: Todo) => {
     if (!currentListId) return;
-    setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, completed: !todo.completed } : t)));
-    await apiUpdateTodo(todo._id, { listId: currentListId, completed: !todo.completed });
+    const newCompleted = !todo.completed;
+    const newStatus = newCompleted ? 'done' : 'pending';
+    setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, completed: newCompleted, status: newStatus } : t)));
+    await apiUpdateTodo(todo._id, { listId: currentListId, completed: newCompleted, status: newStatus });
     await fetchTodos(currentListId, undefined, true);
   };
 

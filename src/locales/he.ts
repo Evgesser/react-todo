@@ -33,6 +33,7 @@ export const he: TranslationKeys = {
     title: 'רשימת קניות',
     profile: 'פרופיל',
     logout: 'התנתק',
+    language: 'שפה',
   },
   
   // Lists

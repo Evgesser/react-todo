@@ -172,7 +172,7 @@ export default function TodoListItem({
         onTouchMove={onTouchMove}
         onTouchEnd={(e) => onTouchEnd(e, globalIndex)}
         sx={{
-          mb: 1.5,
+          mb: theme.spacing(2),
           backgroundColor: itemBg || 'inherit',
           opacity: todo.completed ? 0.75 : 1,
           boxShadow: dragOverIndex === globalIndex ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.4)}` : 'none',
@@ -191,9 +191,9 @@ export default function TodoListItem({
             pointerEvents: 'none',
           } : {},
         }}
-        elevation={0}
+        elevation={2}
       >
-        <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+        <CardContent sx={{ p: theme.spacing(2), '&:last-child': { pb: theme.spacing(2) } }}>
           <ListItem disableGutters sx={{ p: 0 }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
               {bulkMode && (

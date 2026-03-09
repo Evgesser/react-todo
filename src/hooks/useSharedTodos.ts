@@ -63,8 +63,10 @@ export function useSharedTodos(
   }, [token, fetch]);
 
   const toggleComplete = async (todo: Todo) => {
-    setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, completed: !todo.completed } : t)));
-    await updateSharedTodo(token, { todoId: todo._id, completed: !todo.completed });
+    const newCompleted = !todo.completed;
+    const newStatus = newCompleted ? 'done' : 'pending';
+    setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, completed: newCompleted, status: newStatus } : t)));
+    await updateSharedTodo(token, { todoId: todo._id, completed: newCompleted, status: newStatus });
     // fetch is called in background but we don't await blocking it if it flickers
     fetch();
   };

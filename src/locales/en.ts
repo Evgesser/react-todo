@@ -33,6 +33,7 @@ export const en: TranslationKeys = {
     title: 'Shopping List',
     profile: 'Profile',
     logout: 'Logout',
+    language: 'Language',
   },
   
   // Lists

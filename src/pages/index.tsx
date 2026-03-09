@@ -313,6 +313,7 @@ export default function Home() {
                         position: 'relative',
                         overflow: 'hidden',
                         border: (theme) => theme.palette.mode === 'dark' ? 'none' : '1px solid rgba(15,23,42,0.04)',
+                        direction: 'ltr', // Force LTR for progress bar
                       }}
                     >
                       <Box
@@ -337,6 +338,7 @@ export default function Home() {
                       marginInlineStart: 1,
                       minWidth: 56,
                       textAlign: 'right',
+                      direction: 'ltr', // Force LTR for numbers
                     })}
                   >
                     {completedCount} / {totalTodos}

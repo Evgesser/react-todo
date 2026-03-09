@@ -30,8 +30,7 @@ export const ru = {
   header: {
     title: 'Список покупок',
     profile: 'Профиль',
-    logout: 'Выход',
-  },
+    logout: 'Выход',    language: 'Язык',  },
   
   // Lists
   lists: {
