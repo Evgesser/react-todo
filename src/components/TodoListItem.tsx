@@ -21,7 +21,15 @@ import {
 const blinkKeyframes = {
   '@keyframes blinkInfo': {
     '0%,100%': { color: 'inherit' },
-    '50%': { color: '#9AC2C5' }, // muted cyan from palette
+    '50%': { color: '#06B6D4' }, // cyan from palette
+  },
+  '@keyframes strikeThrough': {
+    '0%': { textDecoration: 'none' },
+    '100%': { textDecoration: 'line-through' },
+  },
+  '@keyframes fadeOut': {
+    '0%': { opacity: 1 },
+    '100%': { opacity: 0.5 },
   },
 };
 
@@ -228,6 +236,8 @@ export default function TodoListItem({
                     justifyContent: 'center',
                     bgcolor: '#4ade80',
                     color: 'common.white',
+                    transition: 'transform 0.3s ease',
+                    transform: todo.completed ? 'scale(1.1)' : 'scale(1)',
                   }}>
                     <CheckIcon fontSize="small" />
                   </Box>
@@ -235,6 +245,19 @@ export default function TodoListItem({
                 sx={{
                   color: itemTextColor,
                   '& .MuiSvgIcon-root': { borderRadius: '50%' },
+                  transition: 'color 0.3s ease',
+                }}
+              />
+
+              {/* Status indicator */}
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: todo.status === 'in_progress' ? '#f59e0b' : todo.status === 'done' ? '#10b981' : '#6b7280',
+                  flexShrink: 0,
+                  transition: 'background-color 0.3s ease',
                 }}
               />
 
@@ -309,6 +332,8 @@ export default function TodoListItem({
                         fontWeight: 500,
                         textDecoration: todo.missing || todo.completed ? 'line-through' : 'none',
                         opacity: todo.completed ? 0.7 : 1,
+                        transition: 'all 0.5s ease',
+                        animation: todo.completed ? 'strikeThrough 0.5s ease forwards, fadeOut 0.5s ease forwards' : 'none',
                       }}
                     >
                       {todo.name}
@@ -333,7 +358,11 @@ export default function TodoListItem({
                   <IconButton
                     edge="end"
                     aria-label={t.todos.edit}
-                    sx={{ color: itemTextColor }}
+                    sx={{
+                      color: itemTextColor,
+                      transition: 'transform 0.2s ease',
+                      '&:hover': { transform: 'scale(1.2)' }
+                    }}
                     onClick={() => {
                       setEditingId(todo._id);
                       setName(todo.name);
@@ -355,7 +384,11 @@ export default function TodoListItem({
                   <IconButton
                     edge="end"
                     aria-label={t.todos.delete}
-                    sx={{ color: itemTextColor }}
+                    sx={{
+                      color: itemTextColor,
+                      transition: 'transform 0.2s ease',
+                      '&:hover': { transform: 'scale(1.2)', color: theme.palette.error.main }
+                    }}
                     onClick={() => deleteTodo(todo._id)}
                   >
                     <DeleteIcon />

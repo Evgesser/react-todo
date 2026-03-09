@@ -5,31 +5,48 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
   const palette: ThemeOptions['palette'] = {
     mode,
     primary: {
-      main: '#270722', // deep maroon (brand)
-      light: '#6B2740',
-      dark: '#130311',
+      main: '#6366F1', // indigo
+      light: '#818CF8',
+      dark: '#4F46E5',
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#ECCE8E', // warm gold
+      main: '#F59E0B', // amber
+      light: '#FCD34D',
+      dark: '#D97706',
       contrastText: '#0F172A',
     },
     info: {
-      main: '#9AC2C5', // muted cyan
+      main: '#06B6D4', // cyan
+      light: '#22D3EE',
+      dark: '#0891B2',
+      contrastText: '#FFFFFF',
     },
     success: {
-      main: '#C2C6A7', // sage
+      main: '#10B981', // emerald
+      light: '#34D399',
+      dark: '#059669',
+      contrastText: '#FFFFFF',
     },
     warning: {
-      main: '#DBCF96', // beige
+      main: '#F97316', // orange
+      light: '#FB923C',
+      dark: '#EA580C',
+      contrastText: '#FFFFFF',
+    },
+    error: {
+      main: '#EF4444', // red
+      light: '#F87171',
+      dark: '#DC2626',
+      contrastText: '#FFFFFF',
     },
     background: mode === 'dark'
       ? {
-          default: '#000000', // pure black for mobile-style look
+          default: '#0F172A', // dark slate
           paper: '#1E293B',   // Slate 800
         }
       : {
-          default: '#F8FAFC', // Slate 50
+          default: '#FEFEFE', // almost white
           paper: '#FFFFFF',
         },
     text: mode === 'dark'

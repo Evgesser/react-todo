@@ -18,11 +18,11 @@ export default class MyDocument extends Document<MyDocumentProps> {
       <Html lang={langAttr} dir={dirAttr} suppressHydrationWarning>
         <Head>
           {/* PWA primary color (default to brand maroon). */}
-          <meta name="theme-color" content="#270722" id="meta-theme-color" />
+          <meta name="theme-color" content="#6366F1" id="meta-theme-color" />
           {/* Update meta theme-color on the client based on stored color-mode or prefers-color-scheme */}
           <script
             dangerouslySetInnerHTML={{
-              __html: `(function(){try{var m=document.querySelector('meta[name="theme-color"]');var mode=null;try{mode=localStorage.getItem('color-mode')}catch(e){}if(!mode&&window.matchMedia){mode=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}if(m){m.setAttribute('content', mode==='dark'?'#0F172A':'#270722')}}catch(e){}})();`,
+              __html: `(function(){try{var m=document.querySelector('meta[name="theme-color"]');var mode=null;try{mode=localStorage.getItem('color-mode')}catch(e){}if(!mode&&window.matchMedia){mode=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}if(m){m.setAttribute('content', mode==='dark'?'#0F172A':'#6366F1')}}catch(e){}})();`,
             }}
           />
           <link rel="shortcut icon" href="/favicon.ico" />

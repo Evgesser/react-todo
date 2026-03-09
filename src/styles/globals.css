@@ -3,12 +3,13 @@
    now handle coloring, so we keep the layout resets only. */
 
 :root {
-  /* Palette from image: deep maroon, warm gold, beige, sage, muted cyan */
-  --color-deep: #270722; /* deep maroon */
-  --color-gold: #ECCE8E; /* warm gold */
-  --color-beige: #DBCF96; /* light beige */
-  --color-sage: #C2C6A7; /* sage */
-  --color-cyan: #9AC2C5; /* muted cyan */
+  /* Updated modern palette: indigo, amber, cyan, emerald, orange, red */
+  --color-primary: #6366F1; /* indigo */
+  --color-secondary: #F59E0B; /* amber */
+  --color-info: #06B6D4; /* cyan */
+  --color-success: #10B981; /* emerald */
+  --color-warning: #F97316; /* orange */
+  --color-error: #EF4444; /* red */
   --bg: #FFFFFF;
   --text: #0F172A;
 }
@@ -69,6 +70,24 @@ body {
 
 [dir="rtl"] .MuiAutocomplete-option {
   text-align: right;
+}
+
+/* Modern gradients for buttons */
+.MuiButton-containedPrimary {
+  background: linear-gradient(135deg, var(--color-primary), #8B5CF6);
+  box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
+}
+
+.MuiButton-containedPrimary:hover {
+  background: linear-gradient(135deg, #4F46E5, #7C3AED);
+}
+
+.MuiButton-containedSecondary {
+  background: linear-gradient(135deg, var(--color-secondary), #FCD34D);
+}
+
+.MuiButton-containedSecondary:hover {
+  background: linear-gradient(135deg, #D97706, #F59E0B);
 }
 
 * {

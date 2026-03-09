@@ -150,10 +150,17 @@ export default function ListToolbar({
               onClick={openNewListDialog}
               sx={{
                 marginInlineStart: 1,
-                background: 'linear-gradient(135deg, #ECCE8E 0%, #DBCF96 100%)',
+                background: 'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)',
                 color: '#0F172A',
+                boxShadow: '0 4px 14px 0 rgba(245, 158, 11, 0.39)',
+                transition: 'all 0.3s ease',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #d8c57a 0%, #c2b57a 100%)',
+                  background: 'linear-gradient(135deg, #D97706 0%, #EA580C 100%)',
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 6px 20px 0 rgba(245, 158, 11, 0.5)',
+                },
+                '&:active': {
+                  transform: 'scale(0.95)',
                 },
               }}
               aria-label="new list"

@@ -1,3 +1,5 @@
+export type TodoStatus = 'pending' | 'in_progress' | 'done';
+
 export interface Todo {
   _id: string;
   name: string;
@@ -5,6 +7,7 @@ export interface Todo {
   quantity: number;
   unit?: string;
   completed: boolean;
+  status?: TodoStatus; // new status field
   // mark item as missing / unavailable in the store
   missing?: boolean;
   comment?: string;

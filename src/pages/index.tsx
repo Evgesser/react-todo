@@ -322,7 +322,7 @@ export default function Home() {
                           left: 0,
                           bottom: 0,
                           width: `${progressValue}%`,
-                          background: 'linear-gradient(90deg, #ECCE8E 0%, #DBCF96 100%)',
+                          background: 'linear-gradient(90deg, #F59E0B 0%, #F97316 100%)',
                           borderRadius: 9999,
                           transition: 'width 280ms ease',
                           boxShadow: (theme) => theme.palette.mode === 'light' ? '0 2px 8px rgba(15,23,42,0.06)' : 'none',
