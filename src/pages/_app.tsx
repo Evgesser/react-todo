@@ -22,7 +22,7 @@ interface MyAppProps extends AppProps {
 }
 
 export default function MyApp(props: MyAppProps) {
-  const { Component, emotionCache = clientSideEmotionCache, pageProps } = props;
+  const { Component, emotionCache, pageProps } = props;
   const [mode, setMode] = React.useState<PaletteMode>('light');
 
   React.useEffect(() => {
@@ -57,27 +57,30 @@ export default function MyApp(props: MyAppProps) {
     []
   );
 
-  const theme = React.useMemo(() => getTheme(mode), [mode]);
+  const currentLanguage = useAppStore((s) => s.language);
+  const isRTL = currentLanguage === 'he';
+  const theme = React.useMemo(() => getTheme(mode, isRTL ? 'rtl' : 'ltr'), [mode, isRTL]);
 
   React.useEffect(() => {
     try {
       document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.setAttribute('dir', isRTL ? 'rtl' : 'ltr');
     } catch {
       // noop on SSR or if document unavailable
     }
-  }, [mode]);
+  }, [mode, isRTL]);
 
   return (
-    <CacheProvider value={emotionCache}>
+    <CacheProvider value={emotionCache || clientSideEmotionCache}>
       <Head>
         <meta name="viewport" content="initial-scale=1, width=device-width" />
       </Head>
       {/* IntlProvider wired at the top level using Zustand language */}
       <IntlProvider
         locale={
-          (useAppStore.getState().language === 'ru' ? 'ru' : useAppStore.getState().language === 'he' ? 'he' : 'en')
+          (currentLanguage === 'ru' ? 'ru' : currentLanguage === 'he' ? 'he' : 'en')
         }
-        messages={flattenMessages(translations[useAppStore.getState().language])}
+        messages={flattenMessages(translations[currentLanguage])}
         defaultLocale="en"
       >
         <ColorModeContext.Provider value={colorMode}>

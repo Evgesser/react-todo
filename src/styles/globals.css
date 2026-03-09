@@ -50,6 +50,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* RTL support */
+[dir="rtl"] .MuiInputLabel-root {
+  text-align: center;
+}
+
+[dir="rtl"] .MuiAutocomplete-root .MuiInputBase-root {
+  text-align: right;
+}
+
+[dir="rtl"] .MuiTextField-root .MuiInputBase-root {
+  text-align: right;
+}
+
+[dir="rtl"] .MuiAutocomplete-popper {
+  direction: rtl;
+}
+
+[dir="rtl"] .MuiAutocomplete-option {
+  text-align: right;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

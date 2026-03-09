@@ -1,7 +1,7 @@
 import { createTheme, ThemeOptions } from "@mui/material/styles";
 import { PaletteMode } from "@mui/material";
 
-export function getTheme(mode: PaletteMode) {
+export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
   const palette: ThemeOptions['palette'] = {
     mode,
     primary: {
@@ -44,6 +44,7 @@ export function getTheme(mode: PaletteMode) {
   };
 
   return createTheme({
+    direction,
     palette,
     shape: {
       borderRadius: 16, // Softer, modern corners
