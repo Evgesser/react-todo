@@ -51,6 +51,10 @@ export default function TodoList({
       const ca = cats.indexOf(a.category || '');
       const cb = cats.indexOf(b.category || '');
       if (ca !== cb) return ca - cb;
+      // same category: unfinished items first
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1;
+      }
       return (a.order || 0) - (b.order || 0);
     });
 

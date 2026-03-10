@@ -9,6 +9,7 @@ import {
   InputAdornment,
   IconButton,
   Snackbar,
+  LinearProgress,
 } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
 
@@ -243,6 +244,63 @@ export default function SharedPage() {
         />
         </Box>
       </div>
+
+      {/* progress bar (mirror the implementation in index.tsx) */}
+      {(() => {
+        const completedCount = todoActions.todos.filter((t) => t.completed).length;
+        const totalTodos = todoActions.todos.length;
+        const progressValue = totalTodos === 0 ? 0 : (completedCount / totalTodos) * 100;
+
+        return (
+          <Box
+            sx={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 700,
+              px: 0,
+              py: 0,
+              bgcolor: 'transparent',
+              borderBottom: `1px solid theme.palette.divider`,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
+              <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                <LinearProgress
+                  variant="determinate"
+                  value={progressValue}
+                  sx={{
+                    height: 10,
+                    borderRadius: 9999,
+                    backgroundColor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(255,255,255,0.04)'
+                        : 'rgba(15,23,42,0.06)',
+                    '& .MuiLinearProgress-bar': {
+                      background: 'linear-gradient(90deg, #F59E0B 0%, #F97316 100%)',
+                      transition: 'width 150ms ease',
+                    },
+                  }}
+                />
+              </Box>
+              <Typography
+                variant="caption"
+                sx={(theme) => ({
+                  color:
+                    theme.palette.mode === 'light'
+                      ? theme.palette.secondary.contrastText
+                      : theme.palette.secondary.main,
+                  marginInlineStart: 1,
+                  minWidth: 56,
+                  textAlign: 'right',
+                  direction: 'ltr',
+                })}
+              >
+                {completedCount} / {totalTodos}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      })()}
 
       <Box
         sx={{

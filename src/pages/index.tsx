@@ -304,32 +304,22 @@ export default function Home() {
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
                   <Box sx={{ flex: 1, overflow: 'hidden' }}>
-                    <Box
-                      aria-hidden
+                    <LinearProgress
+                      variant="determinate"
+                      value={progressValue}
                       sx={{
                         height: 10,
                         borderRadius: 9999,
-                        backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.06)',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        border: (theme) => theme.palette.mode === 'dark' ? 'none' : '1px solid rgba(15,23,42,0.04)',
-                        direction: 'ltr', // Force LTR for progress bar
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          bottom: 0,
-                          width: `${progressValue}%`,
+                        backgroundColor: (theme) =>
+                          theme.palette.mode === 'dark'
+                            ? 'rgba(255,255,255,0.04)'
+                            : 'rgba(15,23,42,0.06)',
+                        '& .MuiLinearProgress-bar': {
                           background: 'linear-gradient(90deg, #F59E0B 0%, #F97316 100%)',
-                          borderRadius: 9999,
-                          transition: 'width 280ms ease',
-                          boxShadow: (theme) => theme.palette.mode === 'light' ? '0 2px 8px rgba(15,23,42,0.06)' : 'none',
-                        }}
-                      />
-                    </Box>
+                          transition: 'width 150ms ease',
+                        },
+                      }}
+                    />
                   </Box>
                   <Typography
                     variant="caption"
