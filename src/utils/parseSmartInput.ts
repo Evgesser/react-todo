@@ -11,17 +11,13 @@ export interface ParsedInput {
   category?: string;
 }
 
-// supports integer/decimal quantities, optional unit (kg, г, л, pcs, шт, etc.)
-// parser tries two patterns:
-//   1. name-first  (e.g. "Milk 2kg", "Bread 3pcs красный")
-//   2. quantity-first (e.g. "3 шт Яйцо", "1 пакет сахара")
-// remaining words after the recognized quantity are split so the first
-// word becomes the name and the rest go into comment.
-// examples:
-//   "Milk 2kg"          -> {name:"Milk", quantity:2, comment:"kg"}
-//   "Молоко 2 л 2.5%"    -> {name:"Молоко", quantity:2, comment:"л 2.5%"}
-//   "3 шт Яйцо"          -> {name:"Яйцо", quantity:3, comment:"шт"}
-//   "1 пакет сахара"     -> {name:"пакет", quantity:1, comment:"сахара"}
+/**
+ * Normalizes input name for classification (removes numbers, units, etc.)
+ */
+export function normalizeName(name: string): string {
+  // strip punctuation and lowercase
+  return name.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '').toLowerCase().trim();
+}
 // returns null if nothing recognizable
 export const RU_UNITS = ['шт', 'кг', 'г', 'гр', 'л', 'мл', 'литр', 'литра', 'литров', 'уп', '%'];
 export const EN_UNITS = ['pcs', 'kg', 'g', 'l', 'ml', 'pack', 'oz', '%'];
@@ -104,6 +100,30 @@ function inferCategory(name: string, language?: string): string | undefined {
     if (kws.some((k) => lowerName.includes(k))) {
       return iconKey;
     }
+  }
+  return undefined;
+}
+
+/**
+ * Async version of category inference that can talk to our smart API
+ * Falls back to static inference if API fails
+ */
+export async function inferCategorySmart(name: string, language?: string): Promise<string | undefined> {
+  const staticResult = inferCategory(name, language);
+  if (staticResult) return staticResult;
+
+  try {
+    const res = await fetch('/api/classify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: name }),
+    });
+    if (res.ok) {
+      const { category } = await res.json();
+      return category;
+    }
+  } catch (e) {
+    console.error('Smart classification failed', e);
   }
   return undefined;
 }

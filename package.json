@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "training:generate": "node scripts/generate-training-data.mjs",
+    "training:train-sklearn": "python scripts/train_sklearn.py",
+    "training:test-js": "node scripts/test-js-classifier.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -15,6 +18,7 @@
     "@mui/icons-material": "^7.3.8",
     "@mui/material": "^7.3.8",
     "mongodb": "^7.1.0",
+    "natural": "^8.1.1",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",

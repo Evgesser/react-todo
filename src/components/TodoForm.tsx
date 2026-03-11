@@ -54,7 +54,7 @@ interface Props {
 
 // parsing logic has been moved to a shared utility so other
 // components or tests can use it without dragging TodoForm along.
-import { parseSmartInput, ParsedInput, getUnitOptions } from '@/utils/parseSmartInput';
+import { parseSmartInput, ParsedInput, getUnitOptions, inferCategorySmart } from '@/utils/parseSmartInput';
 
 export default function TodoForm({
   todoActions,
@@ -250,6 +250,22 @@ export default function TodoForm({
   const theme = useTheme();
   const fullScreenDialog = useMediaQuery(theme.breakpoints.down('sm'));
 
+  // Debounce API calls for category inference
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleInferCategory = React.useCallback((text: string) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (text.trim().length > 2) {
+      debounceTimerRef.current = setTimeout(async () => {
+        const cat = await inferCategorySmart(text, language);
+        if (cat) todoActions.setCategory(cat);
+      }, 500); // 500ms delay
+    }
+  }, [language, todoActions.setCategory]);
+
   // prevent background scrolling when dialog is open
   React.useEffect(() => {
     if (dialogMode && formOpen) {
@@ -374,9 +390,11 @@ export default function TodoForm({
     if (category === '' && clearedForName === (name || '').trim().toLowerCase()) {
       return '';
     }
+    const localized = (t.categoryLabels as Record<string, string>)?.[category];
+    if (localized) return localized;
     const found = availableCategories.find((c) => c.value === category);
     return found ? found.label : category;
-  }, [availableCategories, category, name, clearedForName]);
+  }, [availableCategories, category, name, clearedForName, t]);
 
   // info for preview area: prefer parser's category but map to
   // a human-readable label and pick an icon when available
@@ -424,6 +442,13 @@ export default function TodoForm({
   const handleAdd = React.useCallback(async (override?: Override) => {
     // compute parse fresh or use override
     let p: Override | ParsedInput | null = override ?? parsed ?? parseSmartInput(name || '', language);
+
+    // If category is still missing, try to detect it using our smart classifier
+    if (p && (!p.category || p.category === 'none')) {
+      const detected = await inferCategorySmart(p.name || name || '', language);
+      if (detected) p.category = detected;
+    }
+
     if (!p && (name || '').trim().includes(' ')) {
       const parts = (name || '').trim().split(/\s+/);
       const first = parts.shift() || '';
@@ -507,15 +532,23 @@ export default function TodoForm({
             inputValue={name || ''}
             onInputChange={(_, v) => {
               setName(capitalize(v));
+              // Always run parseSmartInput immediately as it's a fast local regex operation
               const p = parseSmartInput(v, language);
               setParsed(p);
               setUnit(p?.unit || '');
+              
+              // Only debounce the heavy API call (category inference)
+              handleInferCategory(v);
             }}
             onChange={(_, v) => {
               let newName = '';
               if (typeof v === 'string') {
                 newName = capitalize(v);
                 setName(newName);
+                // Smart category detection on select/final change
+                inferCategorySmart(newName, language).then(cat => {
+                    if (cat) todoActions.setCategory(cat);
+                });
               } else if (v && typeof v === 'object') {
                 newName = capitalize(v.name);
                 setName(newName);
@@ -659,13 +692,20 @@ export default function TodoForm({
                   variant="contained"
                   color="secondary"
                   startIcon={<AutoAwesomeIcon />}
-                  onClick={() => {
+                  onClick={async () => {
+                    // Try to get a better category from our classifier if current one is default/missing
+                    let finalCategory = parsed.category;
+                    if (!finalCategory || finalCategory === 'none') {
+                      const detected = await inferCategorySmart(parsed.name, language);
+                      if (detected) finalCategory = detected;
+                    }
+
                     handleAdd({
                       name: parsed.name,
                       quantity: parsed.quantity,
                       comment: parsed.comment,
                       unit: parsed.unit,
-                      category: parsed.category,
+                      category: finalCategory,
                     });
                   }}
                 >
