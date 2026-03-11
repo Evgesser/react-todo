@@ -268,7 +268,7 @@ export default function TodoListItem({
                       value={inlineName}
                       onChange={(e) => setInlineName(e.target.value)}
                       fullWidth
-                      variant="standard"
+                      variant="filled"
                       autoFocus
                       InputProps={{
                         endAdornment: inlineName ? (
@@ -288,7 +288,7 @@ export default function TodoListItem({
                       value={inlineDescription}
                       onChange={(e) => setInlineDescription(e.target.value)}
                       fullWidth
-                      variant="standard"
+                      variant="filled"
                       InputProps={{
                         endAdornment: inlineDescription ? (
                           <InputAdornment position="end">
@@ -347,17 +347,21 @@ export default function TodoListItem({
 
               <Stack direction="row" spacing={1}>
                 <IconButton
-                  edge="end"
-                  aria-label={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
-                  sx={{ color: todo.missing ? theme.palette.error.main : itemTextColor }}
-                  onClick={() => toggleMissing(todo)}
-                >
+                    edge="end"
+                    size="small"
+                    aria-label={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
+                    title={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
+                    sx={{ color: todo.missing ? theme.palette.error.main : itemTextColor }}
+                    onClick={() => toggleMissing(todo)}
+                  >
                   <ReportProblemIcon fontSize="small" />
                 </IconButton>
                 {canEdit && (
                   <IconButton
                     edge="end"
+                    size="small"
                     aria-label={t.todos.edit}
+                    title={t.todos.edit}
                     sx={{
                       color: itemTextColor,
                       transition: 'transform 0.2s ease',
@@ -383,7 +387,9 @@ export default function TodoListItem({
                 {canDelete && (
                   <IconButton
                     edge="end"
+                    size="small"
                     aria-label={t.todos.delete}
+                    title={t.todos.delete}
                     sx={{
                       color: itemTextColor,
                       transition: 'transform 0.2s ease',
@@ -398,7 +404,9 @@ export default function TodoListItem({
                   <>
                     <IconButton
                       edge="end"
-                      aria-label="info"
+                      size="small"
+                      aria-label={t.todos.description}
+                      title={t.todos.description}
                       sx={{
                         color: itemTextColor,
                         ...blinkKeyframes,

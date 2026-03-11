@@ -114,7 +114,7 @@ export default function RegisterDialog({
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen} PaperProps={{ className: 'glass' }}>
       <DialogTitle>{t.register.title}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1 }}>

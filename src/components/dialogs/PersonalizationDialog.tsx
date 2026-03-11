@@ -151,7 +151,7 @@ export default function PersonalizationDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" fullScreen={fullScreen}>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" fullScreen={fullScreen} PaperProps={{ className: 'glass' }}>
       <DialogTitle>{t.dialogs.personalization.title}</DialogTitle>
       <DialogContent>
         <Box sx={{ opacity: saving ? 0.5 : 1, pointerEvents: saving ? 'none' : undefined }}>

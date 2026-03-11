@@ -37,7 +37,7 @@ export default function TemplateEditor({ template, t, onChange, onRemove, catego
   };
 
   return (
-    <Box sx={{ border: '1px solid rgba(0,0,0,0.2)', p: 1, mb: 2 }}>
+    <Box className="glass" sx={{ border: '1px solid', borderColor: 'divider', p: 1, mb: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
         <ClearableTextField
           label={t.dialogs.personalization.templateName}
@@ -48,7 +48,7 @@ export default function TemplateEditor({ template, t, onChange, onRemove, catego
           fullWidth
           sx={{ marginInlineEnd: 1 }}
         />
-        <IconButton onClick={onRemove}>
+        <IconButton onClick={onRemove} aria-label={t.buttons.delete} size="small" title={t.buttons.delete}>
           <DeleteIcon />
         </IconButton>
       </Box>

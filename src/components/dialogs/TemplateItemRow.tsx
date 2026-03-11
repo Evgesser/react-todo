@@ -157,7 +157,7 @@ export default function TemplateItemRow({
       />
 
 
-      <IconButton onClick={onRemove}>
+      <IconButton onClick={onRemove} aria-label={t.buttons.delete} size="small" title={t.buttons.delete}>
         <DeleteIcon />
       </IconButton>
     </Box>

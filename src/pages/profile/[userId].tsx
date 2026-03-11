@@ -181,6 +181,9 @@ export default function ProfilePage() {
         <Box sx={{ mb: 2 }}>
           <IconButton
             onClick={() => router.push('/')}
+            size="small"
+            aria-label="Back to home"
+            title="Back to home"
             sx={{ color: 'text.primary' }}
           >
             <ArrowBackIcon />

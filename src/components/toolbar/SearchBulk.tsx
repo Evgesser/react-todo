@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Box, TextField, MenuItem, Button, InputAdornment, IconButton } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { iconChoices } from '@/constants';
 import ClearIcon from '@mui/icons-material/Clear';
 import type { TranslationKeys } from '@/locales/ru';
@@ -32,8 +33,8 @@ const SearchBulk: React.FC<Props> = ({
   onCategoryChange,
 }) => {
   return (
-    <Box sx={{ mb: 2 }}>
-      <Box sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+    <Box sx={(t) => ({ mb: 1, p: 0.5, borderRadius: 2, backgroundColor: t.palette.mode === 'dark' ? alpha(t.palette.background.paper, 0.08) : alpha(t.palette.background.paper, 0.6), backdropFilter: 'blur(8px) saturate(130%)' })}>
+      <Box sx={{ display: 'flex', gap: 1, mb: 0.5, alignItems: 'center' }}>
         <TextField
           size="small"
           label={t.search.placeholder}
@@ -47,6 +48,8 @@ const SearchBulk: React.FC<Props> = ({
               size="small"
               onClick={() => onFilterChange('')}
               edge="end"
+              aria-label={`Clear ${t.search.placeholder}`}
+              title={`Clear ${t.search.placeholder}`}
             >
               <ClearIcon />
             </IconButton>
@@ -79,11 +82,11 @@ const SearchBulk: React.FC<Props> = ({
       )}
     </Box>
     {bulkMode && (
-      <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-        <Button size="small" variant="contained" color="secondary" onClick={onBulkComplete} disabled={selectedCount === 0}>
+      <Box sx={{ mt: 0.5, display: 'flex', gap: 1 }}>
+        <Button size="small" variant="contained" color="primary" onClick={onBulkComplete} disabled={selectedCount === 0} sx={{ minWidth: 100 }}>
           {t.search.bulkComplete}
         </Button>
-        <Button size="small" variant="outlined" onClick={onBulkDelete} disabled={selectedCount === 0}>
+        <Button size="small" variant="outlined" onClick={onBulkDelete} disabled={selectedCount === 0} sx={{ minWidth: 100 }}>
           {t.search.bulkDelete}
         </Button>
         <Button size="small" color="inherit" onClick={onCancelBulk}>{t.search.cancelBulk}</Button>

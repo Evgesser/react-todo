@@ -235,6 +235,8 @@ export default function SharedPage() {
                   size="small"
                   onClick={() => todoActions.setFilterText('')}
                   edge="end"
+                  aria-label={`Clear ${t.search.placeholder}`}
+                  title={`Clear ${t.search.placeholder}`}
                 >
                   <ClearIcon />
                 </IconButton>

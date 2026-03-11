@@ -17,6 +17,14 @@ export default function CategoryIconPicker({ selected, onChange, title }: Props)
           size="small"
           color={selected === ic.key ? 'primary' : 'default'}
           onClick={() => onChange(ic.key)}
+          aria-label={ic.label}
+          title={ic.label}
+          sx={(t) => ({
+            transition: 'transform 0.12s ease, box-shadow 0.12s',
+            ...(selected === ic.key
+              ? { boxShadow: '0 6px 18px rgba(99,102,241,0.18)', transform: 'scale(1.04)' }
+              : { '&:hover': { transform: 'scale(1.06)' } }),
+          })}
         >
           <ic.icon fontSize="small" />
         </IconButton>
@@ -24,8 +32,9 @@ export default function CategoryIconPicker({ selected, onChange, title }: Props)
       <IconButton
         size="small"
         onClick={() => onChange('')}
-        sx={{ marginInlineStart: 1 }}
-        title={title ? `${title}: ${'no icon'}` : 'no icon'}
+        aria-label={title ? `${title}: no icon` : 'no icon'}
+        title={title ? `${title}: no icon` : 'no icon'}
+        sx={(t) => ({ marginInlineStart: 1, '&:hover': { transform: 'scale(1.06)' } })}
       >
         ✖️
       </IconButton>

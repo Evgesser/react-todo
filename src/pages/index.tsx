@@ -87,7 +87,7 @@ export default function Home() {
     setViewportHeight(vh);
     const headerH = headerRef.current?.offsetHeight || 0;
     const toolbarH = toolbarRef.current?.offsetHeight || 0;
-    const margins = 64; // container vertical margins (mt=4,mb=4)
+    const margins = 48; // container vertical margins (mt=3,mb=3)
     const buffer = 50; // extra space for browser chrome
     const safe = vh - document.documentElement.clientHeight; // approximate bottom inset
     const newListH = vh - headerH - toolbarH - margins - buffer - safe;
@@ -202,8 +202,8 @@ export default function Home() {
       maxWidth="sm"
       suppressHydrationWarning
       sx={{
-        mt: 4,
-        mb: 4,
+        mt: 3,
+        mb: 3,
         // lock overall container to viewport height so the page itself never scrolls
         // reserve any bottom safe-area inset so content never slides under browser menu
       // include a small extra buffer (50px) for persistent nav bars that don't report
@@ -211,8 +211,8 @@ export default function Home() {
       // screen during SSR/hydration.
       // subtract vertical margins (4*8px each) plus safe area and buffer
       height: viewportHeight
-        ? `calc(${viewportHeight}px - env(safe-area-inset-bottom) - 50px - 64px)`
-        : 'calc(100vh - 64px)',
+      ? `calc(${viewportHeight}px - env(safe-area-inset-bottom) - 50px - 48px)`
+      : 'calc(100vh - 48px)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',

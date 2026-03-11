@@ -68,7 +68,7 @@ export default function NewListDialog({
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" fullScreen={fullScreen}>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" fullScreen={fullScreen} PaperProps={{ className: 'glass' }}>
       <DialogTitle>{t.dialogs.newList.title}</DialogTitle>
       <DialogContent>
         {errorMsg && (
@@ -88,7 +88,9 @@ export default function NewListDialog({
               <InputAdornment position="end">
                 <IconButton
                   size="small"
-                  onClick={() => setName('')}
+                      onClick={() => setName('')}
+                      aria-label={`Clear ${t.dialogs.newList.name}`}
+                      title={t.dialogs.newList.name}
                   edge="end"
                 >
                   <ClearIcon />

@@ -15,6 +15,7 @@ import {
   Skeleton,
   TextField
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import * as React from 'react';
 import type { IntlShape } from 'react-intl';
 
@@ -54,7 +55,6 @@ export default function ListToolbar({
   saveListColor,
   openNewListDialog,
   setHistoryOpen,
-  formOpen: _formOpen,
   bulkMode,
   toggleBulkMode,
   menuAnchor,
@@ -116,26 +116,48 @@ export default function ListToolbar({
     // `t` and `formatMessage` are passed from parent to avoid internal language context subscription
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '7fr 5fr' },
         gap: 0.25,
         alignItems: 'center',
-        mb: 0.5,
-      }}
+        mb: 0.25,
+        p: 0.5,
+        borderRadius: 2,
+        // Stronger frosted glass: translucent background + increased blur
+        // Use !important to ensure it overrides global .glass rules
+        backgroundColor: `${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.6)'} !important`,
+        backgroundImage: theme.palette.mode === 'dark'
+          ? 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))'
+          : undefined,
+        WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+        backdropFilter: 'blur(14px) saturate(150%)',
+        boxShadow: theme.palette.mode === 'dark' ? '0 6px 18px rgba(2,6,23,0.45)' : '0 8px 30px rgba(2,6,23,0.06)',
+        border: theme.palette.mode === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.5)',
+      })}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {listsLoading ? (
-          <Skeleton variant="rectangular" width="100%" height={56} />
+          <Skeleton variant="rectangular" width="100%" height={48} />
         ) : (
           <>
             <TextField
               size="small"
               select
+              variant="outlined"
               label={t.lists.selectList}
               value={currentListId || ''}
               onChange={(e) => onSelectList(e.target.value)}
               fullWidth
+              sx={(theme) => ({
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'transparent',
+                  borderRadius: 1,
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'
+                }
+              })}
             >
               {lists
                 .filter((l) => !l.completed)
@@ -148,22 +170,23 @@ export default function ListToolbar({
             <IconButton
               size="small"
               onClick={openNewListDialog}
-              sx={{
-                marginInlineStart: 1,
-                background: 'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)',
-                color: '#0F172A',
-                boxShadow: '0 4px 14px 0 rgba(245, 158, 11, 0.39)',
+              sx={(theme) => ({
+                marginInlineStart: 0.5,
+                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
+                color: theme.palette.primary.contrastText,
+                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.24)}`,
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #D97706 0%, #EA580C 100%)',
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 6px 20px 0 rgba(245, 158, 11, 0.5)',
+                  background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                  transform: 'scale(1.06)',
+                  boxShadow: `0 6px 20px 0 ${alpha(theme.palette.primary.main, 0.32)}`,
                 },
                 '&:active': {
                   transform: 'scale(0.95)',
                 },
-              }}
-              aria-label="new list"
+              })}
+              aria-label={t.lists.newList}
+              title={t.lists.newList}
             >
               <AddIcon />
             </IconButton>
@@ -194,7 +217,7 @@ export default function ListToolbar({
         <Button onClick={() => toggleBulkMode()} variant="contained" color="secondary" sx={{ minWidth: 100 }}>
           {bulkMode ? t.lists.bulkCancel : t.lists.bulkMode}
         </Button>
-        <IconButton onClick={(e) => handleOpenMenu(e)} size="small">
+        <IconButton onClick={(e) => handleOpenMenu(e)} size="small" aria-label={"More actions"} title={"More actions"}>
           <MoreVertIcon />
         </IconButton>
         <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
@@ -241,7 +264,7 @@ export default function ListToolbar({
                     });
                     setSnackbarMsg(formatMessage('lists.linkCopied'));
                     setSnackbarOpen(true);
-                    
+
                     // Persist token in background
                     if (token && !lists.find((l) => l._id === currentListId)?.shareToken) {
                       (async () => {
@@ -252,11 +275,12 @@ export default function ListToolbar({
                         }
                       })();
                     }
-                    
+
                     closeMenu();
                     return;
-                  } catch (err: any) {
-                    if (err.name === 'AbortError') {
+                  } catch (err: unknown) {
+                    const e = err as { name?: string };
+                    if (e.name === 'AbortError') {
                       return;
                     }
                     // Fall through to clipboard fallback

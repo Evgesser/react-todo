@@ -469,16 +469,16 @@ export default function TodoForm({
   // build inner form container once so dialog/inline both use same markup
   const formInner = (
     <>
-      <Paper sx={{ p: 2, mb: 2, width: '100%', borderRadius: 2 }} elevation={3}>
+      <Paper className="glass" sx={{ p: 1, mb: 1, width: '100%', borderRadius: 2 }} elevation={3}>
         {/* form header with collapse button - hidden when dialogMode because dialog title shows it */}
-        {!dialogMode && (
+          {!dialogMode && (
           <Box
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            mb: 1,
-            pb: 1,
+            mb: 0.5,
+            pb: 0.5,
             borderBottom: '1px solid',
             borderColor: 'divider',
           }}
@@ -486,14 +486,14 @@ export default function TodoForm({
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
             {editingId ? t.todos.editTask || t.todos.addEdit : t.todos.addTask || t.todos.addEdit}
           </Typography>
-          <IconButton size="small" onClick={() => setFormOpen(false)} disabled={todosLoading}>
+          <IconButton size="small" onClick={() => setFormOpen(false)} disabled={todosLoading} aria-label={t.todos.cancel} title={t.todos.cancel}>
             <ExpandMoreIcon sx={{ transform: 'rotate(-90deg)' }} />
           </IconButton>
         </Box>
       )}
       {todosLoading && <LinearProgress />}
       <Stack
-        spacing={2}
+        spacing={1}
         sx={{
           opacity: todosLoading ? 0.5 : 1,
           pointerEvents: todosLoading ? 'none' : undefined,
@@ -617,7 +617,7 @@ export default function TodoForm({
           {parsed && (
             <Box
               sx={(t) => ({
-                mt: 1,
+                mt: 0.5,
                 p: 1,
                 bgcolor: t.palette.mode === 'dark' ? t.palette.grey[800] : t.palette.grey[100],
                 color: 'text.primary',
@@ -654,7 +654,7 @@ export default function TodoForm({
                   <Box>{previewCategory.label}</Box>
                 </Typography>
               )}
-              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <Box sx={{ mt: 0.5, display: 'flex', justifyContent: 'flex-end' }}>
                 <Button
                   variant="contained"
                   color="secondary"
@@ -687,6 +687,8 @@ export default function TodoForm({
                     size="small"
                     onClick={() => setDescription('')}
                     edge="end"
+                    aria-label="Очистить описание"
+                    title="Очистить описание"
                   >
                     <ClearIcon />
                   </IconButton>
@@ -737,6 +739,8 @@ export default function TodoForm({
                     size="small"
                     onClick={() => setComment('')}
                     edge="end"
+                    aria-label="Очистить комментарий"
+                    title="Очистить комментарий"
                   >
                     <ClearIcon />
                   </IconButton>
@@ -744,7 +748,7 @@ export default function TodoForm({
               ) : null,
             }}
           />
-          <Box sx={{ mt: 1 }}>
+          <Box sx={{ mt: 0.5 }}>
             <Button variant="outlined" component="label" size="small">
               {t.todos.attachImage || 'Прикрепить изображение'}
               <input
@@ -756,7 +760,7 @@ export default function TodoForm({
             </Button>
             {imageData && (
               <Box
-                sx={{ mt: 1, position: 'relative', display: 'inline-block', cursor: 'pointer' }}
+                sx={{ mt: 0.5, position: 'relative', display: 'inline-block', cursor: 'pointer' }}
                 onClick={(e) => {
                   setImagePreviewOpen(true);
                 }}
@@ -773,6 +777,8 @@ export default function TodoForm({
                   size="small"
                   sx={{ position: 'absolute', top: 2, insetInlineEnd: 2 }}
                   onClick={(e) => { e.stopPropagation(); setImageData(null); }}
+                  aria-label="Удалить изображение"
+                  title="Удалить изображение"
                 >
                   <ClearIcon fontSize="small" />
                 </IconButton>
@@ -848,7 +854,7 @@ export default function TodoForm({
             )}
           />
           {category && (
-            <Box sx={{ mt: 1 }}>
+            <Box sx={{ mt: 0.5 }}>
               <Chip
                 label={displayedCategory}
                 icon={iconChoices.find((x) => x.key === category)?.icon ? React.createElement(iconChoices.find((x) => x.key === category)!.icon, { fontSize: 'small' }) : undefined}
@@ -859,7 +865,7 @@ export default function TodoForm({
             </Box>
           )}
           {categoryWarning && (
-            <Box sx={{ mt: 1 }}>
+            <Box sx={{ mt: 0.5 }}>
               <Alert
                 severity="warning"
                 onClose={() => setCategoryManual(category)}
@@ -880,12 +886,13 @@ export default function TodoForm({
 
           <Stack direction="row" flexWrap="wrap" sx={{ width: '100%' }}>
             <Button
-              variant="contained"
-              onClick={() => handleAdd()}
-              sx={{ flex: 1, mx: editingId ? '2px' : 0 }}
-            >
-              {editingId ? t.todos.save : t.todos.addTask || t.todos.add}
-            </Button>
+                variant="contained"
+                color="primary"
+                onClick={() => handleAdd()}
+                sx={{ flex: 1, mx: editingId ? '2px' : 0 }}
+              >
+                {editingId ? t.todos.save : t.todos.addTask || t.todos.add}
+              </Button>
             {editingId && (
               <Button
                 variant="outlined"

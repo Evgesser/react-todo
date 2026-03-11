@@ -58,7 +58,7 @@ export default function QuantityDialog({ open, value, onChange, onClose, t }: Qu
         onClose();
       }}
       disableEscapeKeyDown
-      PaperProps={{ dir: 'ltr' }}
+      PaperProps={{ dir: 'ltr', className: 'glass' }}
     >
       <DialogTitle>{t.dialogs.quantity.title}</DialogTitle>
       <DialogContent>

@@ -18,7 +18,7 @@ export default function HistoryDialog({ open, lists, onSelect, onClose, t }: His
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" fullScreen={fullScreen}>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" fullScreen={fullScreen} PaperProps={{ className: 'glass' }}>
       <DialogTitle>{t.dialogs.history.title}</DialogTitle>
       <DialogContent>
         <List>
@@ -31,6 +31,7 @@ export default function HistoryDialog({ open, lists, onSelect, onClose, t }: His
                     onClick={() => {
                       onSelect(l);
                     }}
+                    aria-label={`${t.dialogs.history.view}: ${l.name}`}
                   >
                     <ListItemText
                       primary={l.name}

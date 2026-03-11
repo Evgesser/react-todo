@@ -5,9 +5,9 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
   const palette: ThemeOptions['palette'] = {
     mode,
     primary: {
-      main: '#6366F1', // indigo
-      light: '#818CF8',
-      dark: '#4F46E5',
+      main: '#3B82F6', // modern blue
+      light: '#60A5FA',
+      dark: '#1E40AF',
       contrastText: '#FFFFFF',
     },
     secondary: {
@@ -107,13 +107,13 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
           },
           // primary buttons use a purple-pink gradient like mobile design
           containedPrimary: {
-            background: 'linear-gradient(135deg, #270722 0%, #ECCE8E 100%)',
+            background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
             color: '#FFFFFF',
             '&:hover': {
-              background: 'linear-gradient(135deg, #4b112b 0%, #e6d28a 100%)',
+              background: 'linear-gradient(135deg, #2B6FD8 0%, #4F9AF8 100%)',
             },
             '&:active': {
-              background: 'linear-gradient(135deg, #31021a 0%, #d8c57a 100%)',
+              background: 'linear-gradient(135deg, #1E40AF 0%, #3B6FE6 100%)',
             },
           },
           outlined: {
@@ -125,11 +125,11 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
       MuiFab: {
         styleOverrides: {
           root: {
-            background: 'linear-gradient(135deg, #ECCE8E 0%, #DBCF96 100%)',
-            color: '#0F172A',
-            boxShadow: 'none',
+            background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+            color: '#FFFFFF',
+            boxShadow: '0 6px 18px rgba(59,130,246,0.18)',
             '&:hover': {
-              background: 'linear-gradient(135deg, #d8c57a 0%, #c2b57a 100%)',
+              background: 'linear-gradient(135deg, #2B6FD8 0%, #4F9AF8 100%)',
             },
           },
         },
@@ -138,17 +138,19 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
-            backgroundColor: mode === 'dark' ? '#1a1a1a' : undefined,
-            boxShadow: mode === 'dark' 
-              ? '0 1px 3px rgba(0,0,0,0.3)' 
-              : '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)',
+            backgroundColor: mode === 'dark' ? 'rgba(2,6,23,0.5)' : 'rgba(255,255,255,0.36)',
+            backdropFilter: 'saturate(180%) blur(8px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(8px)',
+            boxShadow: mode === 'dark'
+              ? '0 6px 20px rgba(2,6,23,0.6)'
+              : '0 8px 30px rgba(2,6,23,0.06)',
             transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-            border: `1px solid ${mode === 'dark' ? '#334155' : '#E2E8F0'}`,
+            border: `1px solid ${mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.6)'}`,
             '&:hover': {
               transform: 'translateY(-2px)',
-              boxShadow: mode === 'dark' 
-                ? '0 10px 15px -3px rgba(0,0,0,0.5)' 
-                : '0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04)',
+              boxShadow: mode === 'dark'
+                ? '0 15px 30px rgba(2,6,23,0.6)'
+                : '0 12px 30px rgba(2,6,23,0.08)',
             },
           },
         },
@@ -157,17 +159,23 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
-            // darker paper background for dark theme to match mobile card
-            backgroundColor: mode === 'dark' ? '#121212' : undefined,
+            backgroundColor: mode === 'dark' ? 'rgba(2,6,23,0.42)' : 'rgba(255,255,255,0.36)',
+            backdropFilter: 'saturate(160%) blur(10px)',
+            WebkitBackdropFilter: 'saturate(160%) blur(10px)',
             borderRadius: 16,
+            border: `1px solid ${mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
+            boxShadow: mode === 'dark' ? '0 8px 24px rgba(0,0,0,0.6)' : '0 10px 30px rgba(2,6,23,0.06)',
           },
         },
       },
       MuiDialog: {
         styleOverrides: {
           paper: {
-            backgroundColor: mode === 'dark' ? '#121212' : undefined,
+            backgroundColor: mode === 'dark' ? 'rgba(15,23,42,0.5)' : 'rgba(255,255,255,0.5)',
+            backdropFilter: 'saturate(160%) blur(10px)',
+            WebkitBackdropFilter: 'saturate(160%) blur(10px)',
             borderRadius: 16,
+            border: `1px solid ${mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
           },
         },
       },
@@ -193,7 +201,7 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
         defaultProps: {
           margin: 'normal',
           fullWidth: false,
-          variant: 'filled', // use filled style for darker inputs
+          variant: 'outlined',
         },
         styleOverrides: {
           root: {
@@ -245,10 +253,11 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
       MuiAppBar: {
         styleOverrides: {
           root: {
-            backgroundColor: mode === 'dark' ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-            backdropFilter: 'blur(12px)',
+            backgroundColor: mode === 'dark' ? 'rgba(2,6,23,0.52)' : 'rgba(255,255,255,0.6)',
+            backdropFilter: 'saturate(180%) blur(10px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(10px)',
             boxShadow: 'none',
-            borderBottom: `1px solid ${mode === 'dark' ? '#334155' : '#E2E8F0'}`,
+            borderBottom: `1px solid ${mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
             color: mode === 'dark' ? '#F8FAFC' : '#0F172A',
           },
         },
@@ -256,6 +265,10 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
       MuiCssBaseline: {
         styleOverrides: {
           body: {
+            minHeight: '100vh',
+            background: mode === 'dark'
+                ? 'linear-gradient(135deg, #071029 0%, #081330 35%, #2C0F66 75%, #071028 100%)'
+                  : 'linear-gradient(135deg, #F8FBFF 0%, #E8F0FF 45%, #F1F5FF 100%)',
             scrollbarWidth: 'thin',
             '&::-webkit-scrollbar': {
               width: '8px',

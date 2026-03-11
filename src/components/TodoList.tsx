@@ -87,18 +87,19 @@ export default function TodoList({
         elementsArray.push(
           <Box
             key={`header-${catKey}`}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              mt: 2,
-              mb: 0.5,
-              px: 1,
-              py: 0.5,
-              bgcolor: theme.palette.action.hover,
-              borderRadius: 1,
-              borderBottom: `1px solid ${theme.palette.divider}`,
-            }}
+                sx={(t) => ({
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  mt: 2,
+                  mb: 0.5,
+                  px: 1,
+                  py: 0.5,
+                  backgroundColor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.6)',
+                  backdropFilter: 'blur(6px) saturate(120%)',
+                  borderRadius: 1,
+                  borderBottom: `1px solid ${t.palette.divider}`,
+                })}
           >
             {IconComp ? <IconComp fontSize="small" /> : null}
             <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
@@ -113,7 +114,16 @@ export default function TodoList({
                   await todoActions.moveCategory(realCat, 'up');
                 }}
                 edge="end"
+                aria-label={`Move ${label} up`}
+                title={`Move ${label} up`}
                 disabled={groupCats.indexOf(realCat) <= 0}
+                sx={(t) => ({
+                  transition: 'transform 0.15s ease, box-shadow 0.15s',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: `0 6px 14px ${alpha(t.palette.primary.main, 0.12)}`,
+                  },
+                })}
               >
                 <ArrowUpwardIcon fontSize="small" />
               </IconButton>
@@ -125,7 +135,16 @@ export default function TodoList({
                   await todoActions.moveCategory(realCat, 'down');
                 }}
                 edge="end"
+                aria-label={`Move ${label} down`}
+                title={`Move ${label} down`}
                 disabled={groupCats.indexOf(realCat) === groupCats.length - 1}
+                sx={(t) => ({
+                  transition: 'transform 0.15s ease, box-shadow 0.15s',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: `0 6px 14px ${alpha(t.palette.primary.main, 0.12)}`,
+                  },
+                })}
               >
                 <ArrowDownwardIcon fontSize="small" />
               </IconButton>
@@ -184,7 +203,7 @@ export default function TodoList({
   return (
     <Box sx={{ width: '100%' }}>
       
-      <List sx={{ width: '100%' }}>{elements}</List>
+      <List sx={{ width: '100%', p: 1, borderRadius: 2 }}>{elements}</List>
     </Box>
   );
 }

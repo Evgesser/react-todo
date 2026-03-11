@@ -50,13 +50,15 @@ export default function ClearableTextField(props: ClearableTextFieldProps) {
   return (
     <TextField
       {...rest}
+      variant={rest.variant ?? 'filled'}
+      size={rest.size ?? 'small'}
       value={value}
       onChange={onChange}
       InputProps={{
         ...InputProps,
         endAdornment: showClear ? (
           <InputAdornment position="end">
-            <IconButton size="small" edge="end" onClick={handleClear}>
+            <IconButton size="small" edge="end" onClick={handleClear} aria-label="clear" title="Clear">
               <ClearIcon fontSize="small" />
             </IconButton>
           </InputAdornment>

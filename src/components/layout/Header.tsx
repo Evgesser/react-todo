@@ -4,7 +4,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import { ColorModeContext } from '@/pages/_app';
 import type { TranslationKeys } from '@/locales/ru';
 import useAppStore from '@/stores/useAppStore';
@@ -42,12 +42,12 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
     window.location.href = '/';
   };
   return (
-    <Box sx={{ mb: 1 }}>
+    <Box sx={{ mb: 0.5 }}>
       <Box
         sx={{
-          height: 8,
+          height: 6,
           borderRadius: 1,
-          bgcolor: headerColor,
+          bgcolor: alpha(headerColor, 0.85),
           transition: 'background-color 300ms ease',
         }}
       />
@@ -56,13 +56,19 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          mt: 1,
+          mt: 0,
+          px: 1,
+          py: 0.5,
+          backgroundColor: theme.palette.mode === 'dark' ? alpha(theme.palette.background.paper, 0.08) : alpha(theme.palette.background.paper, 0.6),
+          backdropFilter: 'blur(8px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(8px) saturate(140%)',
+          borderRadius: 2,
+          border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
         }}
       >
         <Typography
-          variant="h4"
+          variant="h5"
           component="h1"
-          gutterBottom
           sx={{
             color: effectiveHeaderTextColor,
             fontWeight: 500,
@@ -78,6 +84,9 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
           <LanguageSwitcher />
           <IconButton
             onClick={() => colorMode.toggleColorMode()}
+            size="small"
+            aria-label={theme.palette.mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme.palette.mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             sx={{
               color: effectiveHeaderTextColor,
               bgcolor:
@@ -85,7 +94,7 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
                   ? 'rgba(255,255,255,0.06)'
                   : 'rgba(0,0,0,0.04)',
               borderRadius: '50%',
-              p: 1,
+              p: 0.5,
               '&:hover': {
                 bgcolor:
                   theme.palette.mode === 'dark'
@@ -101,6 +110,9 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
             <>
               <IconButton
                 onClick={handleMenuOpen}
+                size="small"
+                aria-label={username ? `Account menu for ${username}` : 'Account menu'}
+                title={username ? `Account menu for ${username}` : 'Account menu'}
                 sx={{
                   color: effectiveHeaderTextColor,
                   bgcolor:
@@ -108,7 +120,7 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
                       ? 'rgba(255,255,255,0.06)'
                       : 'rgba(0,0,0,0.04)',
                   borderRadius: '50%',
-                  p: 1,
+                  p: 0.5,
                   '&:hover': {
                     bgcolor:
                       theme.palette.mode === 'dark'
@@ -119,7 +131,7 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
               >
                 <Avatar
                   src={avatar || ''}
-                  sx={{ width: 32, height: 32, fontSize: '0.75rem' }}
+                  sx={{ width: 28, height: 28, fontSize: '0.7rem' }}
                 >
                   {username.charAt(0).toUpperCase()}
                 </Avatar>

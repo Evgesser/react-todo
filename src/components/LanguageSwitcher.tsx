@@ -32,7 +32,21 @@ export default function LanguageSwitcher() {
   return (
     <>
       <Tooltip title={intl.formatMessage({ id: 'header.language' })}>
-        <IconButton onClick={handleClick} color="inherit" size="small">
+        <IconButton
+          onClick={handleClick}
+          color="inherit"
+          size="small"
+          aria-label={intl.formatMessage({ id: 'header.language' })}
+          title={intl.formatMessage({ id: 'header.language' })}
+          sx={(t) => ({
+            p: 0.75,
+            borderRadius: '50%',
+            backgroundColor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)',
+            '&:hover': {
+              backgroundColor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'
+            }
+          })}
+        >
           <span style={{ fontSize: 20, lineHeight: 1 }}>{flagMap[language] || '🌐'}</span>
         </IconButton>
       </Tooltip>

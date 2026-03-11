@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Box, TextField, Button, IconButton, InputAdornment, Alert } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import ClearIcon from '@mui/icons-material/Clear';
 import RegisterDialog from './dialogs/RegisterDialog';
 import useAppStore from '@/stores/useAppStore';
@@ -23,6 +24,7 @@ export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelPro
   const [loginUsername, setLoginUsername] = React.useState('');
   const [loginPassword, setLoginPassword] = React.useState('');
   const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false);
+  const theme = useTheme();
 
   const handleRegisterSuccess = React.useCallback(
     async (userId: string, username: string) => {
@@ -60,7 +62,18 @@ export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelPro
   if (userId) return null;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+    <Box
+      sx={(t) => ({
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        mb: 2,
+        p: 2,
+        borderRadius: 2,
+        backgroundColor: t.palette.mode === 'dark' ? 'rgba(2,6,23,0.42)' : 'rgba(255,255,255,0.66)',
+        backdropFilter: 'blur(6px) saturate(120%)',
+      })}
+    >
       {error && (
         <Alert severity="error" onClose={() => clearError()}>
           {error}

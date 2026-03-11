@@ -1,34 +1,41 @@
-/* The global CSS variables and explicit background/foreground colors were
-   interfering with MUI's dynamic theme.  The theme provider and CssBaseline
-   now handle coloring, so we keep the layout resets only. */
+/* Global styles and design tokens — tuned for glassmorphism theme */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
 
 :root {
-  /* Updated modern palette: indigo, amber, cyan, emerald, orange, red */
-  --color-primary: #6366F1; /* indigo */
-  --color-secondary: #F59E0B; /* amber */
-  --color-info: #06B6D4; /* cyan */
-  --color-success: #10B981; /* emerald */
-  --color-warning: #F97316; /* orange */
-  --color-error: #EF4444; /* red */
+  /* Design tokens */
+  --radius: 12px;
+  --space: 16px;
+  --max-width: 1100px;
+  --accent-gradient: linear-gradient(135deg,#3B82F6 0%, #60A5FA 100%);
+
+  /* Palette */
+  --color-primary: #3B82F6;
+  --color-secondary: #F59E0B;
+  --color-info: #06B6D4;
+  --color-success: #10B981;
+  --color-warning: #F97316;
+  --color-error: #EF4444;
   --bg: #FFFFFF;
   --text: #0F172A;
+  /* Modern soft gradient for light mode */
+  --app-bg: linear-gradient(135deg, #F8FBFF 0%, #E8F0FF 45%, #F1F5FF 100%);
 }
 
-/* Allow app-controlled theme via `data-theme` on <html> (overrides prefers-color-scheme)
-   This keeps CSS modules in sync with MUI's theme toggle. */
 [data-theme="dark"] {
   --bg: #0F172A;
   --text: #F8FAFC;
   --text-primary: #ededed;
   --text-secondary: #94A3B8;
   --background-paper: #121212;
-  /* Dark theme palette adjustments */
-  --color-primary: #818CF8; /* lighter indigo for dark bg */
-  --color-secondary: #FCD34D; /* lighter amber */
-  --color-info: #22D3EE; /* lighter cyan */
-  --color-success: #34D399; /* lighter emerald */
-  --color-warning: #FB923C; /* lighter orange */
-  --color-error: #F87171; /* lighter red */
+  --color-primary: #60A5FA;
+  --color-secondary: #FCD34D;
+  --color-info: #22D3EE;
+  --color-success: #34D399;
+  --color-warning: #FB923C;
+  --color-error: #F87171;
+  /* Modern deep gradient for dark mode (indigo -> violet accents) */
+  --app-bg: linear-gradient(135deg, #071029 0%, #081330 35%, #2C0F66 75%, #071028 100%);
 }
 
 [data-theme="light"] {
@@ -37,6 +44,7 @@
   --text-primary: #0F172A;
   --text-secondary: #64748B;
   --background-paper: #FFFFFF;
+  --app-bg: linear-gradient(135deg, #F8FBFF 0%, #E8F0FF 45%, #F1F5FF 100%);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -53,40 +61,30 @@ body {
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--app-bg);
+  background-attachment: fixed;
+  background-size: cover;
+  color: var(--text);
+  line-height: 1.45;
 }
 
-/* RTL support */
-[dir="rtl"] .MuiInputLabel-root {
-  text-align: center;
-}
-
-[dir="rtl"] .MuiAutocomplete-root .MuiInputBase-root {
-  text-align: right;
-}
-
-[dir="rtl"] .MuiTextField-root .MuiInputBase-root {
-  text-align: right;
-}
-
-[dir="rtl"] .MuiAutocomplete-popper {
-  direction: rtl;
-}
-
-[dir="rtl"] .MuiAutocomplete-option {
-  text-align: right;
-}
-
-/* Hide scrollbars for a cleaner look */
+/* Thin styled scrollbars for a modern look (still accessible) */
 ::-webkit-scrollbar {
-  display: none;
+  width: 10px;
+  height: 10px;
 }
-
+::-webkit-scrollbar-thumb {
+  background-color: rgba(99,102,241,0.18);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
 * {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99,102,241,0.18) transparent;
 }
 
 * {
@@ -106,7 +104,13 @@ a {
   }
 }
 
-/* When page is rtl (e.g. Hebrew), align input/textarea text and placeholders to the right */
+/* RTL support */
+[dir="rtl"] .MuiInputLabel-root { text-align: center; }
+[dir="rtl"] .MuiAutocomplete-root .MuiInputBase-root { text-align: right; }
+[dir="rtl"] .MuiTextField-root .MuiInputBase-root { text-align: right; }
+[dir="rtl"] .MuiAutocomplete-popper { direction: rtl; }
+[dir="rtl"] .MuiAutocomplete-option { text-align: right; }
+
 html[dir="rtl"] input,
 html[dir="rtl"] textarea,
 html[dir="rtl"] .MuiInputBase-input,
@@ -119,9 +123,7 @@ html[dir="rtl"] .MuiOutlinedInput-input::placeholder {
 
 /* Ensure placeholder pseudo-element specifically aligns right in browsers */
 html[dir="rtl"] input::placeholder,
-html[dir="rtl"] textarea::placeholder {
-  text-align: right;
-}
+html[dir="rtl"] textarea::placeholder { text-align: right; }
 
 /* Align MUI TextField/Form labels to the right in RTL (including floating/shrunk state) */
 html[dir="rtl"] .MuiInputLabel-root,
@@ -132,40 +134,43 @@ html[dir="rtl"] .MuiFormControlLabel-label {
   width: 100%;
 }
 
-html[dir="rtl"] .MuiInputLabel-root {
-  transform-origin: top right !important;
-}
-
+html[dir="rtl"] .MuiInputLabel-root { transform-origin: top right !important; }
 html[dir="rtl"] .MuiInputLabel-root.Mui-focused,
-html[dir="rtl"] .MuiInputLabel-root.MuiInputLabel-shrink {
-  transform-origin: top right !important;
-}
+html[dir="rtl"] .MuiInputLabel-root.MuiInputLabel-shrink { transform-origin: top right !important; }
 
 /* Tweak floating label X translation and input padding for RTL so label doesn't overlap */
-html[dir="rtl"] .MuiFormControl-root {
-  direction: rtl;
-}
-
-/* Outlined inputs: adjust label translateX from +14px to -14px for RTL */
-html[dir="rtl"] .MuiInputLabel-root {
-  transform: translate(-14px, -4px) scale(1);
-}
-html[dir="rtl"] .MuiInputLabel-root.MuiInputLabel-shrink {
-  transform: translate(-14px, -18px) scale(0.75) !important;
-}
-
-/* Filled / standard variants: small adjustments */
+html[dir="rtl"] .MuiFormControl-root { direction: rtl; }
+html[dir="rtl"] .MuiInputLabel-root { transform: translate(-14px, -4px) scale(1); }
+html[dir="rtl"] .MuiInputLabel-root.MuiInputLabel-shrink { transform: translate(-14px, -18px) scale(0.75) !important; }
 html[dir="rtl"] .MuiInputLabel-root.Mui-focused,
-html[dir="rtl"] .MuiFormLabel-root.Mui-focused {
-  transform: translate(-14px, -18px) scale(0.75) !important;
-}
+html[dir="rtl"] .MuiFormLabel-root.Mui-focused { transform: translate(-14px, -18px) scale(0.75) !important; }
 
 /* Ensure input padding mirrors correctly in RTL so text doesn't overlap label */
-html[dir="rtl"] .MuiOutlinedInput-input {
-  padding-inline-end: 14px; /* space for label */
-  padding-inline-start: 12px;
+html[dir="rtl"] .MuiOutlinedInput-input { padding-inline-end: 14px; padding-inline-start: 12px; }
+html[dir="rtl"] .MuiInputBase-input { padding-inline-end: 14px; padding-inline-start: 12px; }
+
+/* Glass helper class for non-MUI elements; MUI Paper/Card are themed already */
+.glass {
+  /* Light-theme frosted glass by default */
+  background: rgba(255,255,255,0.32);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(2,6,23,0.06);
+  border-radius: var(--radius);
 }
-html[dir="rtl"] .MuiInputBase-input {
-  padding-inline-end: 14px;
-  padding-inline-start: 12px;
+
+/* Dark theme: slightly different glass tint */
+[data-theme="dark"] .glass {
+  background: rgba(255,255,255,0.04);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Fallback for browsers without backdrop-filter */
+@supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
+  .glass {
+    background: rgba(255,255,255,0.86);
+    box-shadow: 0 6px 20px rgba(2,6,23,0.06);
+  }
 }
