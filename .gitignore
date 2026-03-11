@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
+# Node / JavaScript
+/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,38 +10,103 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# Next.js build / output
 /.next/
 /out/
+/build/
 
-# production
-/build
+# Production
+/dist/
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
-# env files (can opt-in for committing if needed)
+# Environment files
 .env*
 
-# vercel
+# Vercel
 .vercel
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
-.github/agents/my agent.agent.md
-.vscode/launch.json
+
+# Training artifacts (ignored)
+# NOTE: `model_sklearn.joblib` is intentionally tracked per your request.
+training_data_augmented.json
+fasttext_full_data.txt
+fasttext_train.txt
+fasttext_test.txt
+fasttext_data.txt
+fasttext_*.txt
+*.ftz
+*.bin
+*.model
+*.pkl
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+venv/
+.venv/
+env/
+ENV/
+pip-wheel-metadata/
+*.egg-info/
+
+# Caches
+.cache/
+
+# IDEs and editors
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Coverage and test output
+/coverage/
+.nyc_output/
+
+# Misc local assets
 image.png
 pallete-color.png
 image-colors.png
 gray-velvet.png
+
+
+# Training artifacts (local, do not commit)
+# NOTE: `model_sklearn.joblib` intentionally tracked in repo per your request (Variant A)
+training_data_augmented.json
+fasttext_full_data.txt
+fasttext_train.txt
+fasttext_test.txt
+fasttext_data.txt
+*.ftz
+*.bin
+
+# Python caches / virtualenvs
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+ENV/
+pip-wheel-metadata/
+*.egg-info/
+
+# Training-only scripts (dev) - ignore in repo
+/scripts/generate-training-data.mjs
+/scripts/generate-fasttext-data.mjs
+/scripts/inspect_training_counts.mjs
+/scripts/test-js-classifier.mjs
+/scripts/train_sklearn.py
+/scripts/train_fasttext.py
