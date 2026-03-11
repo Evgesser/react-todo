@@ -15,7 +15,6 @@ import {
   Skeleton,
   TextField
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import * as React from 'react';
 import type { IntlShape } from 'react-intl';
 
@@ -50,9 +49,6 @@ export default function ListToolbar({
   currentListId,
   onSelectList,
   listsLoading = false,
-  listDefaultColor,
-  setListDefaultColor,
-  saveListColor,
   openNewListDialog,
   setHistoryOpen,
   bulkMode,
@@ -68,9 +64,6 @@ export default function ListToolbar({
   t,
   formatMessage,
 }: ListToolbarProps) {
-  // prop `formOpen` is intentionally unused here; alias to avoid lint warning
-  // (passed down from parent but not required in this component)
-  
   
 
   // precompute share token/link when menu opens so copying on click stays within
@@ -116,6 +109,7 @@ export default function ListToolbar({
     // `t` and `formatMessage` are passed from parent to avoid internal language context subscription
   return (
     <Box
+      className="glass"
       sx={(theme) => ({
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '7fr 5fr' },
@@ -124,16 +118,10 @@ export default function ListToolbar({
         mb: 0.25,
         p: 0.5,
         borderRadius: 2,
-        // Stronger frosted glass: translucent background + increased blur
-        // Use !important to ensure it overrides global .glass rules
-        backgroundColor: `${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.6)'} !important`,
+        // Visual state managed by .glass class
         backgroundImage: theme.palette.mode === 'dark'
           ? 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))'
           : undefined,
-        WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-        backdropFilter: 'blur(14px) saturate(150%)',
-        boxShadow: theme.palette.mode === 'dark' ? '0 6px 18px rgba(2,6,23,0.45)' : '0 8px 30px rgba(2,6,23,0.06)',
-        border: theme.palette.mode === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.5)',
       })}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -170,16 +158,14 @@ export default function ListToolbar({
             <IconButton
               size="small"
               onClick={openNewListDialog}
+              className="glass"
               sx={(theme) => ({
                 marginInlineStart: 0.5,
-                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
-                color: theme.palette.primary.contrastText,
-                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.24)}`,
+                color: theme.palette.primary.main,
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                  background: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                   transform: 'scale(1.06)',
-                  boxShadow: `0 6px 20px 0 ${alpha(theme.palette.primary.main, 0.32)}`,
                 },
                 '&:active': {
                   transform: 'scale(0.95)',
@@ -203,7 +189,7 @@ export default function ListToolbar({
           alignItems: 'center',
         }}
       >
-
+        {/*
         <TextField
           label={t.lists.listColor}
           type="color"
@@ -211,10 +197,22 @@ export default function ListToolbar({
           onChange={(e) => setListDefaultColor(e.target.value)}
           sx={{ width: 64 }}
         />
-                <Button onClick={saveListColor} variant="contained" color="secondary" sx={{ minWidth: 120 }}>
-                  {t.lists.saveColor}
-                </Button>
-        <Button onClick={() => toggleBulkMode()} variant="contained" color="secondary" sx={{ minWidth: 100 }}>
+        <Button onClick={saveListColor} variant="contained" color="secondary" sx={{ minWidth: 120 }}>
+          {t.lists.saveColor}
+        </Button>
+        */}
+        <Button 
+          onClick={() => toggleBulkMode()} 
+          variant="text" 
+          className="glass"
+          sx={{ 
+            minWidth: 100,
+            color: 'secondary.main',
+            '&:hover': {
+              backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+            }
+          }}
+        >
           {bulkMode ? t.lists.bulkCancel : t.lists.bulkMode}
         </Button>
         <IconButton onClick={(e) => handleOpenMenu(e)} size="small" aria-label={"More actions"} title={"More actions"}>

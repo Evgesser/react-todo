@@ -11,8 +11,8 @@ export interface Todo {
   // mark item as missing / unavailable in the store
   missing?: boolean;
   comment?: string;
-  color?: string;
   category?: string;
+  color?: string;
   order?: number;
   // optional base64-encoded image attachment
   image?: string;

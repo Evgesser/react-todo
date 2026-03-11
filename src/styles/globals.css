@@ -19,7 +19,7 @@
   --bg: #FFFFFF;
   --text: #0F172A;
   /* Modern soft gradient for light mode */
-  --app-bg: linear-gradient(135deg, #F8FBFF 0%, #E8F0FF 45%, #F1F5FF 100%);
+  --app-bg: url('/bg-light.jpg');
 }
 
 [data-theme="dark"] {
@@ -35,7 +35,7 @@
   --color-warning: #FB923C;
   --color-error: #F87171;
   /* Modern deep gradient for dark mode (indigo -> violet accents) */
-  --app-bg: linear-gradient(135deg, #071029 0%, #081330 35%, #2C0F66 75%, #071028 100%);
+  --app-bg: url('/bg-dark.jpg');
 }
 
 [data-theme="light"] {
@@ -44,7 +44,7 @@
   --text-primary: #0F172A;
   --text-secondary: #64748B;
   --background-paper: #FFFFFF;
-  --app-bg: linear-gradient(135deg, #F8FBFF 0%, #E8F0FF 45%, #F1F5FF 100%);
+  --app-bg: url('/bg-light.jpg');
 }
 
 @media (prefers-color-scheme: dark) {
@@ -67,8 +67,48 @@ body {
   background: var(--app-bg);
   background-attachment: fixed;
   background-size: cover;
+  background-position: center;
   color: var(--text);
   line-height: 1.45;
+}
+
+/* Glassmorphism helpers */
+.glass {
+  background: var(--glass-bg, rgba(255, 255, 255, 0.7)) !important;
+  backdrop-filter: blur(12px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4)) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
+  transition: background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+[data-theme="dark"] .glass {
+  --glass-bg: rgba(15, 23, 42, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="light"] .glass {
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.5);
+}
+
+/* Red glass for missing items */
+.glass-missing {
+  background: var(--glass-missing-bg, rgba(254, 226, 226, 0.7)) !important;
+  border: 1px solid var(--glass-missing-border, rgba(239, 68, 68, 0.4)) !important;
+  box-shadow: 0 8px 32px 0 rgba(239, 68, 68, 0.15) !important;
+}
+
+[data-theme="dark"] .glass-missing {
+  --glass-missing-bg: rgba(153, 27, 27, 0.4);
+  --glass-missing-border: rgba(248, 113, 113, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="light"] .glass-missing {
+  --glass-missing-bg: rgba(254, 226, 226, 0.7);
+  --glass-missing-border: rgba(239, 68, 68, 0.3);
 }
 
 /* Thin styled scrollbars for a modern look (still accessible) */

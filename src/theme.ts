@@ -86,6 +86,30 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
       },
     },
     components: {
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            backgroundColor: mode === 'dark' ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(12px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(160%)',
+            border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(255, 255, 255, 0.4)',
+            backgroundImage: 'none',
+            borderRadius: 16,
+          },
+        },
+      },
+      MuiAppBar: {
+        styleOverrides: {
+          root: {
+            backgroundColor: mode === 'dark' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(12px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(160%)',
+            borderBottom: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(255, 255, 255, 0.3)',
+            color: mode === 'dark' ? '#F8FAFC' : '#0F172A',
+            boxShadow: 'none',
+          },
+        },
+      },
       MuiButton: {
         styleOverrides: {
           root: {
@@ -152,19 +176,6 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
                 ? '0 15px 30px rgba(2,6,23,0.6)'
                 : '0 12px 30px rgba(2,6,23,0.08)',
             },
-          },
-        },
-      },
-      MuiPaper: {
-        styleOverrides: {
-          root: {
-            backgroundImage: 'none',
-            backgroundColor: mode === 'dark' ? 'rgba(2,6,23,0.42)' : 'rgba(255,255,255,0.36)',
-            backdropFilter: 'saturate(160%) blur(10px)',
-            WebkitBackdropFilter: 'saturate(160%) blur(10px)',
-            borderRadius: 16,
-            border: `1px solid ${mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
-            boxShadow: mode === 'dark' ? '0 8px 24px rgba(0,0,0,0.6)' : '0 10px 30px rgba(2,6,23,0.06)',
           },
         },
       },
@@ -250,15 +261,18 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
           margin: 'normal',
         },
       },
-      MuiAppBar: {
+      MuiIconButton: {
         styleOverrides: {
           root: {
-            backgroundColor: mode === 'dark' ? 'rgba(2,6,23,0.52)' : 'rgba(255,255,255,0.6)',
-            backdropFilter: 'saturate(180%) blur(10px)',
-            WebkitBackdropFilter: 'saturate(180%) blur(10px)',
-            boxShadow: 'none',
-            borderBottom: `1px solid ${mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
-            color: mode === 'dark' ? '#F8FAFC' : '#0F172A',
+            backgroundColor: mode === 'dark' ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            borderRadius: 8,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              backgroundColor: mode === 'dark' ? 'rgba(30,41,59,0.8)' : 'rgba(255,255,255,0.8)',
+              transform: 'scale(1.05)',
+            },
           },
         },
       },
@@ -267,8 +281,8 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
           body: {
             minHeight: '100vh',
             background: mode === 'dark'
-                ? 'linear-gradient(135deg, #071029 0%, #081330 35%, #2C0F66 75%, #071028 100%)'
-                  : 'linear-gradient(135deg, #F8FBFF 0%, #E8F0FF 45%, #F1F5FF 100%)',
+                ? 'url("/bg-dark.jpg") fixed center/cover'
+                  : 'url("/bg-light.jpg") fixed center/cover',
             scrollbarWidth: 'thin',
             '&::-webkit-scrollbar': {
               width: '8px',

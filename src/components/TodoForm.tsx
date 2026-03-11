@@ -469,7 +469,7 @@ export default function TodoForm({
   // build inner form container once so dialog/inline both use same markup
   const formInner = (
     <>
-      <Paper className="glass" sx={{ p: 1, mb: 1, width: '100%', borderRadius: 2 }} elevation={3}>
+      <Paper className="glass" sx={{ p: 1, mb: 1, width: '100%', borderRadius: 2 }} elevation={0}>
         {/* form header with collapse button - hidden when dialogMode because dialog title shows it */}
           {!dialogMode && (
           <Box
@@ -797,6 +797,7 @@ export default function TodoForm({
             </DialogContent>
           </Dialog>
 
+          {/*
           <TextField
             label={t.todos.color}
             type="color"
@@ -804,6 +805,7 @@ export default function TodoForm({
             onChange={(e) => setColor(e.target.value)}
             sx={{ width: 80 }}
           />
+          */}
           <Autocomplete
             freeSolo
             options={categoryOptions}
@@ -886,16 +888,24 @@ export default function TodoForm({
 
           <Stack direction="row" flexWrap="wrap" sx={{ width: '100%' }}>
             <Button
-                variant="contained"
-                color="primary"
+                variant="text"
+                className="glass"
                 onClick={() => handleAdd()}
-                sx={{ flex: 1, mx: editingId ? '2px' : 0 }}
+                sx={{ 
+                  flex: 1, 
+                  mx: editingId ? '2px' : 0,
+                  color: 'primary.main',
+                  '&:hover': {
+                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  }
+                }}
               >
                 {editingId ? t.todos.save : t.todos.addTask || t.todos.add}
               </Button>
             {editingId && (
               <Button
-                variant="outlined"
+                variant="text"
+                className="glass"
                 onClick={() => {
                   setEditingId(null);
                   setName('');
@@ -904,7 +914,14 @@ export default function TodoForm({
                   setComment('');
                   setColor(listDefaultColor);
                 }}
-                sx={{ flex: 1, mx: '2px' }}
+                sx={{ 
+                  flex: 1, 
+                  mx: '2px',
+                  color: 'text.secondary',
+                  '&:hover': {
+                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  }
+                }}
               >
                 {t.todos.cancel}
               </Button>

@@ -52,6 +52,7 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
         }}
       />
       <Box
+        className="glass"
         sx={{
           display: 'flex',
           alignItems: 'center',
@@ -59,11 +60,7 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
           mt: 0,
           px: 1,
           py: 0.5,
-          backgroundColor: theme.palette.mode === 'dark' ? alpha(theme.palette.background.paper, 0.08) : alpha(theme.palette.background.paper, 0.6),
-          backdropFilter: 'blur(8px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(8px) saturate(140%)',
           borderRadius: 2,
-          border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
         }}
       >
         <Typography

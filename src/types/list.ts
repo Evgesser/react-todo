@@ -16,5 +16,4 @@ export interface ShoppingList {
   completed: boolean;
   createdAt: Date;
   finishedAt?: Date;
-  defaultColor?: string;
 }

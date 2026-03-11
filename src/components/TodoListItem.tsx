@@ -129,14 +129,18 @@ export default function TodoListItem({
   // background / text colours follow the logic that used to live in TodoList
   let itemBg: string | undefined;
   if (todo.missing) {
-    itemBg = alpha(theme.palette.error.light, theme.palette.mode === 'dark' ? 0.2 : 0.4);
+    // Styling handled by .glass-missing class to preserve glass effect
+    itemBg = 'transparent';
   } else if (todo.completed) {
-    itemBg = (todo.color && todo.color.trim()) ? todo.color : theme.palette.action.disabledBackground;
+    // Hidden color dependency: using transparent for glass effect
+    itemBg = 'transparent';
   } else {
-    itemBg = todo.color && todo.color.trim() ? todo.color : undefined;
+    // Hidden color dependency: using transparent for glass effect
+    itemBg = 'transparent';
   }
 
   let itemTextColor = theme.palette.text.primary as string;
+  /*
   if (!todo.completed && todo.color && todo.color.trim()) {
     const bg = todo.color;
     const itemBgLum = getLuminance(bg);
@@ -155,6 +159,7 @@ export default function TodoListItem({
       }
     }
   }
+  */
   if (todo.missing) {
     itemTextColor = theme.palette.text.primary as string;
   }
@@ -162,6 +167,7 @@ export default function TodoListItem({
   return (
     <Grow in timeout={300}>
       <Card
+        className={`glass ${todo.missing ? 'glass-missing' : ''}`}
         draggable={!viewingHistory}
         onDragStart={(e) => onDragStart(e, globalIndex)}
         onDragOver={onDragOver}
@@ -173,7 +179,7 @@ export default function TodoListItem({
         onTouchEnd={(e) => onTouchEnd(e, globalIndex)}
         sx={{
           mb: theme.spacing(2),
-          backgroundColor: itemBg || 'inherit',
+          backgroundColor: itemBg || 'transparent',
           opacity: todo.completed ? 0.75 : 1,
           boxShadow: dragOverIndex === globalIndex ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.4)}` : 'none',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -191,7 +197,7 @@ export default function TodoListItem({
             pointerEvents: 'none',
           } : {},
         }}
-        elevation={2}
+        elevation={0}
       >
         <CardContent sx={{ p: theme.spacing(2), '&:last-child': { pb: theme.spacing(2) } }}>
           <ListItem disableGutters sx={{ p: 0 }}>
@@ -374,6 +380,7 @@ export default function TodoListItem({
                       setQuantity(todo.quantity);
                       setComment(todo.comment || '');
                       setUnit(todo.unit || '');
+                      // @ts-ignore - color prop hidden from type but still flows through DB
                       setColor(todo.color || listDefaultColor);
                       setCategory(todo.category || '');
                       if (onEdit) {
