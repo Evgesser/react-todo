@@ -46,33 +46,40 @@ function trainClassifier() {
   const newClassifier = new natural.BayesClassifier(universalStemmer as any);
   const trainingPath = path.resolve(process.cwd(), 'training_data_augmented.json');
 
-  // Prefer augmented training data if present
+  // Объединённое обучение: сначала training_data_augmented.json, затем categoryKeywords (без дубликатов)
+  let jsonData: Record<string, Set<string>> = {};
   if (fs.existsSync(trainingPath)) {
     try {
       const raw = fs.readFileSync(trainingPath, 'utf8');
       const data = JSON.parse(raw) as Record<string, string[]>;
+      // Сохраняем для проверки дубликатов
       Object.entries(data).forEach(([label, examples]) => {
+        jsonData[label] = new Set();
         examples.forEach((ex) => {
           if (ex && ex.trim()) {
             const tokens = tokenizer.tokenize(ex.toLowerCase());
-            if (tokens.length > 0) newClassifier.addDocument(tokens.join(' '), label);
+            if (tokens.length > 0) {
+              newClassifier.addDocument(tokens.join(' '), label);
+              jsonData[label].add(ex.toLowerCase());
+            }
           }
         });
       });
-      newClassifier.train();
-      return newClassifier;
     } catch (e) {
-      // fall back to constants if JSON fails
-      console.error('Failed to load training_data_augmented.json, falling back to constants', e);
+      console.error('Failed to load training_data_augmented.json, will use only constants', e);
+      jsonData = {};
     }
   }
 
-  // Fallback: Train from our constants.ts data
+  // Добавляем ключевые слова из categoryKeywords, если их нет в jsonData
   Object.entries(categoryKeywords).forEach(([lang, categories]) => {
     Object.entries(categories).forEach(([label, keywords]) => {
       keywords.forEach((keyword: string) => {
-        const tokens = tokenizer.tokenize(keyword.toLowerCase());
-        if (tokens.length > 0) newClassifier.addDocument(tokens.join(' '), label);
+        const kw = keyword.toLowerCase();
+        if (!jsonData[label] || !jsonData[label].has(kw)) {
+          const tokens = tokenizer.tokenize(kw);
+          if (tokens.length > 0) newClassifier.addDocument(tokens.join(' '), label);
+        }
       });
     });
   });

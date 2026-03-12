@@ -37,17 +37,18 @@ yarn-error.log*
 next-env.d.ts
 
 # Training artifacts (ignored)
-# NOTE: `model_sklearn.joblib` is intentionally tracked per your request.
 training_data_augmented.json
-fasttext_full_data.txt
-fasttext_train.txt
-fasttext_test.txt
-fasttext_data.txt
+model_sklearn.joblib
 fasttext_*.txt
 *.ftz
 *.bin
 *.model
 *.pkl
+*.joblib
+model_comparison_results.txt
+test_unique_cases*.txt
+/scripts/*.py
+/scripts/test-js-classifier.mjs
 
 # Python
 __pycache__/
