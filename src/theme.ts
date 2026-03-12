@@ -117,38 +117,6 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
           },
         },
       },
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            textTransform: 'none',
-            borderRadius: 12,
-            padding: '8px 16px',
-            transition: 'all 0.2s ease-in-out',
-            boxShadow: 'none',
-            '&:hover': {
-              boxShadow: mode === 'dark' ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.1)',
-              transform: 'translateY(-1px)',
-            },
-          },
-          contained: {
-            '&:active': {
-              boxShadow: 'none',
-              transform: 'translateY(0)',
-            },
-          },
-          // primary buttons use a purple-pink gradient like mobile design
-          containedPrimary: {
-            background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
-            color: '#FFFFFF',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #2B6FD8 0%, #4F9AF8 100%)',
-            },
-            '&:active': {
-              background: 'linear-gradient(135deg, #1E40AF 0%, #3B6FE6 100%)',
-            },
-          },
-        },
-      },
       MuiDialogActions: {
         styleOverrides: {
           root: ({ theme }) => ({
@@ -300,54 +268,6 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
           underline: {
             '&:before, &:after': {
               borderBottom: 'none !important',
-            },
-          },
-        },
-      },
-      MuiTextField: {
-        defaultProps: {
-          margin: 'normal',
-          fullWidth: false,
-          variant: 'outlined',
-        },
-        styleOverrides: {
-          root: {
-            '& .MuiFilledInput-root': {
-              borderRadius: 12,
-              backgroundColor: mode === 'dark' ? '#1f1f1f' : '#f5f5f5',
-              border: mode === 'dark' ? '1px solid #333' : '1px solid #ccc',
-              '&:hover': {
-                backgroundColor: mode === 'dark' ? '#272727' : '#e0e0e0',
-              },
-            },
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 12,
-              transition: 'box-shadow 0.2s ease',
-              '&:hover': {
-                boxShadow: mode === 'dark' ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : '0 0 0 2px rgba(59, 130, 246, 0.1)',
-              },
-              '&.Mui-focused': {
-                boxShadow: mode === 'dark' ? '0 0 0 3px rgba(59, 130, 246, 0.3)' : '0 0 0 3px rgba(59, 130, 246, 0.2)',
-              }
-            },
-            // ensure input text, placeholder and labels are visible in dark mode
-            '& .MuiFilledInput-input': {
-              color: mode === 'dark' ? '#F8FAFC' : undefined,
-              '&::placeholder': {
-                color: mode === 'dark' ? 'rgba(248,250,252,0.6)' : undefined,
-              },
-            },
-            '& .MuiOutlinedInput-input': {
-              color: mode === 'dark' ? '#F8FAFC' : undefined,
-              '&::placeholder': {
-                color: mode === 'dark' ? 'rgba(248,250,252,0.6)' : undefined,
-              },
-            },
-            '& .MuiInputLabel-root': {
-              color: mode === 'dark' ? '#F8FAFC' : undefined,
-            },
-            '& .MuiInputLabel-root.Mui-focused, & .MuiInputLabel-root.MuiInputLabel-shrink': {
-              color: mode === 'dark' ? '#F8FAFC' : undefined,
             },
           },
         },

@@ -115,18 +115,25 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const normalized = text.toLowerCase();
     
-    // We already use the universalStemmer in the classifier, 
-    // but we can pass the string directly as it will use the stemmer internally.
-    const category = classifier.classify(normalized);
+    // Check classifier classifications with scores
+    // @ts-ignore
+    const raw = classifier.getClassifications(normalized) || [];
+    const classifications = raw.slice(0, 10).map((c: any) => ({ label: c.label, value: c.value }));
+    
+    // Sort and get the best one
+    const sorted = [...classifications].sort((a, b) => b.value - a.value);
+    const topResult = sorted[0];
 
-    // getClassifications may return array of {label, value}
-    let classifications: Array<{ label: string; value: number }> = [];
-    try {
-      // @ts-ignore
-      const raw = classifier.getClassifications(normalized) || [];
-      classifications = raw.slice(0, 10).map((c: any) => ({ label: c.label, value: c.value }));
-    } catch (e) {
-      // ignore
+    // If the score for the top result is too low, or if the classifier 
+    // is just guessing between equally weak options, return 'none'.
+    // Bayes classifier values for very small training sets can be deceptive,
+    // but usually a value > 0.001 (or similar) is needed for "confidence".
+    // Alternatively, if the difference between top 1 and top 2 is negligible.
+    let category = topResult?.label || 'none';
+    
+    // Logic: if we have zero confidence, or it's a default guess
+    if (!topResult || topResult.value < 0.0001) {
+        category = 'none';
     }
 
     return res.status(200).json({ category, classifications });

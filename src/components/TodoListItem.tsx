@@ -336,10 +336,21 @@ export default function TodoListItem({
                       sx={{
                         color: itemTextColor,
                         fontWeight: 500,
-                        textDecoration: todo.missing || todo.completed ? 'line-through' : 'none',
-                        opacity: todo.completed ? 0.7 : 1,
-                        transition: 'all 0.5s ease',
-                        animation: todo.completed ? 'strikeThrough 0.5s ease forwards, fadeOut 0.5s ease forwards' : 'none',
+                        position: 'relative',
+                        display: 'inline-block',
+                        opacity: todo.completed ? 0.6 : 1,
+                        transition: 'opacity 0.4s ease',
+                        '&::after': {
+                          content: '""',
+                          position: 'absolute',
+                          left: 0,
+                          top: '50%',
+                          width: todo.completed || todo.missing ? '100%' : '0%',
+                          height: '2px',
+                          bgcolor: itemTextColor,
+                          transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                          opacity: 0.8,
+                        },
                       }}
                     >
                       {todo.name}

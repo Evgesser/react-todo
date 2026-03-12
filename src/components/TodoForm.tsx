@@ -26,7 +26,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
-import { Category, iconMap, iconChoices } from '@/constants';
+import { Category, iconMap, iconChoices, categoryKeywords } from '@/constants';
 import useAppStore from '@/stores/useAppStore';
 import { UseTodosReturn } from '@/hooks/useTodos';
 import { useNameOptions } from '@/hooks/useNameOptions';
@@ -183,6 +183,17 @@ export default function TodoForm({
   const [tempQuantity, setTempQuantity] = React.useState<number>(
     todoActions.quantity || 1
   );
+
+  // Category confirmation dialog
+  const [confirmCategoryOpen, setConfirmCategoryOpen] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [pendingParsed, setPendingParsed] = React.useState<{
+    name: string;
+    category: string;
+    quantity: number;
+    unit: string;
+    comment: string;
+  } | null>(null);
 
   // image attachment data (base64) compressed
   const [imageData, setImageData] = React.useState<string | null>(null);
@@ -451,8 +462,9 @@ export default function TodoForm({
     // compute parse fresh or use override
     let p: Override | ParsedInput | null = override ?? parsed ?? parseSmartInput(name || '', language);
 
-    // If category is still missing, try to detect it using our smart classifier
-    if (p && (!p.category || p.category === 'none')) {
+    // If category is still missing AND no explicit override for category was provided, try to detect it
+    // But if override.category is empty string, we MUST keep it as empty string (user explicitly chose 'no category')
+    if (p && (override?.category === undefined) && (!p.category || p.category === 'none')) {
       const detected = await inferCategorySmart(p.name || name || '', language);
       if (detected) p.category = detected;
     }
@@ -612,7 +624,7 @@ export default function TodoForm({
                       <span>{data.name}</span>
                       {data.category && (
                         <Typography variant="caption" color="text.secondary">
-                          {data.category}
+                          {(t.categoryLabels as Record<string, string>)?.[data.category] || data.category}
                         </Typography>
                       )}
                       {data.comment && (
@@ -662,7 +674,7 @@ export default function TodoForm({
                           >
                             <IconButton
                               size="small"
-                                onClick={(e) => {
+                              onClick={(e) => {
                                 e.stopPropagation();
                                 try {
                                   if (isListening) {
@@ -673,6 +685,7 @@ export default function TodoForm({
                                 } catch {}
                               }}
                               edge="end"
+                              className={isListening ? 'voice-active' : ''}
                               color={isListening ? 'primary' : undefined}
                               aria-label={isListening ? t.todos.stopListening : t.todos.startListening}
                             >
@@ -717,14 +730,14 @@ export default function TodoForm({
                 </Typography>
               )}
               {previewCategory.label && (
-                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <strong>{t.todos.category}:</strong>
                   {previewCategory.Icon ? (
                     <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
                       {React.createElement(previewCategory.Icon, { fontSize: 'small' })}
                     </Box>
                   ) : null}
-                  <Box>{previewCategory.label}</Box>
+                  <Box component="span">{previewCategory.label}</Box>
                 </Typography>
               )}
               <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
@@ -736,21 +749,46 @@ export default function TodoForm({
                     mr: theme.direction === 'rtl' ? 0 : 1 
                   }} />}
                   onClick={async () => {
-                    // Try to get a better category from our classifier if current one is default/missing
-                    let finalCategory = parsed?.category;
-                    if (!finalCategory || finalCategory === 'none') {
-                      const detected = await inferCategorySmart(parsed?.name || '', language);
-                      if (detected) finalCategory = detected;
-                    }
+                    // Normalize inputs from state or parsed
+                    const currentName = parsed?.name || name || '';
+                    const currentCategory = parsed?.category || category || '';
+                    const currentQuantity = parsed?.quantity || quantity || 1;
+                    const currentUnit = parsed?.unit || unit || '';
+                    const currentComment = parsed?.comment || description || comment || '';
 
-                    // Save the item immediately
-                    await handleAdd({
-                      name: parsed?.name || name,
-                      category: finalCategory || category,
-                      quantity: parsed?.quantity || quantity || 1,
-                      unit: parsed?.unit || unit,
-                      comment: parsed?.comment || description || comment,
-                    });
+                    // Try to get a better category from our classifier if current one is default/missing
+                    let finalCategory = currentCategory;
+                    
+                    // IF category is missing, we opening dialog and ONLY THEN try to infer
+                    const isInitialCategoryMissing = !finalCategory || finalCategory === 'none' || finalCategory === '';
+
+                    if (isInitialCategoryMissing) {
+                      console.log('Category missing, checking smart inference before opening dialog...');
+                      const detected = await inferCategorySmart(currentName, language);
+                      console.log('Detected category from API:', detected);
+                      
+                      const data = {
+                        name: currentName,
+                        category: (detected && detected !== 'none') ? detected : '',
+                        quantity: currentQuantity,
+                        unit: currentUnit,
+                        comment: currentComment,
+                      };
+
+                      setPendingParsed(data);
+                      setConfirmCategoryOpen(true);
+                    } else {
+                      // Category already set by user or autocomplete, just add
+                      const data = {
+                        name: currentName,
+                        category: finalCategory,
+                        quantity: currentQuantity,
+                        unit: currentUnit,
+                        comment: currentComment,
+                      };
+                      console.log('Category already present, adding item:', data.category);
+                      await handleAdd(data);
+                    }
                   }}
                 >
                   {t.buttons?.smartAdd || 'Умная подстановка'}
@@ -900,13 +938,27 @@ export default function TodoForm({
             filterOptions={(opts, state) => {
               const q = (state.inputValue || '').trim().toLowerCase();
               if (!q) return opts;
+              
+              const langKeywords = categoryKeywords[language] || categoryKeywords.en;
+
               return opts.filter((opt) => {
                 const label = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
                 const value = typeof opt === 'string' ? opt : (opt.value || '');
-                return (
-                  label.toLowerCase().includes(q) ||
-                  value.toLowerCase().includes(q)
-                );
+                
+                // 1. Check direct match in label/value (startsWith or partial)
+                if (label.toLowerCase().includes(q) || value.toLowerCase().includes(q)) {
+                  return true;
+                }
+
+                // 2. Check if query matches any keywords (including partial matches like "сне" matches "снеки")
+                if (value && langKeywords[value]) {
+                  return langKeywords[value].some(kw => {
+                    const lkw = kw.toLowerCase();
+                    return lkw.includes(q) || q.includes(lkw);
+                  });
+                }
+
+                return false;
               });
             }}
             disablePortal={true}
@@ -1037,6 +1089,228 @@ export default function TodoForm({
         onClose={() => setQuantityDialogOpen(false)}
         t={t}
       />
+      <Dialog
+        open={confirmCategoryOpen}
+        onClose={() => setConfirmCategoryOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ className: 'glass', sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pb: 0 }}>
+          <Typography variant="h6" fontWeight="bold">
+            {t.todos.category || 'Category'}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ textAlign: 'center', p: 3 }}>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            {t.messages.possibleCategoryMismatch || 'Select category for:'} 
+            <Box component="span" sx={{ fontWeight: 'bold', mx: 1, color: 'primary.main' }}>
+              "{(pendingParsed?.name || '').toLowerCase()}"
+            </Box>
+          </Typography>
+          <Autocomplete
+            freeSolo
+            options={categoryOptions}
+            getOptionLabel={(opt) =>
+              typeof opt === 'string' ? opt : opt.label || opt.value
+            }
+            filterOptions={(opts, state) => {
+              const q = (state.inputValue || '').trim().toLowerCase();
+              if (!q) return opts;
+              
+              const langKeywords = categoryKeywords[language] || categoryKeywords.en;
+
+              return opts.filter((opt) => {
+                const label = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
+                const value = typeof opt === 'string' ? opt : (opt.value || '');
+                
+                // 1. Check direct match in label/value (startsWith or partial)
+                if (label.toLowerCase().includes(q) || value.toLowerCase().includes(q)) {
+                  return true;
+                }
+
+                // 2. Check if query matches any keywords (including partial matches like "сне" matches "снеки")
+                if (value && langKeywords[value]) {
+                  return langKeywords[value].some(kw => {
+                    const lkw = kw.toLowerCase();
+                    return lkw.includes(q) || q.includes(lkw);
+                  });
+                }
+
+                return false;
+              });
+            }}
+            value={
+              !pendingParsed?.category
+                ? null
+                : availableCategories.find((c) => c.value === pendingParsed.category) ||
+                  (pendingParsed.category
+                    ? {
+                        value: pendingParsed.category,
+                        label:
+                          (t.categoryLabels as Record<string, string>)?.[pendingParsed.category] ||
+                          iconChoices.find((x) => x.key === pendingParsed.category)?.label ||
+                          pendingParsed.category,
+                        icon: iconChoices.find((x) => x.key === pendingParsed.category)?.icon || null,
+                      }
+                    : null)
+            }
+            inputValue={
+              pendingParsed?.category === '' 
+                ? '' 
+                : (typeof pendingParsed?.category === 'string' 
+                   ? ((t.categoryLabels as Record<string, string>)?.[pendingParsed.category] || 
+                      availableCategories.find(c => c.value === pendingParsed.category)?.label || 
+                      pendingParsed.category)
+                   : '')
+            }
+            onInputChange={(_, v, reason) => {
+              if (pendingParsed) {
+                // We update for both 'input' (typing) and 'reset' (selection/blur)
+                // but we filter based on availableCategories to map labels back to values
+                const found = availableCategories.find(c => c.label === v || c.value === v);
+                const newVal = found ? found.value : v;
+                setPendingParsed({ ...pendingParsed, category: newVal });
+              }
+            }}
+            onChange={(_, v) => {
+              let val = '';
+              if (typeof v === 'string') {
+                val = v;
+              } else if (v && typeof v === 'object') {
+                val = v.value || '';
+              }
+              if (pendingParsed) {
+                setPendingParsed({ ...pendingParsed, category: val });
+              }
+            }}
+            renderOption={(props, option) => (
+              <li {...props} key={option.value}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  {option.icon ? <option.icon fontSize="small" sx={{ marginInlineEnd: 0.5 }} /> : null}
+                  {option.label || option.value}
+                </Box>
+              </li>
+            )}
+            renderInput={(params) => (
+              <TextField 
+                {...params} 
+                label={t.todos.category} 
+                fullWidth 
+                autoFocus 
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && pendingParsed && !isSubmitting) {
+                    const found = availableCategories.find(c => c.label === pendingParsed.category);
+                    const finalCategory = found ? found.value : pendingParsed.category;
+                    
+                    setIsSubmitting(true);
+                    handleAdd({ ...pendingParsed, category: finalCategory }).finally(() => {
+                      setIsSubmitting(false);
+                      setConfirmCategoryOpen(false);
+                    });
+                  }
+                }}
+              />
+            )}
+          />
+          {pendingParsed?.category && (
+            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+              <Chip
+                label={
+                  (t.categoryLabels as Record<string, string>)?.[pendingParsed.category] || 
+                  availableCategories.find(c => c.value === pendingParsed.category)?.label || 
+                  pendingParsed.category
+                }
+                icon={iconChoices.find((x) => x.key === pendingParsed.category)?.icon ? React.createElement(iconChoices.find((x) => x.key === pendingParsed.category)!.icon, { fontSize: 'small' }) : undefined}
+                onDelete={() => setPendingParsed({ ...pendingParsed, category: '' })}
+                color="primary"
+                variant="outlined"
+                size="small"
+                disabled={isSubmitting}
+              />
+            </Box>
+          )}
+
+          {/* Icon picker for NEW categories in dialog */}
+          {pendingParsed?.category && !availableCategories.find((c) => c.value === pendingParsed.category) && (
+            <Box sx={{ mt: 1 }}>
+              <CategoryIconPicker
+                selected={tempIconKey}
+                onChange={setTempIconKey}
+              />
+            </Box>
+          )}
+
+          <Box sx={{ mt: 3 }}>
+            {isSubmitting ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 1 }}>
+                <LinearProgress sx={{ width: '100%', mb: 1, borderRadius: 1 }} />
+                <Typography variant="caption" color="text.secondary">
+                  {t.auth?.loading || 'Processing...'}
+                </Typography>
+              </Box>
+            ) : (
+              <Stack spacing={1.5}>
+                <Button 
+                  fullWidth
+                  variant="contained" 
+                  onClick={async () => {
+                    if (pendingParsed && !isSubmitting) {
+                      setIsSubmitting(true);
+                      try {
+                        const found = availableCategories.find(c => c.label === pendingParsed.category);
+                        const finalCategory = found ? found.value : pendingParsed.category;
+                        
+                        if (finalCategory) {
+                          await ensureCategoryExists(finalCategory, tempIconKey || undefined);
+                        }
+                        await handleAdd({ ...pendingParsed, category: finalCategory });
+                        setConfirmCategoryOpen(false);
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }
+                  }}
+                  sx={{ borderRadius: 2, py: 1 }}
+                >
+                  {t.buttons.add}
+                </Button>
+                <Button 
+                  fullWidth
+                  variant="outlined" 
+                  color="warning"
+                  onClick={async () => {
+                    if (pendingParsed && !isSubmitting) {
+                      setIsSubmitting(true);
+                      try {
+                        // Immediately clear visual state in dialog to avoid confusion
+                        setPendingParsed({ ...pendingParsed, category: '' });
+                        
+                        // Explicitly save with NO category
+                        await handleAdd({ ...pendingParsed, category: '' });
+                        setConfirmCategoryOpen(false);
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }
+                  }}
+                  sx={{ borderRadius: 2, py: 1 }}
+                >
+                  {language === 'ru' ? 'Без категории' : (t.categoryLabels as Record<string, string>)?.[ '' ] || 'Without Category'}
+                </Button>
+                <Button 
+                  fullWidth
+                  variant="text" 
+                  onClick={() => setConfirmCategoryOpen(false)}
+                  sx={{ borderRadius: 2, color: 'text.secondary' }}
+                >
+                  {t.buttons.cancel}
+                </Button>
+              </Stack>
+            )}
+          </Box>
+        </DialogContent>
+      </Dialog>
     </>
   );
 

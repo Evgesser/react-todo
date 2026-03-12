@@ -48,13 +48,19 @@ export default function TodoList({
     const orderSorted = [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
     const cats = Array.from(new Set(orderSorted.map((t) => t.category || '')));
     const sorted = [...filtered].sort((a, b) => {
+      // 1. Сортируем по категориям
       const ca = cats.indexOf(a.category || '');
       const cb = cats.indexOf(b.category || '');
       if (ca !== cb) return ca - cb;
-      // same category: unfinished items first
-      if (a.completed !== b.completed) {
-        return a.completed ? 1 : -1;
+
+      // 2. Внутри категории: выполненные/отсутствующие товары — в самый низ блока
+      const aDone = a.completed || a.missing;
+      const bDone = b.completed || b.missing;
+      if (aDone !== bDone) {
+        return aDone ? 1 : -1;
       }
+
+      // 3. Внутри одной категории среди невыполненных (или среди выполненных) — по заданному порядку
       return (a.order || 0) - (b.order || 0);
     });
 

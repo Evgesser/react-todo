@@ -351,8 +351,29 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     if (!currentListId) return;
     const newCompleted = !todo.completed;
     const newStatus = newCompleted ? 'done' : 'pending';
-    setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, completed: newCompleted, status: newStatus } : t)));
+
+    // 1. Сначала только визуально меняем состояние (запустится анимация зачеркивания)
+    // Мы НЕ меняем порядок в стейте вручную, так как TodoList.tsx теперь снова
+    // сортирует по completed. Это вызовет мгновенный прыжок.
+    // Чтобы избежать прыжка, мы могли бы временно отключить сортировку, 
+    // но проще всего подождать окончания анимации ДО обновления стейта,
+    // если мы хотим, чтобы элемент не прыгал.
+    
+    // Однако, пользователь хочет, чтобы перемещение БЫЛО, но ПОСЛЕ анимации.
+    // Поэтому мы сначала обновляем только те поля, которые влияют на визуализацию (зачеркивание)
+    setTodos((prev) =>
+      prev.map((t) => (t._id === todo._id ? { ...t, completed: newCompleted, status: newStatus } : t))
+    );
+
+    // 2. Ждем завершения анимации (примерно 500мс)
+    if (newCompleted) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    // 3. Отправляем на сервер и обновляем список
     await apiUpdateTodo(todo._id, { listId: currentListId, completed: newCompleted, status: newStatus });
+    
+    // После fetchTodos элементы перестроятся согласно новому состоянию с сервера
     await fetchTodos(currentListId, undefined, true);
   };
 
