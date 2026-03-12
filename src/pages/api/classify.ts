@@ -12,7 +12,8 @@ try {
   // We use require here to stay in CJS mode if that's what natural expects internally,
   // but we only import what we actually use.
   const BayesClassifier = require('natural/lib/natural/classifiers/bayes_classifier');
-  const RegexpTokenizer = require('natural/lib/natural/tokenizers/regexp_tokenizer');
+  // RegexpTokenizer is not a direct export, but a property of the object returned by its file
+  const { RegexpTokenizer } = require('natural/lib/natural/tokenizers/regexp_tokenizer');
   const PorterStemmer = require('natural/lib/natural/stemmers/porter_stemmer');
   natural = { BayesClassifier, RegexpTokenizer, PorterStemmer };
 } catch (e) {
