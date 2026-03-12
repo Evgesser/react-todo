@@ -238,6 +238,7 @@ export default function ListToolbar({
           </MenuItem>
           <MenuItem
             onClick={async () => {
+              closeMenu();
               if (!currentListId) {
                 return;
               }
@@ -247,6 +248,8 @@ export default function ListToolbar({
                 const link = precomputedLink || (token ? `${origin}/shared?token=${encodeURIComponent(token)}` : '');
                 
                 if (!link) {
+                  setSnackbarMsg(formatMessage('messages.saveError'));
+                  setSnackbarOpen(true);
                   return;
                 }
 
@@ -274,11 +277,11 @@ export default function ListToolbar({
                       })();
                     }
 
-                    closeMenu();
                     return;
                   } catch (err: unknown) {
                     const e = err as { name?: string };
                     if (e.name === 'AbortError') {
+                      closeMenu();
                       return;
                     }
                     // Fall through to clipboard fallback
@@ -319,8 +322,6 @@ export default function ListToolbar({
                     // Silent fail
                   }
                 }
-                
-                closeMenu();
                 
                 if (clipboardSuccess) {
                   setSnackbarMsg(formatMessage('lists.linkCopied'));

@@ -20,6 +20,8 @@ import type { IntlShape } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
 import { useSharedTodos } from '@/hooks/useSharedTodos';
 import TodoList from '@/components/TodoList';
+import type { UseTodosReturn } from '@/hooks/useTodos';
+import type { UseListsReturn } from '@/hooks/useLists';
 
 export default function SharedPage() {
   const router = useRouter();
@@ -111,8 +113,6 @@ export default function SharedPage() {
     headerTextColor = theme.palette.text.primary;
   }
 
-  const LIGHT_WHITE2 = LIGHT_WHITE; // reuse
-
   // Reuse the same `TodoList` UI as the main page by adapting the shared hook.
   // `useSharedTodos` exposes a smaller API; create a minimal adapter that
   // satisfies `TodoList` / `TodoListItem` expectations and renders the same look.
@@ -141,6 +141,7 @@ export default function SharedPage() {
     lastAdded: null,
     categoryWarning: '',
     clearedForName: null,
+    reorderInFlight: false,
 
     // setters (no-op or delegated where sensible)
     setTodos: () => {},
@@ -183,7 +184,7 @@ export default function SharedPage() {
     startInlineEdit: () => {},
     finishInlineEdit: async () => {},
     moveCategory: todoActions.moveCategory,
-  } as unknown as any;
+  } as unknown as UseTodosReturn;
 
   const listActionsStub = {
     // keep most interactions available for shared view, but disable
@@ -192,7 +193,7 @@ export default function SharedPage() {
     listDefaultColor: todoActions.list?.defaultColor || '#ffffff',
     canEdit: false,
     canDelete: false,
-  } as unknown as any;
+  } as unknown as UseListsReturn;
 
   return (
     <Container
@@ -315,7 +316,7 @@ export default function SharedPage() {
           todoActions={todoActionsAdapter}
           listActions={listActionsStub}
           availableCategories={[]}
-          t={t as any}
+          t={t}
           onEdit={() => {}}
         />
       </Box>

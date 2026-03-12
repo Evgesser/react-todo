@@ -43,7 +43,6 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import { useTheme, alpha } from '@mui/material/styles';
-import { getTextColor, getLuminance } from '@/utils/color';
 import type { Category } from '@/constants';
 import type { TranslationKeys } from '@/locales/ru';
 import type { Todo } from '@/types';
@@ -67,7 +66,6 @@ export default function TodoListItem({
   globalIndex,
   todoActions,
   listActions,
-  availableCategories,
   t,
   onEdit,
 }: TodoListItemProps) {
@@ -87,7 +85,6 @@ export default function TodoListItem({
     setInlineDescription,
     finishInlineEdit,
     setInlineEditId,
-    startInlineEdit,
     toggleMissing,
     setEditingId,
     setName,
@@ -107,6 +104,7 @@ export default function TodoListItem({
     onTouchMove,
     onTouchEnd,
     toggleComplete,
+    pendingCompleteIds,
   } = todoActions;
 
   const [infoAnchor, setInfoAnchor] = React.useState<HTMLElement | null>(null);
@@ -122,7 +120,7 @@ export default function TodoListItem({
   // allow callers (like the shared page) to explicitly override which
   // action buttons should be visible. If not provided, fall back to
   // the historical behaviour (hide when viewingHistory is true).
-  const la = listActions as any;
+  const la = listActions as UseListsReturn & { canEdit?: boolean; canDelete?: boolean };
   const canEdit = la.canEdit !== undefined ? la.canEdit : !viewingHistory;
   const canDelete = la.canDelete !== undefined ? la.canDelete : !viewingHistory;
 
@@ -204,8 +202,12 @@ export default function TodoListItem({
             <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
               {bulkMode && (
                 <Checkbox
+                  data-no-drag="true"
                   checked={selectedIds.has(todo._id)}
                   onChange={() => toggleSelect(todo._id)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  disableRipple
                   icon={<RadioButtonUncheckedIcon />}
                   checkedIcon={
                     <Box sx={{
@@ -228,9 +230,13 @@ export default function TodoListItem({
                 />
               )}
               <Checkbox
+                data-no-drag="true"
                 checked={todo.completed}
-                onChange={() => !viewingHistory && toggleComplete(todo)}
-                disabled={viewingHistory}
+                onChange={() => !viewingHistory && !pendingCompleteIds.has(todo._id) && toggleComplete(todo)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                disabled={viewingHistory || pendingCompleteIds.has(todo._id)}
+                disableRipple
                 icon={<RadioButtonUncheckedIcon />}
                 checkedIcon={
                   <Box sx={{
@@ -364,6 +370,7 @@ export default function TodoListItem({
 
               <Stack direction="row" spacing={1}>
                 <IconButton
+                  data-no-drag="true"
                     edge="end"
                     size="small"
                     aria-label={todo.missing ? t.todos.unmarkMissing : t.todos.markMissing}
@@ -375,6 +382,7 @@ export default function TodoListItem({
                 </IconButton>
                 {canEdit && (
                   <IconButton
+                    data-no-drag="true"
                     edge="end"
                     size="small"
                     aria-label={t.todos.edit}
@@ -391,7 +399,6 @@ export default function TodoListItem({
                       setQuantity(todo.quantity);
                       setComment(todo.comment || '');
                       setUnit(todo.unit || '');
-                      // @ts-ignore - color prop hidden from type but still flows through DB
                       setColor(todo.color || listDefaultColor);
                       setCategory(todo.category || '');
                       if (onEdit) {
@@ -404,6 +411,7 @@ export default function TodoListItem({
                 )}
                 {canDelete && (
                   <IconButton
+                    data-no-drag="true"
                     edge="end"
                     size="small"
                     aria-label={t.todos.delete}
@@ -421,6 +429,7 @@ export default function TodoListItem({
                 {(todo.description || todo.comment) && (
                   <>
                     <IconButton
+                      data-no-drag="true"
                       edge="end"
                       size="small"
                       aria-label={t.todos.description}

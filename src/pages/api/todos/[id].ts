@@ -29,6 +29,7 @@ export default async function handler(
         description,
         quantity,
         completed,
+        status,
         comment,
         color,
         category,
@@ -42,6 +43,7 @@ export default async function handler(
         description?: unknown;
         quantity?: unknown;
         completed?: unknown;
+        status?: unknown;
         comment?: unknown;
         color?: unknown;
         category?: unknown;
@@ -61,6 +63,7 @@ export default async function handler(
         description?: string;
         quantity?: number;
         completed?: boolean;
+        status?: string;
         missing?: boolean;
         comment?: string;
         unit?: string;
@@ -74,6 +77,7 @@ export default async function handler(
       if (typeof description === 'string') update.description = description;
       if (typeof quantity === 'number') update.quantity = quantity;
       if (typeof completed === 'boolean') update.completed = completed;
+      if (typeof status === 'string') update.status = status;
       if (typeof missing === 'boolean') update.missing = missing;
       if (typeof comment === 'string') update.comment = comment;
       if (typeof unit === 'string') update.unit = unit;

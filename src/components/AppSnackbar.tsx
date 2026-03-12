@@ -14,21 +14,32 @@ export default function AppSnackbar({
   severity = 'success',
   onClose,
 }: Props) {
+  const handleClose = (_event?: Event | React.SyntheticEvent, reason?: string) => {
+    if (reason === 'clickaway') return;
+    onClose();
+  };
+
   return (
     <Snackbar
       open={open}
-      autoHideDuration={4000}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      TransitionComponent={(props) => <Slide {...props} direction="up" />}
+      autoHideDuration={2000}
+      onClose={handleClose}
+      anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      TransitionComponent={(props) => <Slide {...props} direction="down" />}
+      sx={{
+        top: 'calc(env(safe-area-inset-top) + 8px)',
+        pointerEvents: 'none',
+      }}
     >
       <Alert
-        onClose={onClose}
+        onClose={() => onClose()}
         severity={severity}
         variant="standard"
         role="status"
         sx={{
-          width: '100%',
+          width: 'auto',
+          maxWidth: 'min(560px, calc(100vw - 24px))',
+          pointerEvents: 'auto',
           borderRadius: 12,
           boxShadow: '0 8px 24px rgba(2,6,23,0.08)',
           bgcolor: 'background.paper',

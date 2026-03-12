@@ -67,8 +67,7 @@ export function useSharedTodos(
     const newStatus = newCompleted ? 'done' : 'pending';
     setTodos((prev) => prev.map((t) => (t._id === todo._id ? { ...t, completed: newCompleted, status: newStatus } : t)));
     await updateSharedTodo(token, { todoId: todo._id, completed: newCompleted, status: newStatus });
-    // fetch is called in background but we don't await blocking it if it flickers
-    fetch();
+    await fetch();
   };
 
   const toggleMissing = async (todo: Todo) => {
@@ -100,22 +99,33 @@ export function useSharedTodos(
     const targetIdx = direction === 'up' ? blockIdx - 1 : blockIdx + 1;
     if (targetIdx < 0 || targetIdx >= blocks.length) return;
     [blocks[blockIdx], blocks[targetIdx]] = [blocks[targetIdx], blocks[blockIdx]];
-    const newOrder = blocks.flatMap((b) => b.items.slice());
-    newOrder.forEach((t, i) => {
-      t.order = i;
-    });
+    const flat = blocks.flatMap((b) => b.items.slice());
+    const newOrder = flat.map((t, i) => (t.order === i ? t : { ...t, order: i }));
     setTodos(newOrder);
     // persist all orders
     await Promise.all(
-      newOrder.map((t, i) =>
-        updateSharedTodo(token, { todoId: t._id, order: i })
+      newOrder.map((t) =>
+        updateSharedTodo(token, { todoId: t._id, order: t.order as number })
       )
     );
     await fetch();
   };
 
   // drag/drop handlers (copied from useTodos)
+  const isInteractiveTarget = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) return false;
+    return Boolean(
+      target.closest(
+        'button, input, textarea, select, a, [role="button"], [role="checkbox"], .MuiButtonBase-root, [data-no-drag="true"]'
+      )
+    );
+  };
+
   const onDragStart = (e: React.DragEvent, index: number) => {
+    if (isInteractiveTarget(e.target)) {
+      e.preventDefault();
+      return;
+    }
     if (typeof index !== 'number' || index < 0) return;
     const dragged = todos[index];
     const payload = JSON.stringify({ index, category: dragged?.category || '', id: dragged?._id || '' });
@@ -142,39 +152,43 @@ export function useSharedTodos(
   const onDrop = async (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
     const raw = e.dataTransfer.getData('text/plain');
-    let startIndex = parseInt(raw, 10);
+    let startIndex = -1;
+    let draggedId = '';
     try {
       const parsed = JSON.parse(raw);
       if (typeof parsed.index === 'number') startIndex = parsed.index;
+      if (typeof parsed.id === 'string') draggedId = parsed.id;
     } catch {
-      // not JSON
+      const n = parseInt(raw, 10);
+      if (!isNaN(n)) startIndex = n;
     }
-    if (isNaN(startIndex) || startIndex < 0) return;
+    if (draggedId) {
+      const found = todos.findIndex((t) => t._id === draggedId);
+      if (found !== -1) startIndex = found;
+    }
+    if (startIndex < 0 || startIndex >= todos.length) return;
 
-    setTodos((prev) => {
-      const copy = [...prev];
-      const [moved] = copy.splice(startIndex, 1);
-      if (!moved) return prev;
+    const copy = [...todos];
+    const [moved] = copy.splice(startIndex, 1);
+    if (!moved) return;
 
-      const targetItem = copy[dropIndex] ?? copy[copy.length - 1];
-      const targetCategory = (targetItem && targetItem.category) || '';
-      const movedCategory = moved.category || '';
+    const targetItem = copy[dropIndex] ?? copy[copy.length - 1];
+    const targetCategory = (targetItem && targetItem.category) || '';
+    const movedCategory = moved.category || '';
 
-      if (movedCategory !== targetCategory) {
-        onSnackbar(fm('messages.cannotMoveBetweenCategories'));
-        return prev;
-      }
+    if (movedCategory !== targetCategory) {
+      onSnackbar(fm('messages.cannotMoveBetweenCategories'));
+      return;
+    }
 
-      copy.splice(dropIndex, 0, moved);
-      copy.forEach((t, idx) => {
-        t.order = idx;
-      });
-      // persist order
-      copy.forEach((t, idx) => {
-        updateSharedTodo(token, { todoId: t._id, order: idx });
-      });
-      return copy;
-    });
+    copy.splice(dropIndex, 0, moved);
+    const reordered = copy.map((t, idx) => (t.order === idx ? t : { ...t, order: idx }));
+
+    setTodos(reordered);
+
+    await Promise.all(
+      reordered.map((t) => updateSharedTodo(token, { todoId: t._id, order: t.order as number }))
+    );
     setDragOverIndex(null);
     await fetch();
   };
@@ -193,10 +207,34 @@ export function useSharedTodos(
     }
   };
 
+  const resetTouchDragState = React.useCallback(() => {
+    clearTouchTimer();
+    touchStartPos.current = null;
+    setTouchDragIndex(null);
+    setDragOverIndex(null);
+  }, []);
+
+  React.useEffect(() => {
+    const handleTouchEnd = () => {
+      resetTouchDragState();
+    };
+
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [resetTouchDragState]);
+
   const onTouchStart = (e: React.TouchEvent, index: number) => {
+    if (isInteractiveTarget(e.target)) {
+      return;
+    }
+    resetTouchDragState();
     const touch = e.touches[0];
     touchStartPos.current = { x: touch.clientX, y: touch.clientY };
-    clearTouchTimer();
     touchTimer.current = window.setTimeout(() => {
       setTouchDragIndex(index);
       touchTimer.current = null;
@@ -221,34 +259,37 @@ export function useSharedTodos(
   const onTouchEnd = async (e: React.TouchEvent, dropIndex: number) => {
     clearTouchTimer();
     if (touchDragIndex === null || touchDragIndex === dropIndex) {
-      setTouchDragIndex(null);
+      resetTouchDragState();
       return;
     }
 
-    setTodos((prev) => {
-      const copy = [...prev];
-      const [moved] = copy.splice(touchDragIndex, 1);
-      if (!moved) return prev;
-
-      const targetItem = copy[dropIndex] ?? copy[copy.length - 1];
-      const targetCategory = (targetItem && targetItem.category) || '';
-      const movedCategory = moved.category || '';
-      if (movedCategory !== targetCategory) {
-        onSnackbar(fm('messages.cannotMoveBetweenCategories'));
-        return prev;
-      }
-
-      copy.splice(dropIndex, 0, moved);
-      copy.forEach((t, idx) => {
-        t.order = idx;
-      });
-      copy.forEach((t, idx) => {
-        updateSharedTodo(token, { todoId: t._id, order: idx });
-      });
-      return copy;
-    });
+    const dragIdx = touchDragIndex;
+    touchStartPos.current = null;
     setTouchDragIndex(null);
+    setDragOverIndex(null);
+
+    const copy = [...todos];
+    const [moved] = copy.splice(dragIdx, 1);
+    if (!moved) return;
+
+    const targetItem = copy[dropIndex] ?? copy[copy.length - 1];
+    const targetCategory = (targetItem && targetItem.category) || '';
+    const movedCategory = moved.category || '';
+    if (movedCategory !== targetCategory) {
+      onSnackbar(fm('messages.cannotMoveBetweenCategories'));
+      return;
+    }
+
+    copy.splice(dropIndex, 0, moved);
+    const reordered = copy.map((t, idx) => (t.order === idx ? t : { ...t, order: idx }));
+
+    setTodos(reordered);
+
+    await Promise.all(
+      reordered.map((t) => updateSharedTodo(token, { todoId: t._id, order: t.order as number }))
+    );
     await fetch();
+    resetTouchDragState();
   };
 
   return {

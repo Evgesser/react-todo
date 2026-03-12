@@ -56,6 +56,8 @@ export interface UseTodosReturn {
   categoryWarning: string;
   clearedForName: string | null;
   dragOverIndex: number | null;
+  pendingCompleteIds: Set<string>;
+  reorderInFlight: boolean;
   // missing flag is stored on individual todos; form doesn't need its own state
 
   // Setters
@@ -191,6 +193,9 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   const [lastAdded, setLastAdded] = React.useState<string | null>(null);
   const [touchDragIndex, setTouchDragIndex] = React.useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+  const [pendingCompleteIds, setPendingCompleteIds] = React.useState<Set<string>>(new Set());
+  const reorderInFlight = false;
+  const toggleOpRef = React.useRef<Record<string, number>>({});
 
   // Handle click outside inline edit
   React.useEffect(() => {
@@ -207,8 +212,24 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     };
   }, [inlineEditId]);
 
+  const normalizeIncomingTodos = React.useCallback((data: Todo[], prev: Todo[]) => {
+    return data.map((t: Todo) => {
+      const incomingColor = typeof t.color === 'string' ? t.color : '';
+      const preservedColor =
+        incomingColor && incomingColor.trim() !== ''
+          ? incomingColor
+          : prev.find((p) => p._id === t._id)?.color || '';
+      const incomingCat = typeof t.category === 'string' ? t.category : '';
+      const preservedCat =
+        incomingCat && incomingCat.trim() !== ''
+          ? incomingCat
+          : prev.find((p) => p._id === t._id)?.category || '';
+      return { ...t, color: preservedColor, category: preservedCat } as Todo;
+    });
+  }, []);
+
   // Fetch todos from API
-  const fetchTodos = async (listId: string, categoryParam?: string, silent = false) => {
+  const fetchTodos = React.useCallback(async (listId: string, categoryParam?: string, silent = false) => {
     if (!listId) return;
     // cancel previous request if still pending
     if (todosAbort.current) {
@@ -222,21 +243,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       // category, which is unrelated to filtering)
       const cat = typeof categoryParam === 'undefined' ? filterCategory : categoryParam;
       const data = await apiFetchTodos(listId, cat, { signal: controller.signal });
-      setTodos((prev) =>
-        data.map((t: Todo) => {
-          const incomingColor = typeof t.color === 'string' ? t.color : '';
-          const preservedColor =
-            incomingColor && incomingColor.trim() !== ''
-              ? incomingColor
-              : prev.find((p) => p._id === t._id)?.color || '';
-          const incomingCat = typeof t.category === 'string' ? t.category : '';
-          const preservedCat =
-            incomingCat && incomingCat.trim() !== ''
-              ? incomingCat
-              : prev.find((p) => p._id === t._id)?.category || '';
-          return { ...t, color: preservedColor, category: preservedCat } as Todo;
-        })
-      );
+      setTodos((prev) => normalizeIncomingTodos(data, prev));
     } catch (e: unknown) {
       if (e instanceof DOMException && e.name === 'AbortError') {
         // ignore cancelled request
@@ -247,7 +254,16 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       setTodosLoading(false);
       todosAbort.current = null;
     }
-  };
+  }, [filterCategory, normalizeIncomingTodos, setTodos, setTodosLoading]);
+
+  const persistOrderChanges = React.useCallback(async (listId: string, previous: Todo[], next: Todo[]) => {
+    const previousOrderById = new Map(previous.map((item) => [item._id, item.order]));
+    const changed = next.filter((item) => previousOrderById.get(item._id) !== item.order);
+    if (changed.length === 0) return;
+    await Promise.all(
+      changed.map((item) => apiUpdateTodo(item._id, { listId, order: item.order as number }))
+    );
+  }, []);
 
   // Add or update a todo item
   interface AddOverride {
@@ -349,32 +365,55 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   // Toggle todo completion status
   const toggleComplete = async (todo: Todo) => {
     if (!currentListId) return;
-    const newCompleted = !todo.completed;
+    if (pendingCompleteIds.has(todo._id)) return;
+
+    const current = todos.find((t) => t._id === todo._id) || todo;
+    const previousCompleted = !!current.completed;
+    const previousStatus = current.status;
+    const newCompleted = !previousCompleted;
     const newStatus = newCompleted ? 'done' : 'pending';
 
-    // 1. Сначала только визуально меняем состояние (запустится анимация зачеркивания)
-    // Мы НЕ меняем порядок в стейте вручную, так как TodoList.tsx теперь снова
-    // сортирует по completed. Это вызовет мгновенный прыжок.
-    // Чтобы избежать прыжка, мы могли бы временно отключить сортировку, 
-    // но проще всего подождать окончания анимации ДО обновления стейта,
-    // если мы хотим, чтобы элемент не прыгал.
-    
-    // Однако, пользователь хочет, чтобы перемещение БЫЛО, но ПОСЛЕ анимации.
-    // Поэтому мы сначала обновляем только те поля, которые влияют на визуализацию (зачеркивание)
+    const opId = (toggleOpRef.current[todo._id] || 0) + 1;
+    toggleOpRef.current[todo._id] = opId;
+    setPendingCompleteIds((prev) => {
+      const next = new Set(prev);
+      next.add(todo._id);
+      return next;
+    });
+
+    // Optimistic UI update without touching order.
     setTodos((prev) =>
       prev.map((t) => (t._id === todo._id ? { ...t, completed: newCompleted, status: newStatus } : t))
     );
 
-    // 2. Ждем завершения анимации (примерно 500мс)
-    if (newCompleted) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+    let ok = false;
+    try {
+      ok = await apiUpdateTodo(todo._id, {
+        listId: currentListId,
+        completed: newCompleted,
+        status: newStatus,
+      });
+    } catch {
+      ok = false;
     }
 
-    // 3. Отправляем на сервер и обновляем список
-    await apiUpdateTodo(todo._id, { listId: currentListId, completed: newCompleted, status: newStatus });
-    
-    // После fetchTodos элементы перестроятся согласно новому состоянию с сервера
-    await fetchTodos(currentListId, undefined, true);
+    // Roll back only if this is still the latest toggle operation for this item.
+    if (!ok && toggleOpRef.current[todo._id] === opId) {
+      setTodos((prev) =>
+        prev.map((t) =>
+          t._id === todo._id
+            ? { ...t, completed: previousCompleted, status: previousStatus }
+            : t
+        )
+      );
+      onSnackbar(fm('messages.saveError'));
+    }
+
+    setPendingCompleteIds((prev) => {
+      const next = new Set(prev);
+      next.delete(todo._id);
+      return next;
+    });
   };
 
   // Toggle missing/unavailable status
@@ -387,7 +426,6 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     } else {
       onSnackbar(fm('messages.itemMarkedMissing'));
     }
-    await fetchTodos(currentListId, undefined, true);
   };
 
   // Move an entire category block up or down in the ordering.  We recompute a
@@ -421,18 +459,13 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     }
     [blocks[blockIdx], blocks[targetIdx]] = [blocks[targetIdx], blocks[blockIdx]];
     console.log('blocks after swap', blocks.map((b) => b.category));
-    const newOrder = blocks.flatMap((b) => b.items.slice());
-    newOrder.forEach((t, i) => {
-      t.order = i;
-    });
+    const flat = blocks.flatMap((b) => b.items.slice());
+    const newOrder = flat.map((t, i) => (t.order === i ? t : { ...t, order: i }));
     console.log('newOrder sequence', newOrder.map((t) => ({ id: t._id, cat: t.category, order: t.order })));
     setTodos(newOrder);
-    await Promise.all(
-      newOrder.map((t, i) => apiUpdateTodo(t._id, { listId: currentListId, order: i }))
-    );
-    if (currentListId) {
-      await fetchTodos(currentListId);
-    }
+    void persistOrderChanges(currentListId, todos, newOrder).catch(() => {
+      onSnackbar(fm('messages.saveError'));
+    });
   };
 
   // Delete a todo
@@ -478,7 +511,20 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   };
 
   // Drag and drop handlers
+  const isInteractiveTarget = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) return false;
+    return Boolean(
+      target.closest(
+        'button, input, textarea, select, a, [role="button"], [role="checkbox"], .MuiButtonBase-root, [data-no-drag="true"]'
+      )
+    );
+  };
+
   const onDragStart = (e: React.DragEvent, index: number) => {
+    if (isInteractiveTarget(e.target)) {
+      e.preventDefault();
+      return;
+    }
     if (typeof index !== 'number' || index < 0) return;
     const dragged = todos[index];
     const payload = JSON.stringify({ index, category: dragged?.category || '', id: dragged?._id || '' });
@@ -502,18 +548,26 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setDragOverIndex(null);
   };
 
-  const onDrop = (e: React.DragEvent, rawIndex: number) => {
+  const onDrop = async (e: React.DragEvent, rawIndex: number) => {
     e.preventDefault();
 
     const data = e.dataTransfer.getData('text/plain');
-    let draggedIndex = parseInt(data, 10);
+    let draggedIndex = -1;
+    let draggedId = '';
     try {
       const parsed = JSON.parse(data);
       if (typeof parsed.index === 'number') draggedIndex = parsed.index;
+      if (typeof parsed.id === 'string') draggedId = parsed.id;
     } catch {
-      /* ignore */
+      const n = parseInt(data, 10);
+      if (!isNaN(n)) draggedIndex = n;
     }
-    if (isNaN(draggedIndex) || draggedIndex < 0 || draggedIndex >= todos.length) return;
+    // Prefer ID-based lookup — more reliable if todos array shifted since drag started
+    if (draggedId) {
+      const found = todos.findIndex((t) => t._id === draggedId);
+      if (found !== -1) draggedIndex = found;
+    }
+    if (draggedIndex < 0 || draggedIndex >= todos.length) return;
 
     const draggedItem = todos[draggedIndex];
     if (!draggedItem) return;
@@ -577,20 +631,19 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       return;
     }
 
-    setTodos((prev) => {
-      const arr = [...prev];
-      const [moved] = arr.splice(draggedIndex, 1);
-      arr.splice(draggedIndex < constrained ? constrained - 1 : constrained, 0, moved);
-      arr.forEach((t, i) => {
-        t.order = i;
+    // Build reordered array immutably (no in-place mutation)
+    const arr = [...todos];
+    const [moved] = arr.splice(draggedIndex, 1);
+    arr.splice(draggedIndex < constrained ? constrained - 1 : constrained, 0, moved);
+    const reordered = arr.map((t, i) => (t.order === i ? t : { ...t, order: i }));
+
+    setTodos(reordered);
+
+    if (currentListId) {
+      void persistOrderChanges(currentListId, todos, reordered).catch(() => {
+        onSnackbar(fm('messages.saveError'));
       });
-      if (currentListId) {
-        arr.forEach((t, i) => {
-          apiUpdateTodo(t._id, { listId: currentListId, order: i });
-        });
-      }
-      return arr;
-    });
+    }
 
     setDragOverIndex(null);
   };
@@ -608,10 +661,35 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     }
   };
 
+  const resetTouchDragState = React.useCallback(() => {
+    clearTouchTimer();
+    touchStartPos.current = null;
+    setTouchDragIndex(null);
+    setDragOverIndex(null);
+  }, []);
+
+  React.useEffect(() => {
+    const handleTouchEnd = () => {
+      resetTouchDragState();
+    };
+
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [resetTouchDragState]);
+
   const onTouchStart = (e: React.TouchEvent, index: number) => {
+    if (isInteractiveTarget(e.target)) {
+      return;
+    }
+    // Clear any stale drag state from a previous touch interaction.
+    resetTouchDragState();
     const touch = e.touches[0];
     touchStartPos.current = { x: touch.clientX, y: touch.clientY };
-    clearTouchTimer();
     // schedule drag start after delay
     touchTimer.current = window.setTimeout(() => {
       setTouchDragIndex(index);
@@ -636,41 +714,44 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     }
   };
 
-  const onTouchEnd = (e: React.TouchEvent, dropIndex: number) => {
+  const onTouchEnd = async (e: React.TouchEvent, dropIndex: number) => {
     clearTouchTimer();
     if (touchDragIndex === null || touchDragIndex === dropIndex) {
-      setTouchDragIndex(null);
+      resetTouchDragState();
       return;
     }
 
-    setTodos((prev) => {
-      const copy = [...prev];
-      const [moved] = copy.splice(touchDragIndex, 1);
-      if (!moved) return prev;
-
-      const targetItem = copy[dropIndex] ?? copy[copy.length - 1];
-      const targetCategory = (targetItem && targetItem.category) || '';
-      const movedCategory = moved.category || '';
-
-      if (movedCategory !== targetCategory) {
-        onSnackbar(fm('messages.cannotMoveBetweenCategories'));
-        return prev;
-      }
-
-      copy.splice(dropIndex, 0, moved);
-      // Update in-memory order fields so UI sorts by `order` reflect change
-      copy.forEach((t, idx) => {
-        t.order = idx;
-      });
-      // Persist order to server (fire-and-forget)
-      if (currentListId) {
-        copy.forEach((t, idx) => {
-          apiUpdateTodo(t._id, { listId: currentListId, order: idx });
-        });
-      }
-      return copy;
-    });
+    const dragIdx = touchDragIndex;
+    touchStartPos.current = null;
     setTouchDragIndex(null);
+    setDragOverIndex(null);
+
+    // Validate and build reordered array immutably before touching state
+    const copy = [...todos];
+    const [moved] = copy.splice(dragIdx, 1);
+    if (!moved) return;
+
+    const targetItem = copy[dropIndex] ?? copy[copy.length - 1];
+    const targetCategory = (targetItem && targetItem.category) || '';
+    const movedCategory = moved.category || '';
+
+    if (movedCategory !== targetCategory) {
+      onSnackbar(fm('messages.cannotMoveBetweenCategories'));
+      return;
+    }
+
+    copy.splice(dropIndex, 0, moved);
+    const reorderedTouch = copy.map((t, idx) => (t.order === idx ? t : { ...t, order: idx }));
+
+    setTodos(reorderedTouch);
+
+    if (currentListId) {
+      void persistOrderChanges(currentListId, todos, reorderedTouch).catch(() => {
+        onSnackbar(fm('messages.saveError'));
+      });
+    }
+
+    resetTouchDragState();
   };
 
   // Start inline editing
@@ -744,6 +825,8 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     categoryWarning,
     clearedForName,
     dragOverIndex,
+    pendingCompleteIds,
+    reorderInFlight,
 
     // Setters
     setTodos,

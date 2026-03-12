@@ -5,7 +5,6 @@ import {
   Typography,
   IconButton,
   Skeleton,
-  LinearProgress,
 } from '@mui/material';
 import {
   ArrowUpward as ArrowUpwardIcon,
@@ -45,30 +44,39 @@ export default function TodoList({
         tt.description.toLowerCase().includes(todoActions.filterText.toLowerCase())
     );
 
-    const orderSorted = [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
-    const cats = Array.from(new Set(orderSorted.map((t) => t.category || '')));
-    const sorted = [...filtered].sort((a, b) => {
-      // 1. Сортируем по категориям
-      const ca = cats.indexOf(a.category || '');
-      const cb = cats.indexOf(b.category || '');
-      if (ca !== cb) return ca - cb;
-
-      // 2. Внутри категории: выполненные/отсутствующие товары — в самый низ блока
-      const aDone = a.completed || a.missing;
-      const bDone = b.completed || b.missing;
-      if (aDone !== bDone) {
-        return aDone ? 1 : -1;
-      }
-
-      // 3. Внутри одной категории среди невыполненных (или среди выполненных) — по заданному порядку
-      return (a.order || 0) - (b.order || 0);
+    const baseIndex = new Map<string, number>();
+    todoActions.todos.forEach((item, idx) => {
+      baseIndex.set(item._id, idx);
     });
 
-    const allSorted = [...todoActions.todos].sort((a, b) => {
-      const ca = cats.indexOf(a.category || '');
-      const cb = cats.indexOf(b.category || '');
+    const toOrder = (val?: number) =>
+      Number.isFinite(val) ? (val as number) : Number.MAX_SAFE_INTEGER;
+    const byStoredOrder = (a: { _id: string; order?: number }, b: { _id: string; order?: number }) => {
+      const diff = toOrder(a.order) - toOrder(b.order);
+      if (diff !== 0) return diff;
+      return (baseIndex.get(a._id) ?? 0) - (baseIndex.get(b._id) ?? 0);
+    };
+
+    const storedSorted = [...filtered].sort(byStoredOrder);
+    const categoryOrder = Array.from(new Set(storedSorted.map((t) => t.category || '')));
+    const byCategoryThenVisualOrder = (a: { _id: string; order?: number; category?: string; completed?: boolean }, b: { _id: string; order?: number; category?: string; completed?: boolean }) => {
+      const ca = categoryOrder.indexOf(a.category || '');
+      const cb = categoryOrder.indexOf(b.category || '');
       if (ca !== cb) return ca - cb;
-      return (a.order || 0) - (b.order || 0);
+
+      if (!!a.completed !== !!b.completed) {
+        return a.completed ? 1 : -1;
+      }
+
+      return byStoredOrder(a, b);
+    };
+
+    const sorted = [...filtered].sort(byCategoryThenVisualOrder);
+    const allSorted = [...todoActions.todos].sort((a, b) => {
+      const ca = categoryOrder.indexOf(a.category || '');
+      const cb = categoryOrder.indexOf(b.category || '');
+      if (ca !== cb) return ca - cb;
+      return byStoredOrder(a, b);
     });
     const groupCats = Array.from(new Set(allSorted.map((t) => t.category || '')));
 
@@ -83,7 +91,7 @@ export default function TodoList({
         const catObj = availableCategories.find((c) => c.value === todo.category);
         const IconComp =
           catObj?.icon ||
-          (iconChoices.find((x) => x.key === realCat)?.icon as any) ||
+          iconChoices.find((x) => x.key === realCat)?.icon ||
           null;
         const label =
           catObj?.label ||
@@ -184,12 +192,6 @@ export default function TodoList({
     theme,
     onEdit,
   ]);
-  const totalCount = todoActions.todos.length;
-  const completedCount = todoActions.todos.filter((t) => t.completed).length;
-  const progressValue = totalCount === 0 ? 0 : (completedCount / totalCount) * 100;
-  const trackBg = theme.palette.mode === 'dark'
-    ? alpha(theme.palette.secondary.main, 0.12)
-    : alpha(theme.palette.secondary.main, 0.18);
   if (todoActions.todosLoading) {
     // render a few skeleton cards while loading
     return (

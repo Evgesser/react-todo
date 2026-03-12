@@ -62,12 +62,14 @@ export default async function handler(
       missing,
       order,
       category,
+      status,
     } = req.body as {
       todoId?: unknown;
       completed?: unknown;
       missing?: unknown;
       order?: unknown;
       category?: unknown;
+      status?: unknown;
     };
 
     if (!todoId || typeof todoId !== 'string') {
@@ -80,11 +82,13 @@ export default async function handler(
       missing: boolean;
       order: number;
       category: string;
+      status: string;
     }> = {};
     if (typeof completed === 'boolean') update.completed = completed;
     if (typeof missing === 'boolean') update.missing = missing;
     if (typeof order === 'number') update.order = order;
     if (typeof category === 'string') update.category = category;
+    if (typeof status === 'string') update.status = status;
 
     if (Object.keys(update).length === 0) {
       res.status(400).json({ error: 'Nothing to update' });
