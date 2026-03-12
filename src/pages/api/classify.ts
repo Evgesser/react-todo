@@ -1,29 +1,46 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { categoryKeywords, iconChoices } from '@/constants';
-import * as natural from 'natural';
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
+
+// Workaround for https://github.com/NaturalNode/natural/issues/630
+// Importing specific submodules to avoid loading the sentiment analyzer which triggers 
+// a require() of an ESM module (afinn-165) in CommonJS environments (like Vercel).
+let natural: any = null;
+try {
+  // We use require here to stay in CJS mode if that's what natural expects internally,
+  // but we only import what we actually use.
+  const BayesClassifier = require('natural/lib/natural/classifiers/bayes_classifier');
+  const RegexpTokenizer = require('natural/lib/natural/tokenizers/regexp_tokenizer');
+  const PorterStemmer = require('natural/lib/natural/stemmers/porter_stemmer');
+  natural = { BayesClassifier, RegexpTokenizer, PorterStemmer };
+} catch (e) {
+  console.error('Failed to load natural submodules', e);
+}
 
 // Use a tokenizer that handles Cyrillic and Hebrew characters properly
 // \p{L} matches any character from any language
-const tokenizer = new natural.RegexpTokenizer({ pattern: /[^\p{L}0-9]+/u });
+const tokenizer = natural ? new natural.RegexpTokenizer({ pattern: /[^\p{L}0-9]+/u }) : null;
 
 // Create a custom stemmer that doesn't filter out non-Latin characters
 const universalStemmer = {
   stem: (token: string) => token.toLowerCase(),
-  tokenizeAndStem: (text: string) => tokenizer.tokenize(text.toLowerCase())
+  tokenizeAndStem: (text: string) => tokenizer ? tokenizer.tokenize(text.toLowerCase()) : []
 };
 
-// Use the stemmer globally for the natural library if possible, 
-// though passing it to the constructor is more reliable.
-(natural.PorterStemmer as any).tokenizeAndStem = universalStemmer.tokenizeAndStem;
+if (natural) {
+  // Use the stemmer globally for the natural library if possible, 
+  // though passing it to the constructor is more reliable.
+  (natural.PorterStemmer as any).tokenizeAndStem = universalStemmer.tokenizeAndStem;
+}
 
 // We'll use a BayesClassifier which is similar in spirit to what fastText uses for simple tasks
 // It's pure JS and handles keywords well.
-let classifier: natural.BayesClassifier | null = null;
+let classifier: any = null;
 
 function trainClassifier() {
+  if (!natural) return null;
   // Pass the custom stemmer to avoid filtering out Cyrillic/Hebrew
   const newClassifier = new natural.BayesClassifier(universalStemmer as any);
   const trainingPath = path.resolve(process.cwd(), 'training_data_augmented.json');
@@ -74,9 +91,17 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: 'Text is required' });
   }
 
+  if (!natural) {
+    return res.status(500).json({ error: 'Natural language processing module not loaded' });
+  }
+
   // Lazy initialization/training
   if (!classifier) {
     classifier = trainClassifier();
+  }
+
+  if (!classifier) {
+    return res.status(500).json({ error: 'Failed to initialize classifier' });
   }
 
   try {
