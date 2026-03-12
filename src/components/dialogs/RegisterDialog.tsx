@@ -151,8 +151,8 @@ export default function RegisterDialog({
           />
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={isLoading}>
+      <DialogActions sx={{ justifyContent: theme.direction === 'rtl' ? 'flex-start' : 'flex-end' }}>
+        <Button onClick={handleClose} disabled={isLoading} variant="outlined">
           {t.register.cancel}
         </Button>
         <Button

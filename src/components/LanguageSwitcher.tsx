@@ -37,7 +37,6 @@ export default function LanguageSwitcher() {
           color="inherit"
           size="small"
           aria-label={intl.formatMessage({ id: 'header.language' })}
-          title={intl.formatMessage({ id: 'header.language' })}
           sx={(t) => ({
             p: 0.75,
             borderRadius: '50%',

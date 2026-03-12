@@ -252,6 +252,8 @@ export default function TodoForm({
 
   // Debounce API calls for category inference
   const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  // ref to focus category input when smart suggestion is applied
+  const categoryInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const handleInferCategory = React.useCallback((text: string) => {
     if (debounceTimerRef.current) {
@@ -401,13 +403,19 @@ export default function TodoForm({
   const previewCategory = React.useMemo(() => {
     const cat = parsed?.category || category;
     if (!cat) return { label: '', Icon: null as any };
-    const found = availableCategories.find((c) => c.value === cat);
-    if (found) return { label: found.label, Icon: found.icon };
     const localized = (t.categoryLabels as Record<string, string>)?.[cat];
+    const found = availableCategories.find((c) => c.value === cat);
+
+    // Prefer a localized label for built-in categories so UI matches current locale.
     if (localized) {
-      const choice = iconChoices.find((x) => x.key === cat);
-      return { label: localized, Icon: choice ? choice.icon : null };
+      const Icon = found?.icon || iconChoices.find((x) => x.key === cat)?.icon || null;
+      return { label: localized, Icon };
     }
+
+    // Fall back to user-provided category label (may be custom)
+    if (found) return { label: found.label, Icon: found.icon };
+
+    // Finally fall back to iconChoices default label
     const choice = iconChoices.find((x) => x.key === cat);
     if (choice) return { label: choice.label, Icon: choice.icon };
     return { label: cat, Icon: null };
@@ -490,6 +498,38 @@ export default function TodoForm({
     setParsed(null);
     setImageData(null);
   }, [ensureCategoryExists, addItem, setName, setQuantity, setComment, setUnit, setCategory, name, category, comment, tempIconKey, updateNameCategory, parsed, imageData]);
+
+  // Cleanup residual state when form is closed to avoid stale listeners/backdrops
+  React.useEffect(() => {
+    if (!formOpen) {
+      // cancel any pending debounce
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current as unknown as number);
+        debounceTimerRef.current = null;
+      }
+      // stop speech recognition if running
+      try {
+        recognitionRef.current?.stop?.();
+      } catch {}
+      setIsListening(false);
+      // clear UI-local state
+      setParsed(null);
+      setImageData(null);
+      setTempIconKey('');
+      // reset form fields when not editing to avoid stale values on reopen
+      if (!editingId) {
+        try {
+          setName('');
+          setDescription('');
+          setQuantity(1);
+          setComment('');
+          setUnit('');
+          setColor(listDefaultColor);
+          setCategory('');
+        } catch {}
+      }
+    }
+  }, [formOpen, editingId, setName, setDescription, setQuantity, setComment, setUnit, setColor, setCategory, listDefaultColor]);
 
   // build inner form container once so dialog/inline both use same markup
   const formInner = (
@@ -687,29 +727,33 @@ export default function TodoForm({
                   <Box>{previewCategory.label}</Box>
                 </Typography>
               )}
-              <Box sx={{ mt: 0.5, display: 'flex', justifyContent: 'flex-end' }}>
+              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
                 <Button
                   variant="contained"
                   color="secondary"
-                  startIcon={<AutoAwesomeIcon />}
+                  startIcon={<AutoAwesomeIcon sx={{ 
+                    ml: theme.direction === 'rtl' ? 1 : 0, 
+                    mr: theme.direction === 'rtl' ? 0 : 1 
+                  }} />}
                   onClick={async () => {
                     // Try to get a better category from our classifier if current one is default/missing
-                    let finalCategory = parsed.category;
+                    let finalCategory = parsed?.category;
                     if (!finalCategory || finalCategory === 'none') {
-                      const detected = await inferCategorySmart(parsed.name, language);
+                      const detected = await inferCategorySmart(parsed?.name || '', language);
                       if (detected) finalCategory = detected;
                     }
 
-                    handleAdd({
-                      name: parsed.name,
-                      quantity: parsed.quantity,
-                      comment: parsed.comment,
-                      unit: parsed.unit,
-                      category: finalCategory,
+                    // Save the item immediately
+                    await handleAdd({
+                      name: parsed?.name || name,
+                      category: finalCategory || category,
+                      quantity: parsed?.quantity || quantity || 1,
+                      unit: parsed?.unit || unit,
+                      comment: parsed?.comment || description || comment,
                     });
                   }}
                 >
-                  {t.buttons?.smartAdd || 'Умное сохранение'}
+                  {t.buttons?.smartAdd || 'Умная подстановка'}
                 </Button>
               </Box>
             </Box>
@@ -727,8 +771,8 @@ export default function TodoForm({
                     size="small"
                     onClick={() => setDescription('')}
                     edge="end"
-                    aria-label="Очистить описание"
-                    title="Очистить описание"
+                    aria-label={t.buttons.cancel}
+                    title={t.buttons.cancel}
                   >
                     <ClearIcon />
                   </IconButton>
@@ -853,6 +897,18 @@ export default function TodoForm({
             getOptionLabel={(opt) =>
               typeof opt === 'string' ? opt : opt.label || opt.value
             }
+            filterOptions={(opts, state) => {
+              const q = (state.inputValue || '').trim().toLowerCase();
+              if (!q) return opts;
+              return opts.filter((opt) => {
+                const label = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
+                const value = typeof opt === 'string' ? opt : (opt.value || '');
+                return (
+                  label.toLowerCase().includes(q) ||
+                  value.toLowerCase().includes(q)
+                );
+              });
+            }}
             disablePortal={true}
             value={
               category === ''
@@ -894,7 +950,7 @@ export default function TodoForm({
               </li>
             )}
             renderInput={(params) => (
-              <TextField {...params} label={t.todos.category} fullWidth />
+              <TextField {...params} inputRef={categoryInputRef} label={t.todos.category} fullWidth />
             )}
           />
           {category && (

@@ -114,8 +114,8 @@ export default function TodoList({
                   await todoActions.moveCategory(realCat, 'up');
                 }}
                 edge="end"
-                aria-label={`Move ${label} up`}
-                title={`Move ${label} up`}
+                aria-label={theme.direction === 'rtl' ? `הזז את ${label} למטה` : `Move ${label} up`}
+                title={theme.direction === 'rtl' ? `הזז את ${label} למטה` : `Move ${label} up`}
                 disabled={groupCats.indexOf(realCat) <= 0}
                 sx={(t) => ({
                   transition: 'transform 0.15s ease, box-shadow 0.15s',
@@ -125,7 +125,7 @@ export default function TodoList({
                   },
                 })}
               >
-                <ArrowUpwardIcon fontSize="small" />
+                {theme.direction === 'rtl' ? <ArrowDownwardIcon fontSize="small" /> : <ArrowUpwardIcon fontSize="small" />}
               </IconButton>
               <IconButton
                 size="small"
@@ -135,8 +135,8 @@ export default function TodoList({
                   await todoActions.moveCategory(realCat, 'down');
                 }}
                 edge="end"
-                aria-label={`Move ${label} down`}
-                title={`Move ${label} down`}
+                aria-label={theme.direction === 'rtl' ? `הזז את ${label} למעלה` : `Move ${label} down`}
+                title={theme.direction === 'rtl' ? `הזז את ${label} למעלה` : `Move ${label} down`}
                 disabled={groupCats.indexOf(realCat) === groupCats.length - 1}
                 sx={(t) => ({
                   transition: 'transform 0.15s ease, box-shadow 0.15s',
@@ -146,7 +146,7 @@ export default function TodoList({
                   },
                 })}
               >
-                <ArrowDownwardIcon fontSize="small" />
+                {theme.direction === 'rtl' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
               </IconButton>
             </Box>
           </Box>

@@ -219,8 +219,8 @@ export default function PersonalizationDialog({
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose} disabled={saving}>{t.buttons.cancel}</Button>
+      <DialogActions sx={{ justifyContent: theme.direction === 'rtl' ? 'flex-start' : 'flex-end' }}>
+        <Button onClick={onClose} disabled={saving} variant="outlined">{t.buttons.cancel}</Button>
         <Button
           variant="contained"
           onClick={handleSave}

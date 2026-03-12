@@ -37,7 +37,7 @@ export default function HistoryDialog({ open, lists, onSelect, onClose, t }: His
                       primary={l.name}
                       secondary={
                         l.finishedAt
-                          ? new Date(l.finishedAt).toLocaleString(language === 'en' ? 'en-US' : 'ru-RU', {
+                          ? new Date(l.finishedAt).toLocaleString(language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'ru-RU', {
                               day: '2-digit',
                               month: '2-digit',
                               year: 'numeric',
@@ -53,8 +53,8 @@ export default function HistoryDialog({ open, lists, onSelect, onClose, t }: His
             ))}
         </List>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>{t.dialogs.history.close}</Button>
+      <DialogActions sx={{ justifyContent: theme.direction === 'rtl' ? 'flex-start' : 'flex-end' }}>
+        <Button onClick={onClose} variant="outlined">{t.dialogs.history.close}</Button>
       </DialogActions>
     </Dialog>
   );

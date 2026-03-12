@@ -44,9 +44,22 @@ export function useCategoryOptions({
         if (cat) priority.push(cat);
       } else {
         // heuristics: try to match known keywords to icon keys and suggest that category
+        // Use bi-directional substring checks so short user input ("снек") matches
+        // plural/extended keywords ("снеки"). This is a lightweight fallback
+        // to a proper morphological stemmer.
         const langKeywords = categoryKeywords[language] || categoryKeywords.en; // fallback to en
         for (const [iconKey, kws] of Object.entries(langKeywords)) {
-          if (kws.some((k) => lowerName.includes(k))) {
+          if (
+            kws.some((k) => {
+              const kw = (k || '').toLowerCase();
+              return (
+                lowerName.includes(kw) ||
+                kw.includes(lowerName) ||
+                lowerName.startsWith(kw) ||
+                kw.startsWith(lowerName)
+              );
+            })
+          ) {
             const cat = availableCategories.find((c) => c.value === iconKey);
             if (cat) priority.push(cat);
             else {

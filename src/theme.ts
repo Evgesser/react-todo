@@ -86,6 +86,13 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
       },
     },
     components: {
+      MuiLinearProgress: {
+        styleOverrides: {
+          root: {
+            direction: 'ltr',
+          },
+        },
+      },
       MuiPaper: {
         styleOverrides: {
           root: {
@@ -130,6 +137,95 @@ export function getTheme(mode: PaletteMode, direction: 'ltr' | 'rtl' = 'ltr') {
             },
           },
           // primary buttons use a purple-pink gradient like mobile design
+          containedPrimary: {
+            background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+            color: '#FFFFFF',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #2B6FD8 0%, #4F9AF8 100%)',
+            },
+            '&:active': {
+              background: 'linear-gradient(135deg, #1E40AF 0%, #3B6FE6 100%)',
+            },
+          },
+        },
+      },
+      MuiDialogActions: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            justifyContent: theme.direction === 'rtl' ? 'flex-start' : 'flex-end',
+            padding: '16px 24px',
+            // Ensure space between buttons in RTL
+            '& > :not(:first-of-type)': {
+              marginLeft: theme.direction === 'rtl' ? 0 : theme.spacing(1),
+              marginRight: theme.direction === 'rtl' ? theme.spacing(1) : 0,
+            },
+          }),
+        },
+      },
+      MuiTextField: {
+        defaultProps: {
+          variant: 'outlined',
+          size: 'small',
+        },
+        styleOverrides: {
+          root: ({ theme }) => ({
+            '& .MuiInputLabel-root': {
+              transformOrigin: theme.direction === 'rtl' ? 'right' : 'left',
+              left: theme.direction === 'rtl' ? 'auto' : 0,
+              right: theme.direction === 'rtl' ? 0 : 'auto',
+              // labels were "anywhere", locking them to consistent top/start alignment
+              '&[data-shrink="false"]': {
+                transform: theme.direction === 'rtl' ? 'translate(-14px, 9px) scale(1)' : 'translate(14px, 9px) scale(1)',
+              },
+            },
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 12,
+              // placeholder was not centered
+              '& input::placeholder': {
+                textAlign: theme.direction === 'rtl' ? 'right' : 'left',
+                opacity: 0.6,
+              },
+            },
+          }),
+        },
+      },
+      MuiInputAdornment: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            // ensure adornments don't overlap text in RTL
+            marginLeft: theme.direction === 'rtl' ? theme.spacing(1) : 0,
+            marginRight: theme.direction === 'rtl' ? 0 : theme.spacing(1),
+          }),
+        },
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            textTransform: 'none',
+            borderRadius: 12,
+            padding: '8px 16px',
+            transition: 'all 0.2s ease-in-out',
+            boxShadow: 'none',
+            // fix for icon sticking to text
+            '& .MuiButton-startIcon': {
+              marginLeft: theme.direction === 'rtl' ? theme.spacing(1) : theme.spacing(-0.5),
+              marginRight: theme.direction === 'rtl' ? theme.spacing(-0.5) : theme.spacing(1),
+            },
+            '& .MuiButton-endIcon': {
+              marginLeft: theme.direction === 'rtl' ? theme.spacing(-0.5) : theme.spacing(1),
+              marginRight: theme.direction === 'rtl' ? theme.spacing(1) : theme.spacing(-0.5),
+            },
+            '&:hover': {
+              boxShadow: theme.palette.mode === 'dark' ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.1)',
+              transform: 'translateY(-1px)',
+            },
+          }),
+          contained: {
+            '&:active': {
+              boxShadow: 'none',
+              transform: 'translateY(0)',
+            },
+          },
           containedPrimary: {
             background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
             color: '#FFFFFF',
