@@ -755,16 +755,17 @@ export default function TodoForm({
               inputProps={{ min: 1 }}
               sx={{ flex: 1 }}
             />
-            <Autocomplete
-              freeSolo
-              options={getUnitOptions(language)}
-              inputValue={unit || ''}
-              onInputChange={(_, v) => setUnit(v)}
-              sx={{ width: 110 }}
-              renderInput={(params) => (
-                <TextField {...params} label={t.todos.unit || 'Unit'} />
-              )}
-            />
+          <Autocomplete
+            freeSolo
+            options={getUnitOptions(language)}
+            disablePortal={true}
+            inputValue={unit || ''}
+            onInputChange={(_, v) => setUnit(v)}
+            sx={{ width: 110 }}
+            renderInput={(params) => (
+              <TextField {...params} label={t.todos.unit || 'Unit'} />
+            )}
+          />
           </Box>
           <TextField
             label={t.todos.comment}
@@ -852,6 +853,7 @@ export default function TodoForm({
             getOptionLabel={(opt) =>
               typeof opt === 'string' ? opt : opt.label || opt.value
             }
+            disablePortal={true}
             value={
               category === ''
                 ? null
@@ -884,7 +886,7 @@ export default function TodoForm({
               ensureCategoryExists(val);
             }}
             renderOption={(props, option) => (
-              <li {...props}>
+              <li {...props} key={option.value}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   {option.icon ? <option.icon fontSize="small" sx={{ marginInlineEnd: 0.5 }} /> : null}
                   {option.label || option.value}

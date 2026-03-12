@@ -19,9 +19,105 @@ export function normalizeName(name: string): string {
   return name.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '').toLowerCase().trim();
 }
 // returns null if nothing recognizable
-export const RU_UNITS = ['шт', 'кг', 'г', 'гр', 'л', 'мл', 'литр', 'литра', 'литров', 'уп', '%'];
-export const EN_UNITS = ['pcs', 'kg', 'g', 'l', 'ml', 'pack', 'oz', '%'];
-export const HE_UNITS = ['יח', 'יחידות', 'קג', 'גרם', 'ליטר', 'מל', 'מיליליטר', 'חבילה', 'אריזה', '%'];
+export const RU_UNITS = [
+  'шт', 'штук', 'штуки', 'штучек',
+  'кг', 'килограмм', 'килограмма', 'килограммов', 'кило',
+  'г', 'гр', 'грамм', 'грамма', 'граммов',
+  'л', 'литр', 'литра', 'литров',
+  'мл', 'миллилитр', 'миллилитра', 'миллилитров',
+  'уп', 'упаковка', 'упаковки', 'упаковок',
+  'пачка', 'пачки', 'пачек',
+  'банка', 'банки', 'банок',
+  'бутылка', 'бутылки', 'бутылок',
+  '%'
+];
+export const EN_UNITS = [
+  'pcs', 'piece', 'pieces',
+  'kg', 'kilogram', 'kilograms', 'kilo',
+  'g', 'gram', 'grams',
+  'l', 'liter', 'liters', 'litre', 'litres',
+  'ml', 'milliliter', 'milliliters',
+  'pack', 'package', 'packages',
+  'bottle', 'bottles',
+  'can', 'cans',
+  'oz', 'ounce', 'ounces',
+  '%'
+];
+export const HE_UNITS = [
+  'יח', 'יחידה', 'יחידות',
+  'קג', 'קילו', 'קילוגרם',
+  'גר', 'גרם', 'גרמים',
+  'ל', 'ליטר', 'ליטרים',
+  'מל', 'מיליליטר',
+  'חב', 'חבילה', 'חבילות',
+  'אריזה', 'אריזות',
+  'בקבוק', 'בקבוקים',
+  'פחית', 'פחיות',
+  '%'
+];
+
+const NUMBER_WORDS: Record<string, number> = {
+  // Russian
+  'один': 1, 'одна': 1, 'одно': 1,
+  'два': 2, 'две': 2,
+  'три': 3,
+  'четыре': 4,
+  'пять': 5,
+  'шесть': 6,
+  'семь': 7,
+  'восемь': 8,
+  'девять': 9,
+  'десять': 10,
+  // English
+  'one': 1,
+  'two': 2,
+  'three': 3,
+  'four': 4,
+  'five': 5,
+  'six': 6,
+  'seven': 7,
+  'eight': 8,
+  'nine': 9,
+  'ten': 10,
+  // Hebrew
+  'אחד': 1, 'אחת': 1,
+  'שניים': 2, 'שתיים': 2, 'שני': 2,
+  'שלושה': 3, 'שלוש': 3,
+  'ארבעה': 4, 'ארבע': 4,
+  'חמישה': 5, 'חמש': 5,
+  'שישה': 6, 'שש': 6,
+  'שבעה': 7, 'שבע': 7,
+  'שמונה': 8,
+  'תשעה': 9, 'תשע': 9,
+  'עשרה': 10, 'עשר': 10
+};
+
+// Optimization: Pre-compile regex for number words mapping
+// We use a boundary that checks for start/end of string or non-word characters.
+const NUMBER_WORDS_REGEXES = Object.keys(NUMBER_WORDS)
+  .sort((a, b) => b.length - a.length)
+  .map(word => ({
+    word,
+    regex: new RegExp(`(?<=^|[^\\p{L}\\p{N}])${word}(?=[^\\p{L}\\p{N}]|$)`, 'gu'),
+    value: NUMBER_WORDS[word].toString()
+  }));
+
+// Optimization: Pre-compile unit pattern regex
+const ALL_UNITS = Array.from(new Set([...RU_UNITS, ...EN_UNITS, ...HE_UNITS]));
+const UNIT_PATTERN_STR = ALL_UNITS
+  .map((u) => u.replace(/[-\/\^$*+?.()|[\]{}]/g, '\\$&'))
+  .sort((a, b) => b.length - a.length)
+  .join('|');
+
+const NAME_FIRST_REGEX = new RegExp(
+  `^(.+?)\\s+(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT_PATTERN_STR})(?:\\.?))?(?:\\s+(.*))?$`,
+  'i'
+);
+const QTY_FIRST_REGEX = new RegExp(
+  `^(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT_PATTERN_STR})(?:\\.?))?\\s+(.*)$`,
+  'i'
+);
+
 export function getUnitOptions(lang?: string): string[] {
   if (!lang) return Array.from(new Set([...RU_UNITS, ...EN_UNITS, ...HE_UNITS]));
   const l = lang.toLowerCase();
@@ -32,20 +128,18 @@ export function getUnitOptions(lang?: string): string[] {
 }
 
 export function parseSmartInput(text: string, language?: string): ParsedInput | null {
-  const trimmed = text.trim();
+  let trimmed = text.trim().toLowerCase();
   if (!trimmed) return null;
-  // always include known sets so parser works regardless of UI language
-  const units = Array.from(new Set([...RU_UNITS, ...EN_UNITS, ...HE_UNITS]));
-  // escape for regex, sort by length desc to match longer words first
-  const escaped = units.map((u) => u.replace(/[-\/\^$*+?.()|[\]{}]/g, '\\$&')).sort((a,b)=>b.length-a.length);
-  const unitPattern = escaped.join('|');
+
+  // Pre-process: replace number words with digits to simplify regex matching
+  for (const item of NUMBER_WORDS_REGEXES) {
+    if (item.regex.test(trimmed)) {
+      trimmed = trimmed.replace(item.regex, item.value);
+    }
+  }
 
   // try name-first pattern (previous behaviour)
-  const nameFirst = new RegExp(
-    `^(.+?)\\s+(\\d+(?:[.,]\\d+)?)(?:\\s*(${unitPattern})(?:\\.?))?(?:\\s+(.*))?$`,
-    'i'
-  );
-  let m = trimmed.match(nameFirst);
+  let m = trimmed.match(NAME_FIRST_REGEX);
   if (m) {
     const qty = parseFloat(m[2].replace(',', '.'));
     const comment = m[4] ? m[4].trim() : '';
@@ -62,14 +156,10 @@ export function parseSmartInput(text: string, language?: string): ParsedInput | 
   }
 
   // if that didn't work, try quantity-first (e.g. "3 шт Яйцо куриное")
-  const qtyFirst = new RegExp(
-    `^(\\d+(?:[.,]\\d+)?)(?:\\s*(${unitPattern})(?:\\.?))?\\s+(.*)$`,
-    'i'
-  );
-  m = trimmed.match(qtyFirst);
+  m = trimmed.match(QTY_FIRST_REGEX);
   if (m) {
     const qty = parseFloat(m[1].replace(',', '.'));
-    const unitPart = m[2] ? m[2].trim() : '';
+    const unit = m[2] ? m[2].trim() : undefined;
     const rest = m[3].trim();
     let name = '';
     let comment = '';
@@ -83,7 +173,7 @@ export function parseSmartInput(text: string, language?: string): ParsedInput | 
       name: name.trim(),
       quantity: qty,
       comment: comment.trim(),
-      unit: unitPart || undefined,
+      unit,
       category,
     };
   }
