@@ -69,8 +69,8 @@ export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelPro
         gap: 2,
         mb: 2,
         p: 2,
-        borderRadius: 2,
         backgroundColor: t.palette.mode === 'dark' ? 'rgba(2,6,23,0.42)' : 'rgba(255,255,255,0.66)',
+        borderRadius: 2,
         backdropFilter: 'blur(6px) saturate(120%)',
       })}
     >
@@ -103,10 +103,10 @@ export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelPro
       <TextField
         label={t.auth.password}
         placeholder={t.auth.passwordPlaceholder}
+        type="password"
         value={loginPassword}
         onChange={(e) => setLoginPassword(e.target.value)}
         fullWidth
-        type="password"
         onKeyPress={handleKeyPress}
         InputProps={{
           endAdornment: loginPassword ? (
@@ -122,10 +122,14 @@ export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelPro
           ) : null,
         }}
       />
+      <Box sx={{ textAlign: 'right', mt: -1, mb: 1 }}>
+        <a href="/forgot-password" style={{ fontSize: 13, color: theme.palette.primary.main, textDecoration: 'underline', cursor: 'pointer' }}>
+          {t.auth.forgotPassword}
+        </a>
+      </Box>
       <Button variant="contained" onClick={handleLogin} disabled={isLoading}>
         {isLoading ? t.auth.loading : t.auth.login}
       </Button>
-
       <RegisterDialog
         open={registerDialogOpen}
         username={loginUsername}

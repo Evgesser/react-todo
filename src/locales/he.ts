@@ -13,6 +13,7 @@ export const he: TranslationKeys = {
     userNotFound: 'המשתמש לא נמצא',
     loginFailed: 'התחברות נכשלה',
     createAccount: 'צור חשבון',
+    forgotPassword: 'שכחת סיסמה?',
   },
 
   // Registration

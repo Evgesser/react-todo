@@ -9,6 +9,11 @@ export interface User {
   bio?: string;
   createdAt: Date;
   updatedAt?: Date;
+  resetToken?: string;
+  resetTokenExpires?: number;
+  resetLastSentAt?: number;
+  resetTries?: number;
+  resetBlockedUntil?: number;
 }
 
 // shape returned by /api/user and used on client

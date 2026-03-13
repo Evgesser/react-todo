@@ -11,6 +11,7 @@ export const ru = {
     userNotFound: 'Пользователь не найден',
     loginFailed: 'Ошибка входа',
     createAccount: 'Создать аккаунт',
+    forgotPassword: 'Забыли пароль?',
   },
 
   // Registration

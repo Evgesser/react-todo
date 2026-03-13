@@ -13,6 +13,7 @@ export const en: TranslationKeys = {
     userNotFound: 'User not found',
     loginFailed: 'Login failed',
     createAccount: 'Create account',
+    forgotPassword: 'Forgot password?',
   },
 
   // Registration
