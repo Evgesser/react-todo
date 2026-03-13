@@ -104,7 +104,7 @@ export default function TodoListItem({
     onTouchMove,
     onTouchEnd,
     toggleComplete,
-    pendingCompleteIds,
+    pendingCompleteIds = new Set<string>(),
   } = todoActions;
 
   const [infoAnchor, setInfoAnchor] = React.useState<HTMLElement | null>(null);
