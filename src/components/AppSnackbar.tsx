@@ -1,19 +1,14 @@
+
 import * as React from 'react';
 import { Snackbar, Alert, Slide } from '@mui/material';
-
-interface Props {
-  open: boolean;
-  message: string;
-  severity?: 'success' | 'info' | 'warning' | 'error';
-  onClose: () => void;
-}
+import type { AppSnackbarProps } from '@/types/componentProps';
 
 export default function AppSnackbar({
   open,
   message,
   severity = 'success',
   onClose,
-}: Props) {
+}: AppSnackbarProps) {
   const handleClose = (_event?: Event | React.SyntheticEvent, reason?: string) => {
     if (reason === 'clickaway') return;
     onClose();

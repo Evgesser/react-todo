@@ -17,6 +17,8 @@ import {
   createTodosBulk,
 } from '@/lib/api';
 
+import { useViewportHeight } from '@/hooks/useViewportHeight';
+
 
 // Custom hooks
 import { useFormAutoCollapse } from '../hooks/useFormAutoCollapse';
@@ -70,31 +72,11 @@ export default function Home() {
   const [formOpen, setFormOpen] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
 
-  // compute fixed viewport height to avoid page scrolling and Safari vh bug.
-  // useLayoutEffect so we measure before browser paints (prevents white flash)
-  const [viewportHeight, setViewportHeight] = React.useState<number>(
-    typeof window !== 'undefined' ? window.innerHeight : 0
-  );
+  // refs для header и toolbar
   const headerRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
-  const [listHeight, setListHeight] = React.useState<number>(0);
-  const [progressTop, setProgressTop] = React.useState<number>(0);
-
-  React.useLayoutEffect(() => {
-    // measure once, ignore any subsequent resize events (including those
-    // triggered by scrolling chrome).  orientation change will reload page.
-    const vh = window.innerHeight;
-    setViewportHeight(vh);
-    const headerH = headerRef.current?.offsetHeight || 0;
-    const toolbarH = toolbarRef.current?.offsetHeight || 0;
-    const margins = 48; // container vertical margins (mt=3,mb=3)
-    const buffer = 50; // extra space for browser chrome
-    const safe = vh - document.documentElement.clientHeight; // approximate bottom inset
-    const newListH = vh - headerH - toolbarH - margins - buffer - safe;
-    setListHeight(newListH > 0 ? newListH : 0);
-    // compute sticky top for pinned progress (just under header+toolbar)
-    setProgressTop(headerH + toolbarH + 8);
-  }, []);
+  // используем хук для вычисления размеров
+  const { viewportHeight, listHeight, progressTop } = useViewportHeight(headerRef, toolbarRef, 48, 50);
 
   // personalization state (categories, templates, products, etc.)
   const {
@@ -143,7 +125,7 @@ export default function Home() {
         result.push({ value: val, label, icon: null });
       }
     });
-    return result.map((c) => ({ value: c.value, label: c.label }));
+    return result;
   }, [todoActions.todos, availableCategories, t]);
 
 

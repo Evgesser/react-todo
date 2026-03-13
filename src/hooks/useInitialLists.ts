@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { UseListsReturn } from './useLists';
-import { UseTodosReturn } from './useTodos';
+import type { UseListsReturn, UseTodosReturn } from '@/types/hooks';
 
 /**
  * Effect that loads the user's lists when the userId changes and then selects

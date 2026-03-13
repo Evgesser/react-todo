@@ -1,23 +1,6 @@
 import * as React from 'react';
-import { Category, iconMap, iconChoices } from '@/constants';
-import type { TranslationKeys } from '@/locales/ru';
-import { UseTodosReturn } from './useTodos';
-
-interface UseTodoFormParams {
-  todoActions: UseTodosReturn;
-  availableCategories: Category[];
-  setAvailableCategories: React.Dispatch<React.SetStateAction<Category[]>>;
-  updateNameCategory: (name: string, category: string, comment: string) => void;
-  t: TranslationKeys;
-}
-
-interface UseTodoFormReturn {
-  tempIconKey: string;
-  setTempIconKey: React.Dispatch<React.SetStateAction<string>>;
-  ensureCategoryExists: (val: string, iconKey?: string) => Promise<void>;
-  displayedCategory: string;
-  handleAdd: () => Promise<void>;
-}
+import { iconMap, iconChoices, Category } from '@/constants';
+import type { UseTodoFormParams, UseTodoFormReturn } from '@/types/hooks';
 
 export function useTodoForm({
   todoActions,

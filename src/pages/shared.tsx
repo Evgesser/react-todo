@@ -18,10 +18,10 @@ import Header from '@/components/layout/Header';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { IntlShape } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
+import { useViewportHeight } from '@/hooks/useViewportHeight';
 import { useSharedTodos } from '@/hooks/useSharedTodos';
 import TodoList from '@/components/TodoList';
-import type { UseTodosReturn } from '@/hooks/useTodos';
-import type { UseListsReturn } from '@/hooks/useLists';
+import type { UseTodosReturn, UseListsReturn } from '@/types/hooks';
 
 export default function SharedPage() {
   const router = useRouter();
@@ -38,25 +38,11 @@ export default function SharedPage() {
   const [snackbarMsg, setSnackbarMsg] = React.useState('');
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
 
-  // viewport/list sizing to make the todos scrollable like the main page
-  const [viewportHeight, setViewportHeight] = React.useState<number>(
-    typeof window !== 'undefined' ? window.innerHeight : 0
-  );
+  // refs для header и toolbar
   const headerRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
-  const [listHeight, setListHeight] = React.useState<number>(0);
-
-  React.useLayoutEffect(() => {
-    const vh = typeof window !== 'undefined' ? window.innerHeight : 0;
-    setViewportHeight(vh);
-    const headerH = headerRef.current?.offsetHeight || 0;
-    const toolbarH = toolbarRef.current?.offsetHeight || 0;
-    const margins = 64; // container vertical margins (mt=4,mb=4)
-    const buffer = 50;
-    const safe = vh - (typeof document !== 'undefined' ? document.documentElement.clientHeight : vh);
-    const newListH = vh - headerH - toolbarH - margins - buffer - safe;
-    setListHeight(newListH > 0 ? newListH : 0);
-  }, []);
+  // используем хук для вычисления размеров (margins=64 для shared)
+  const { viewportHeight, listHeight } = useViewportHeight(headerRef, toolbarRef, 64, 50);
 
   const tokenStr = typeof token === 'string' ? token : '';
   const todoActions = useSharedTodos(tokenStr, setSnackbarMsg, _formatMessage);

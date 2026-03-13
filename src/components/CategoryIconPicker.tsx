@@ -1,14 +1,9 @@
 import * as React from 'react';
 import { IconButton, Box } from '@mui/material';
 import { iconChoices } from '@/constants';
+import type { CategoryIconPickerProps } from '@/types/componentProps';
 
-interface Props {
-  selected: string;
-  onChange: (key: string) => void;
-  title?: string;
-}
-
-export default function CategoryIconPicker({ selected, onChange, title }: Props) {
+export default function CategoryIconPicker({ selected, onChange, title }: CategoryIconPickerProps) {
   return (
     <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }} title={title}>
       {iconChoices.map((ic) => (

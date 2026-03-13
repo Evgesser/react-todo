@@ -5,14 +5,8 @@ import { useTheme } from '@mui/material/styles';
 import ClearIcon from '@mui/icons-material/Clear';
 import RegisterDialog from './dialogs/RegisterDialog';
 import useAppStore from '@/stores/useAppStore';
-import type { TranslationKeys } from '@/locales/ru';
-import type { IntlShape } from 'react-intl';
 
-interface AuthPanelProps {
-  t: TranslationKeys;
-  formatMessage: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string;
-  onSnackbar: (msg: string) => void;
-}
+import type { AuthPanelProps } from '@/types/componentProps';
 
 export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelProps) {
   const userId = useAppStore((s) => s.userId);

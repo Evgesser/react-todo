@@ -28,28 +28,13 @@ import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 import { Category, iconMap, iconChoices, categoryKeywords } from '@/constants';
 import useAppStore from '@/stores/useAppStore';
-import { UseTodosReturn } from '@/hooks/useTodos';
 import { useNameOptions } from '@/hooks/useNameOptions';
 import { useCategoryOptions } from '@/hooks/useCategoryOptions';
+
 import CategoryIconPicker from './CategoryIconPicker';
 import QuantityDialog from './dialogs/QuantityDialog';
-import type { StoredProduct } from '@/types';
-import type { TranslationKeys } from '@/locales/ru';
-
-interface Props {
-  todoActions: UseTodosReturn;
-  availableCategories: Category[];
-  setAvailableCategories: React.Dispatch<React.SetStateAction<Category[]>>;
-  updateNameCategory: (name: string, category: string, comment: string) => void;
-  nameCategoryMap: Record<string, string>;
-  products: StoredProduct[];
-  listDefaultColor: string;
-  t: TranslationKeys;
-  formOpen: boolean;
-  setFormOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  // when true, render inside a dialog instead of collapsing inline
-  dialogMode?: boolean;
-} 
+import type { TodoFormProps } from '@/types/componentProps';
+import type { UseTodosReturn } from '@/types/hooks';
 
 
 // parsing logic has been moved to a shared utility so other
@@ -68,7 +53,7 @@ export default function TodoForm({
   formOpen,
   setFormOpen,
   dialogMode = false,
-}: Props) {
+}: TodoFormProps) {
   // local state needed by the form (icon picker + quantity dialog)
   // language context no longer required for parsing
   const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;

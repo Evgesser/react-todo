@@ -1,21 +1,6 @@
 import * as React from 'react';
 import { login as apiLogin, fetchUserProfile } from '@/lib/api';
-
-interface UseAuthReturn {
-  // State
-  userId: string | null;
-  username: string | null;
-  avatar: string | null;
-  isLoading: boolean;
-  error: string | null;
-
-  // Methods
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  setAuthData: (userId: string, username: string, avatar?: string) => void;
-  loadAvatar: (userId: string) => Promise<void>;
-  logout: () => void;
-  clearError: () => void;
-}
+import type { UseAuthReturn } from '@/types/hooks';
 
 export function useAuth(): UseAuthReturn {
   const [userId, setUserId] = React.useState<string | null>(null);

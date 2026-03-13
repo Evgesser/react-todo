@@ -15,20 +15,14 @@ import TodoListItem from './TodoListItem';
 import type { Category } from '@/constants';
 import { iconChoices } from '@/constants';
 import type { TranslationKeys } from '@/locales/ru';
+import type { Todo } from '@/types/todo';
 
-import type { UseTodosReturn } from '@/hooks/useTodos';
-import type { UseListsReturn } from '@/hooks/useLists';
+import type { UseTodosReturn, UseListsReturn } from '@/types/hooks';
 
-interface TodoListProps {
-  todoActions: UseTodosReturn;
-  listActions: UseListsReturn;
-  availableCategories: Category[];
-  t: TranslationKeys;
-  // called when an item enters edit mode (e.g. open form dialog)
-  onEdit?: () => void;
-}
 
-export default function TodoList({
+import type { TodoListProps } from '@/types/componentProps';
+
+function TodoList({
   todoActions,
   listActions,
   availableCategories,
@@ -39,13 +33,13 @@ export default function TodoList({
 
   const elements = React.useMemo(() => {
     const filtered = todoActions.todos.filter(
-      (tt) =>
+      (tt: Todo) =>
         tt.name.toLowerCase().includes(todoActions.filterText.toLowerCase()) ||
         tt.description.toLowerCase().includes(todoActions.filterText.toLowerCase())
     );
 
     const baseIndex = new Map<string, number>();
-    todoActions.todos.forEach((item, idx) => {
+    todoActions.todos.forEach((item: Todo, idx: number) => {
       baseIndex.set(item._id, idx);
     });
 
@@ -167,7 +161,7 @@ export default function TodoList({
         );
       }
 
-      const globalIndex = todoActions.todos.findIndex((t) => t._id === todo._id);
+      const globalIndex = todoActions.todos.findIndex((t_item: Todo) => t_item._id === todo._id);
 
       elementsArray.push(
         <TodoListItem
@@ -214,4 +208,6 @@ export default function TodoList({
       <List sx={{ width: '100%', p: 1, borderRadius: 2 }}>{elements}</List>
     </Box>
   );
-}
+} 
+
+export default TodoList;

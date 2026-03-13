@@ -1,7 +1,8 @@
-import type { TranslationKeys } from '@/locales/ru';
-import { List as ListType } from '@/types';
-import AddIcon from '@mui/icons-material/Add';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import * as React from 'react';
+import {
+  Add as AddIcon,
+  MoreVert as MoreVertIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -15,34 +16,8 @@ import {
   Skeleton,
   TextField
 } from '@mui/material';
-import * as React from 'react';
-import type { IntlShape } from 'react-intl';
 
-interface ListToolbarProps {
-  lists: ListType[];
-  currentListId: string | null;
-  onSelectList: (id: string) => void;
-  listsLoading?: boolean;
-  listDefaultColor: string;
-  setListDefaultColor: (color: string) => void;
-  saveListColor: () => void;
-  openNewListDialog: () => void;
-  setHistoryOpen: (open: boolean) => void;
-  formOpen: boolean;
-  bulkMode: boolean;
-  toggleBulkMode: () => void;
-  menuAnchor: HTMLElement | null;
-  openMenu: (e: React.MouseEvent<HTMLElement>) => void;
-  closeMenu: () => void;
-  setSnackbarMsg: (msg: string) => void;
-  setSnackbarOpen: (open: boolean) => void;
-  openPersonalDialog: () => void;
-  completeCurrentList: () => void;
-  // new helper for share functionality
-  updateShareToken: (id: string, token: string) => Promise<void>;
-  t: TranslationKeys;
-  formatMessage: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string;
-}
+import type { ListToolbarProps } from '@/types/componentProps';
 
 export default function ListToolbar({
   lists,

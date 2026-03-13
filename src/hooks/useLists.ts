@@ -5,42 +5,8 @@ import {
   deleteList as apiDeleteList,
   updateList as apiUpdateList,
 } from '@/lib/api';
-import { TranslationKeys } from '@/locales/ru';
-import type { IntlShape } from 'react-intl';
 import useAppStore from '@/stores/useAppStore';
-
-interface UseListsParams {
-  userId: string | null;
-  onSnackbar: (message: string) => void;
-  t?: TranslationKeys;
-  formatMessage: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string;
-}
-
-export interface UseListsReturn {
-  // State
-  lists: ListType[];
-  currentListId: string | null;
-  currentList: ListType | null;
-  listDefaultColor: string;
-  viewingHistory: boolean;
-  isLoading: boolean;
-
-  // Setters
-  setLists: (lists: ListType[]) => void;
-  setCurrentListId: (id: string | null) => void;
-  setCurrentList: (list: ListType | null) => void;
-  setListDefaultColor: (color: string) => void;
-  setViewingHistory: (viewing: boolean) => void;
-
-  // Methods
-  loadLists: () => Promise<ListType[] | null>;
-  selectList: (id: string) => Promise<void>;
-  deleteList: (id: string) => Promise<void>;
-  updateListColor: (id: string, color: string) => Promise<void>;
-  updateShareToken: (id: string, token: string) => Promise<void>;
-  completeList: (id: string) => Promise<void>;
-  clearAllLists: () => void;
-}
+import type { UseListsParams, UseListsReturn } from '@/types/hooks';
 
 export function useLists({ userId, onSnackbar, formatMessage }: UseListsParams): UseListsReturn {
   const abortRef = React.useRef<AbortController | null>(null);

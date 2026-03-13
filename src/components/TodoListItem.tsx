@@ -46,20 +46,10 @@ import { useTheme, alpha } from '@mui/material/styles';
 import type { Category } from '@/constants';
 import type { TranslationKeys } from '@/locales/ru';
 import type { Todo } from '@/types';
-import type { UseTodosReturn } from '@/hooks/useTodos';
-import type { UseListsReturn } from '@/hooks/useLists';
+import type { UseTodosReturn, UseListsReturn } from '@/types/hooks';
 
-interface TodoListItemProps {
-  todo: Todo;
-  globalIndex: number;
-  todoActions: UseTodosReturn;
-  listActions: UseListsReturn;
-  availableCategories: Category[];
-  t: TranslationKeys;
-  // optional callback invoked when user starts editing this item
-  onEdit?: () => void;
-}
 
+import type { TodoListItemProps } from '@/types/componentProps';
 
 export default function TodoListItem({
   todo,

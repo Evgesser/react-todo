@@ -6,16 +6,10 @@ import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useTheme, alpha } from '@mui/material/styles';
 import { ColorModeContext } from '@/pages/_app';
-import type { TranslationKeys } from '@/locales/ru';
+import type { HeaderProps } from '@/types/componentProps';
 import useAppStore from '@/stores/useAppStore';
 import LanguageSwitcher from '../LanguageSwitcher';
 import Link from 'next/link';
-
-interface HeaderProps {
-  headerColor: string;
-  effectiveHeaderTextColor: string;
-  t: TranslationKeys;
-}
 
 const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, t }) => {
   const theme = useTheme();

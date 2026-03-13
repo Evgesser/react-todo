@@ -1,25 +1,29 @@
 import * as React from 'react';
-import { Box, TextField, MenuItem, Button, InputAdornment, IconButton } from '@mui/material';
+import {
+  Box,
+  TextField,
+  Button,
+  IconButton,
+  Tooltip,
+  InputAdornment,
+  Menu,
+  MenuItem,
+  FormControl,
+  Select,
+} from '@mui/material';
+import {
+  Search as SearchIcon,
+  CheckCircle as CheckCircleIcon,
+  Delete as DeleteIcon,
+  Close as CloseIcon,
+  Clear as ClearIcon,
+  FilterList as FilterListIcon,
+} from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
-import { iconChoices } from '@/constants';
-import ClearIcon from '@mui/icons-material/Clear';
-import type { TranslationKeys } from '@/locales/ru';
+import { Category } from '@/constants';
+import type { SearchBulkProps } from '@/types/componentProps';
 
-interface Props {
-  t: TranslationKeys;
-  filterText: string;
-  onFilterChange: (text: string) => void;
-  bulkMode: boolean;
-  selectedCount: number;
-  onBulkComplete: () => void;
-  onBulkDelete: () => void;
-  onCancelBulk: () => void;
-  categories?: { value: string; label: string }[];
-  currentCategory?: string;
-  onCategoryChange?: (value: string) => void;
-}
-
-const SearchBulk: React.FC<Props> = ({
+const SearchBulk: React.FC<SearchBulkProps> = ({
   t,
   filterText,
   onFilterChange,
@@ -70,10 +74,7 @@ const SearchBulk: React.FC<Props> = ({
           {categories.map((c) => (
             <MenuItem key={c.value} value={c.value}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {(() => {
-                  const ic = iconChoices.find((x) => x.key === c.value);
-                  return ic ? React.createElement(ic.icon, { fontSize: 'small' }) : null;
-                })()}
+                {c.icon ? React.createElement(c.icon, { fontSize: 'small' }) : null}
                 <Box>{c.label}</Box>
               </Box>
             </MenuItem>
