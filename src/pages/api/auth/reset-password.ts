@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ message: 'Token and password required' });
   }
   const user = await getUserByResetToken(token);
-  if (!user || !user.resetTokenExpires || user.resetTokenExpires < Date.now()) {
+  if (!user) {
     return res.status(400).json({ message: 'Invalid or expired token' });
   }
   const hash = await bcrypt.hash(password, 10);

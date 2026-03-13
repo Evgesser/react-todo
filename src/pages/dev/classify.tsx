@@ -4,17 +4,26 @@ import { Container, Box, TextField, Button, Typography, List, ListItem, ListItem
 import { useAppStore } from '@/stores/useAppStore';
 import * as locales from '@/locales';
 
+interface Classification {
+  label: string;
+  value: number;
+}
+interface ClassificationResult {
+  category: string;
+  classifications?: Classification[];
+  error?: string;
+}
+
 export default function DevClassify() {
   const [text, setText] = useState('');
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ClassificationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const language = useAppStore((s) => s.language) || 'en';
-  
-  // @ts-ignore
+
   const t = locales[language] || locales.en;
 
   const getLabel = (key: string) => {
-    return (t.categoryLabels as any)?.[key] || key;
+    return (t.categoryLabels as Record<string, string>)?.[key] || key;
   };
 
   const run = async () => {
@@ -28,7 +37,7 @@ export default function DevClassify() {
       const data = await res.json();
       setResult(data);
     } catch (e) {
-      setResult({ error: String(e) });
+      setResult({ error: String(e), category: '' });
     }
     setLoading(false);
   };
@@ -60,12 +69,12 @@ export default function DevClassify() {
                 </Typography>
                 <Typography variant="subtitle2">Top scores:</Typography>
                 <List dense>
-                  {Array.isArray(result.classifications) && result.classifications.length ? (
-                    result.classifications.map((c: any) => (
+                  {Array.isArray(result?.classifications) && result.classifications.length ? (
+                    result.classifications.map((c: Classification) => (
                       <ListItem key={c.label}>
                         <ListItemText 
                           primary={getLabel(c.label)} 
-                          secondary={`${c.label} — ${((c.value || 0) * 100).toFixed(1)}%`} 
+                          secondary={`${c.label} 4 ${((c.value || 0) * 100).toFixed(1)}%`} 
                         />
                       </ListItem>
                     ))

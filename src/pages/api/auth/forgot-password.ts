@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const token = crypto.randomBytes(32).toString('hex');
-  const expires = now + 1000 * 60 * 60; // 1 hour
+  const expires = now + 1000 * 60 * 15; // 15 минут
   await setResetToken(user._id, token, expires);
 
   // Настройте транспорт для отправки email
@@ -59,6 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         <div style="text-align: center; margin: 32px 0;">
           <a href="${resetUrl}" style="display: inline-block; background: #1976d2; color: #fff; text-decoration: none; font-weight: 500; padding: 14px 32px; border-radius: 4px; font-size: 16px;">Сбросить пароль</a>
         </div>
+        <p style="font-size: 14px; color: #888;">Ссылка для сброса пароля действует 15 минут и может быть использована только один раз.</p>
         <p style="font-size: 14px; color: #888;">Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.</p>
         <hr style="margin: 32px 0; border: none; border-top: 1px solid #eee;">
         <p style="font-size: 12px; color: #bbb; text-align: center;">&copy; ${new Date().getFullYear()} react-todo</p>

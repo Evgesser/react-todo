@@ -1,18 +1,29 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { categoryKeywords, iconChoices } from '@/constants';
-import path from 'path';
-import fs from 'fs';
 
-// Workaround for https://github.com/NaturalNode/natural/issues/630
-// Importing specific submodules to avoid loading the sentiment analyzer which triggers 
-// a require() of an ESM module (afinn-165) in CommonJS environments (like Vercel).
-let natural: any = null;
+
+const path = require('path');
+const fs = require('fs');
+
+interface BayesClassifier {
+  addDocument: (text: string, label: string) => void;
+  train: () => void;
+  getClassifications: (text: string) => Array<{ label: string; value: number }>;
+}
+interface NaturalLib {
+  BayesClassifier: new (stemmer: UniversalStemmer) => BayesClassifier;
+  RegexpTokenizer: new (opts: { pattern: RegExp }) => { tokenize: (text: string) => string[] };
+  PorterStemmer: { tokenizeAndStem?: (text: string) => string[] };
+}
+interface UniversalStemmer {
+  stem: (token: string) => string;
+  tokenizeAndStem: (text: string) => string[];
+}
+
+let natural: NaturalLib | null = null;
 try {
-  // We use require here to stay in CJS mode if that's what natural expects internally,
-  // but we only import what we actually use.
   const BayesClassifier = require('natural/lib/natural/classifiers/bayes_classifier');
-  // RegexpTokenizer is not a direct export, but a property of the object returned by its file
   const { RegexpTokenizer } = require('natural/lib/natural/tokenizers/regexp_tokenizer');
   const PorterStemmer = require('natural/lib/natural/stemmers/porter_stemmer');
   natural = { BayesClassifier, RegexpTokenizer, PorterStemmer };
@@ -20,48 +31,39 @@ try {
   console.error('Failed to load natural submodules', e);
 }
 
+
 // Use a tokenizer that handles Cyrillic and Hebrew characters properly
 // \p{L} matches any character from any language
+
 const tokenizer = natural ? new natural.RegexpTokenizer({ pattern: /[^\p{L}0-9]+/u }) : null;
 
-// Create a custom stemmer that doesn't filter out non-Latin characters
-const universalStemmer = {
+const universalStemmer: UniversalStemmer = {
   stem: (token: string) => token.toLowerCase(),
   tokenizeAndStem: (text: string) => tokenizer ? tokenizer.tokenize(text.toLowerCase()) : []
 };
 
 if (natural) {
-  // Use the stemmer globally for the natural library if possible, 
-  // though passing it to the constructor is more reliable.
-  (natural.PorterStemmer as any).tokenizeAndStem = universalStemmer.tokenizeAndStem;
+  natural.PorterStemmer.tokenizeAndStem = universalStemmer.tokenizeAndStem;
 }
 
-// We'll use a BayesClassifier which is similar in spirit to what fastText uses for simple tasks
-// It's pure JS and handles keywords well.
-let classifier: any = null;
+let classifier: BayesClassifier | null = null;
 
-function trainClassifier() {
-  if (!natural) return null;
-  // Pass the custom stemmer to avoid filtering out Cyrillic/Hebrew
-  const newClassifier = new natural.BayesClassifier(universalStemmer as any);
+function trainClassifier(): BayesClassifier | null {
+  if (!natural || !tokenizer) return null;
+  const newClassifier = new natural.BayesClassifier(universalStemmer);
   const trainingPath = path.resolve(process.cwd(), 'training_data_augmented.json');
-
-  // Объединённое обучение: сначала training_data_augmented.json, затем categoryKeywords (без дубликатов)
   let jsonData: Record<string, Set<string>> = {};
   if (fs.existsSync(trainingPath)) {
     try {
       const raw = fs.readFileSync(trainingPath, 'utf8');
       const data = JSON.parse(raw) as Record<string, string[]>;
-      // Сохраняем для проверки дубликатов
       Object.entries(data).forEach(([label, examples]) => {
         jsonData[label] = new Set();
         examples.forEach((ex) => {
           if (ex && ex.trim()) {
             const tokens = tokenizer.tokenize(ex.toLowerCase());
-            if (tokens.length > 0) {
-              newClassifier.addDocument(tokens.join(' '), label);
-              jsonData[label].add(ex.toLowerCase());
-            }
+            newClassifier.addDocument(tokens.join(' '), label);
+            jsonData[label].add(ex.toLowerCase());
           }
         });
       });
@@ -70,8 +72,6 @@ function trainClassifier() {
       jsonData = {};
     }
   }
-
-  // Добавляем ключевые слова из categoryKeywords, если их нет в jsonData
   Object.entries(categoryKeywords).forEach(([lang, categories]) => {
     Object.entries(categories).forEach(([label, keywords]) => {
       keywords.forEach((keyword: string) => {
@@ -83,7 +83,6 @@ function trainClassifier() {
       });
     });
   });
-
   newClassifier.train();
   return newClassifier;
 }
@@ -116,9 +115,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     const normalized = text.toLowerCase();
     
     // Check classifier classifications with scores
-    // @ts-ignore
     const raw = classifier.getClassifications(normalized) || [];
-    const classifications = raw.slice(0, 10).map((c: any) => ({ label: c.label, value: c.value }));
+    const classifications = raw.slice(0, 10).map((c: { label: string; value: number }) => ({ label: c.label, value: c.value }));
     
     // Sort and get the best one
     const sorted = [...classifications].sort((a, b) => b.value - a.value);

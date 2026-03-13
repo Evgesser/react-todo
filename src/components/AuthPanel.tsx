@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Link from 'next/link';
 import { Box, TextField, Button, IconButton, InputAdornment, Alert } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -123,9 +124,9 @@ export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelPro
         }}
       />
       <Box sx={{ textAlign: 'right', mt: -1, mb: 1 }}>
-        <a href="/forgot-password" style={{ fontSize: 13, color: theme.palette.primary.main, textDecoration: 'underline', cursor: 'pointer' }}>
+        <Link href="/forgot-password" style={{ fontSize: 13, color: theme.palette.primary.main, textDecoration: 'underline', cursor: 'pointer' }}>
           {t.auth.forgotPassword}
-        </a>
+        </Link>
       </Box>
       <Button variant="contained" onClick={handleLogin} disabled={isLoading}>
         {isLoading ? t.auth.loading : t.auth.login}

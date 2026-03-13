@@ -300,7 +300,6 @@ export default function TodoForm({
     quantity,
     comment,
     unit,
-    color,
     category,
     editingId,
     todos,
@@ -413,7 +412,7 @@ export default function TodoForm({
   // a human-readable label and pick an icon when available
   const previewCategory = React.useMemo(() => {
     const cat = parsed?.category || category;
-    if (!cat) return { label: '', Icon: null as any };
+    if (!cat) return { label: '', Icon: null as React.ElementType | null };
     const localized = (t.categoryLabels as Record<string, string>)?.[cat];
     const found = availableCategories.find((c) => c.value === cat);
 
@@ -757,7 +756,7 @@ export default function TodoForm({
                     const currentComment = parsed?.comment || description || comment || '';
 
                     // Try to get a better category from our classifier if current one is default/missing
-                    let finalCategory = currentCategory;
+                    const finalCategory = currentCategory;
                     
                     // IF category is missing, we opening dialog and ONLY THEN try to infer
                     const isInitialCategoryMissing = !finalCategory || finalCategory === 'none' || finalCategory === '';
@@ -884,7 +883,7 @@ export default function TodoForm({
             {imageData && (
               <Box
                 sx={{ mt: 0.5, position: 'relative', display: 'inline-block', cursor: 'pointer' }}
-                onClick={(e) => {
+                onClick={() => {
                   setImagePreviewOpen(true);
                 }}
               >
@@ -892,14 +891,14 @@ export default function TodoForm({
                   src={imageData}
                   alt="preview"
                   style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 4 }}
-                  onClick={(e) => {
+                  onClick={() => {
                     setImagePreviewOpen(true);
                   }}
                 />
                 <IconButton
                   size="small"
                   sx={{ position: 'absolute', top: 2, insetInlineEnd: 2 }}
-                  onClick={(e) => { e.stopPropagation(); setImageData(null); }}
+                  onClick={(event) => { event.stopPropagation(); setImageData(null); }}
                   aria-label="Удалить изображение"
                   title="Удалить изображение"
                 >
@@ -1105,7 +1104,7 @@ export default function TodoForm({
           <Typography variant="body1" sx={{ mb: 2 }}>
             {t.messages.possibleCategoryMismatch || 'Select category for:'} 
             <Box component="span" sx={{ fontWeight: 'bold', mx: 1, color: 'primary.main' }}>
-              "{(pendingParsed?.name || '').toLowerCase()}"
+              &quot;{(pendingParsed?.name || '').toLowerCase()}&quot;
             </Box>
           </Typography>
           <Autocomplete

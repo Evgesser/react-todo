@@ -130,7 +130,7 @@ export default function TemplateItemRow({
         )}
         renderInput={(params) => {
           const sel = (categoryOptions || []).find((o) => o.value === item.category) as CatOpt | undefined;
-          let IconComp: any = null;
+          let IconComp: React.ElementType | null = null;
           if (sel && sel.icon) {
             const found = iconChoices.find((x) => x.key === sel.icon);
             IconComp = found ? found.icon : null;

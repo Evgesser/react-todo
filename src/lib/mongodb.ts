@@ -2,7 +2,7 @@ export async function setResetTriesAndBlock(userId: ObjectId, tries: number, blo
   const client = await clientPromise;
   const db = client.db();
   const users = db.collection<User>('users');
-  const update: any = { resetTries: tries };
+  const update: { resetTries: number; resetBlockedUntil?: number } = { resetTries: tries };
   if (blockedUntil) update.resetBlockedUntil = blockedUntil;
   else update.resetBlockedUntil = undefined;
   await users.updateOne(
@@ -74,7 +74,9 @@ export async function getUserByResetToken(token: string): Promise<User | null> {
   const client = await clientPromise;
   const db = client.db();
   const users = db.collection<User>('users');
-  return users.findOne({ resetToken: token });
+  // Найти пользователя по токену и сроку действия
+  const now = Date.now();
+  return users.findOne({ resetToken: token, resetTokenExpires: { $gt: now } });
 }
 
 export async function resetUserPassword(userId: ObjectId, passwordHash: string) {
