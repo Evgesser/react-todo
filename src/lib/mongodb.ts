@@ -48,12 +48,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export default clientPromise;
-export {
-  getUserByEmail,
-  setResetToken,
-  getUserByResetToken,
-  resetUserPassword
-};
+
 
 import type { User } from '@/types/user';
 import { ObjectId } from 'mongodb';
