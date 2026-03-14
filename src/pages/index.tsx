@@ -37,7 +37,7 @@ import {
 import { getCachedExchangeRate, setCachedExchangeRate } from '@/lib/exchangeRates';
 
 import { useViewportHeight } from '@/hooks/useViewportHeight';
-import { formatCurrency, iconMap, currencySymbols } from '@/constants';
+import { formatCurrency, iconMap, currencySymbols, iconChoices } from '@/constants';
 
 
 // Custom hooks
@@ -510,15 +510,53 @@ export default function Home() {
   const availableCategoriesForList = React.useMemo(() => {
     const currentListId = listActions.currentListId;
 
-    // For expenses we want list-scoped categories only (no globals or defaults).
-    // If no list is selected, there are no applicable categories.
+    // For expenses we prefer list-scoped categories, but also allow "global" categories
+    // (those without listId) to appear so they don't disappear if listId was lost.
     if (listType === 'expenses') {
       if (!currentListId) return [];
+      // For expenses lists, categories are strictly scoped to the list via listId.
+      // This prevents updates in one list from affecting another.
       return availableCategories.filter((c) => c.listId === currentListId);
     }
 
     return availableCategories.filter((c) => !c.listId || c.listId === currentListId);
-  }, [availableCategories, listActions.currentListId, listType]);
+  }, [availableCategories, listActions.currentListId, listType, todoActions.todos, t]);
+
+  // For expenses lists we want to keep category state strict: if a todo has a category
+  // that no longer exists for this list, clear it (clean up "lost" categories).
+  const cleanedStaleCategoriesRef = React.useRef<{ listId: string | null; key: string } | null>(null);
+  React.useEffect(() => {
+    if (listType !== 'expenses') return;
+    const currentListId = listActions.currentListId;
+    if (!currentListId) return;
+
+    const validCategories = new Set(availableCategoriesForList.map((c) => c.value));
+    const key = [...validCategories].sort().join(',');
+    if (cleanedStaleCategoriesRef.current?.listId === currentListId && cleanedStaleCategoriesRef.current.key === key) {
+      return;
+    }
+
+    const invalidTodos = todoActions.todos.filter(
+      (t) => t.category && t.category.trim() && !validCategories.has(t.category)
+    );
+    if (invalidTodos.length === 0) {
+      cleanedStaleCategoriesRef.current = { listId: currentListId, key };
+      return;
+    }
+
+    Promise.all(
+      invalidTodos.map((todo) =>
+        apiUpdateTodo(todo._id, { listId: currentListId, category: '' }).catch(() => {})
+      )
+    ).finally(() => {
+      todoActions.setTodos((prev) =>
+        prev.map((t) =>
+          t.category && !validCategories.has(t.category) ? { ...t, category: '' } : t
+        )
+      );
+      cleanedStaleCategoriesRef.current = { listId: currentListId, key };
+    });
+  }, [listType, listActions.currentListId, availableCategoriesForList, todoActions]);
 
   // Reset category selection when form closes (to avoid pre-filling it on next open).
   React.useEffect(() => {
@@ -563,7 +601,17 @@ export default function Home() {
       ? editingCategoryValue
       : name.toLowerCase().replace(/\s+/g, '-');
     const budgetValue = typeof newCategoryBudget === 'number' && Number.isFinite(newCategoryBudget) ? newCategoryBudget : undefined;
-    const existingIndex = availableCategories.findIndex((c) => c.value === categoryValue);
+    const currentListId = listActions.currentListId;
+
+    // Expenses lists should treat categories as scoped to a list.
+    // Otherwise updating a category in one list would accidentally update it for all lists.
+    const existingIndex = availableCategories.findIndex((c) => {
+      if (c.value !== categoryValue) return false;
+      if (listType === 'expenses') {
+        return c.listId === currentListId;
+      }
+      return true;
+    });
 
     const nextCategories = [...availableCategories];
     const selectedIcon = newCategoryIconKey && iconMap[newCategoryIconKey] ? iconMap[newCategoryIconKey] : null;
@@ -870,8 +918,15 @@ export default function Home() {
               openPersonalDialog={() => setPersonalDialogOpen(true)}
               completeCurrentList={async () => {
                 if (!listActions.currentListId) return;
-                await listActions.completeList(listActions.currentListId);
+                const completedId = listActions.currentListId;
+                await listActions.completeList(completedId);
                 todoActions.setTodos([]);
+
+                // After completion, if a new active list is selected, load its todos.
+                const nextId = listActions.currentListId;
+                if (nextId && nextId !== completedId) {
+                  await todoActions.fetchTodos(nextId);
+                }
               }}
               updateShareToken={listActions.updateShareToken}
               updateBudget={listActions.updateListBudget}
@@ -1488,13 +1543,11 @@ export default function Home() {
                     {t.dialogs.currencyRate.description}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
-                    <Button
-                      size="small"
-                      onClick={handleFetchRatesForAll}
-                      disabled={exchangeRateLoading || currencyRateTargets.length === 0}
-                    >
-                      {exchangeRateLoading ? t.messages.loading : t.messages.fetchExchangeRate}
-                    </Button>
+                    {exchangeRateLoading ? (
+                      <Typography variant="caption" color="text.secondary">
+                        {t.messages.loading}
+                      </Typography>
+                    ) : null}
                     {exchangeRateError ? (
                       <Typography variant="caption" color="error.main">
                         {exchangeRateError}

@@ -237,7 +237,6 @@ export const ru = {
     saveError: 'Ошибка при сохранении',
     budgetExceeded: 'Бюджет превышен',
     invalidExchangeRate: 'Введите корректный курс (больше 0)',
-    fetchExchangeRate: 'Получить курс',
     fetchExchangeRateError: 'Не удалось получить курс',
     error: 'Ошибка',
     selectAndCopy: 'Нажмите на ссылку, чтобы выделить, затем скопируйте:',

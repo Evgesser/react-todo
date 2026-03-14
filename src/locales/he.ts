@@ -241,7 +241,6 @@ export const he: TranslationKeys = {
     saveError: 'שגיאה בשמירה',
     budgetExceeded: 'תקציב הופר',
     invalidExchangeRate: 'הזן שער המרה תקין (גדול מ-0)',
-    fetchExchangeRate: 'קבל שער המרה',
     fetchExchangeRateError: 'לא ניתן לקבל את שער ההמרה',
     error: 'שגיאה',
     selectAndCopy: 'הקש על הקישור כדי לבחור, ואז העתק:',

@@ -230,8 +230,9 @@ function TodoList({
       const isEditable = Boolean(
         onEditCategory &&
         catObj &&
-        catObj.listId &&
-        catObj.listId === currentListId
+        // Allow editing when category is scoped to this list, or when the category has no list scope
+        // (e.g., saved without listId but still used for this list).
+        (catObj.listId === currentListId || !catObj.listId)
       );
 
       const isStrictBudget = Boolean(catObj?.strictBudget);

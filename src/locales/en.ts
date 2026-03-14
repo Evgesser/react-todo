@@ -238,7 +238,6 @@ export const en: TranslationKeys = {
     saveError: 'Save failed',
     budgetExceeded: 'Budget exceeded',
     invalidExchangeRate: 'Enter a valid exchange rate (greater than 0)',
-    fetchExchangeRate: 'Fetch exchange rate',
     fetchExchangeRateError: 'Failed to fetch exchange rate',
     error: 'Error',
     selectAndCopy: 'Tap to select the link, then copy it:',

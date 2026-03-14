@@ -115,7 +115,7 @@ export default function ListToolbar({
       className="glass"
       sx={(theme) => ({
         display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: '7fr 5fr' },
+        gridTemplateColumns: { xs: '1fr auto', sm: '7fr 5fr' },
         gap: 0.25,
         alignItems: 'center',
         mb: 0.25,
@@ -139,8 +139,9 @@ export default function ListToolbar({
               label={t.lists.selectList}
               value={currentListId || ''}
               onChange={(e) => onSelectList(e.target.value)}
-              fullWidth
               sx={(theme) => ({
+                flex: 1,
+                minWidth: 0,
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: 'transparent',
                   borderRadius: 1,
@@ -173,6 +174,7 @@ export default function ListToolbar({
                 '&:active': {
                   transform: 'scale(0.95)',
                 },
+                display: 'inline-flex',
               })}
               aria-label={t.lists.newList}
               title={t.lists.newList}
@@ -184,7 +186,7 @@ export default function ListToolbar({
       </Box>
 
       {listType === 'expenses' && currentListId && (
-        <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'nowrap' }}>
+        <Box sx={{ gridColumn: '1 / -1', mt: 1, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'nowrap' }}>
           <TextField
             label={t.lists.budget}
             placeholder={t.lists.budgetPlaceholder}
