@@ -236,10 +236,12 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
 
     // compute current spent totals excluding the item being edited (if any)
     const convertToListCurrency = (amount: number, category?: string) => {
+      // rate is stored as: 1 list currency = X category currency
+      // so to convert an amount in category currency into list currency, divide by the rate.
       if (!category) return amount;
       const rate = categoryExchangeRates?.[category] ?? 1;
       if (typeof rate === 'number' && rate > 0) {
-        return amount * rate;
+        return amount / rate;
       }
       return amount;
     };

@@ -172,6 +172,21 @@ export async function fetchProducts(userId: string): Promise<Array<{ name: strin
   return res.json();
 }
 
+// --- external exchange rate helpers ---------------------------------------
+
+export async function fetchExchangeRate(from: string, to: string): Promise<number> {
+  const res = await fetch(`${BASE}/exchange-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}));
+    throw new Error(payload?.error || 'Failed to fetch exchange rate');
+  }
+  const json = await res.json();
+  if (typeof json?.rate !== 'number') {
+    throw new Error('Exchange rate not available');
+  }
+  return json.rate;
+}
+
 export async function saveProduct(userId: string, prod: { name: string; category?: string; comment?:string; icon?:string }) {
   // build a minimal body with correct types rather than using any
   const body: { userId: string; name: string; category?: string; comment?: string; icon?: string } = {

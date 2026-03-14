@@ -66,11 +66,19 @@ function TodoList({
     return info;
   }, [availableCategories, listActions.currentListId, listType]);
 
+  const hasCurrencyConversion = React.useMemo(() => {
+    return Object.values(categoryInfo).some((info) =>
+      typeof info.currency === 'string' && info.currency !== listCurrency
+    );
+  }, [categoryInfo, listCurrency]);
+
   const convertToListCurrency = React.useCallback(
     (amount: number, category?: string): number => {
+      // rate is stored as: 1 list currency = X category currency
+      // so to convert an amount in category currency into list currency, divide by the rate.
       if (!category) return amount;
       const rate = categoryInfo[category]?.rate ?? 1;
-      if (rate > 0) return amount * rate;
+      if (rate > 0) return amount / rate;
       return amount;
     },
     [categoryInfo]
@@ -413,6 +421,11 @@ function TodoList({
               </Typography>
             )}
           </Box>
+          {hasCurrencyConversion ? (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+              {t.todos.currencyConvertedToList}
+            </Typography>
+          ) : null}
           {typeof budget === 'number' && budgetProgress != null && (
             <Box sx={{ mt: 0.5 }}>
               <LinearProgress

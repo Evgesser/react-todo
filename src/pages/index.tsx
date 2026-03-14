@@ -20,6 +20,7 @@ import {
   ListItemIcon,
   ListItemText,
   MenuItem,
+  CircularProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 
@@ -31,7 +32,9 @@ import {
   fetchTodos as apiFetchTodos,
   savePersonalization,
   updateTodo as apiUpdateTodo,
+  fetchExchangeRate,
 } from '@/lib/api';
+import { getCachedExchangeRate, setCachedExchangeRate } from '@/lib/exchangeRates';
 
 import { useViewportHeight } from '@/hooks/useViewportHeight';
 import { formatCurrency, iconMap, currencySymbols } from '@/constants';
@@ -151,6 +154,8 @@ export default function Home() {
 
   const [currencyRateDialogOpen, setCurrencyRateDialogOpen] = React.useState(false);
   const [currencyRateValues, setCurrencyRateValues] = React.useState<Record<string, number | undefined>>({});
+  const [exchangeRateLoading, setExchangeRateLoading] = React.useState(false);
+  const [exchangeRateError, setExchangeRateError] = React.useState<string | null>(null);
   const prevListRef = React.useRef<{ id: string | null; currency: string | null }>({ id: null, currency: null });
 
 
@@ -225,8 +230,30 @@ export default function Home() {
     setNewCategoryExchangeRate(1);
     setNewCategoryStrictBudget(false);
     setNewCategoryIconKey('');
+    setExchangeRateError(null);
     setNewCategoryDialogOpen(true);
   };
+
+  const getExchangeRate = React.useCallback(
+    async (from: string, to: string) => {
+      const cached = getCachedExchangeRate(from, to);
+      if (typeof cached === 'number') return cached;
+
+      setExchangeRateError(null);
+      setExchangeRateLoading(true);
+      try {
+        const rate = await fetchExchangeRate(from, to);
+        setCachedExchangeRate(from, to, rate);
+        return rate;
+      } catch (err) {
+        setExchangeRateError(t.messages.fetchExchangeRateError);
+        throw err;
+      } finally {
+        setExchangeRateLoading(false);
+      }
+    },
+    [t.messages.fetchExchangeRateError]
+  );
 
   const currencyRateTargets = React.useMemo(() => {
     const currentList = listActions.currentList;
@@ -254,6 +281,7 @@ export default function Home() {
       // Detect currency change within the same list and prompt for exchange rates
       const categoriesToUpdate = currencyRateTargets;
       if (categoriesToUpdate.length > 0) {
+        setExchangeRateError(null);
         setCurrencyRateValues(
           Object.fromEntries(
             categoriesToUpdate.map((c) => [
@@ -317,7 +345,53 @@ export default function Home() {
     setCurrencyRateDialogOpen(false);
   };
 
-  const openEditCategoryDialog = (categoryValue: string) => {
+  const handleFetchRatesForAll = React.useCallback(async () => {
+    const listCurrency = listActions.currentList?.currency;
+    if (!listCurrency) return;
+
+    setExchangeRateError(null);
+    setExchangeRateLoading(true);
+    try {
+      const updates: Record<string, number> = {};
+      await Promise.all(
+        currencyRateTargets.map(async (cat) => {
+          const rate = await getExchangeRate(listCurrency, cat.currency);
+          updates[cat.value] = rate;
+        })
+      );
+      setCurrencyRateValues((prev) => ({ ...prev, ...updates }));
+    } catch (e) {
+      setExchangeRateError(t.messages.fetchExchangeRateError);
+    } finally {
+      setExchangeRateLoading(false);
+    }
+  }, [currencyRateTargets, listActions.currentList?.currency, getExchangeRate, t.messages.fetchExchangeRateError]);
+
+  React.useEffect(() => {
+    if (!currencyRateDialogOpen) return;
+    if (currencyRateTargets.length === 0) return;
+    handleFetchRatesForAll();
+  }, [currencyRateDialogOpen, currencyRateTargets, handleFetchRatesForAll]);
+
+  React.useEffect(() => {
+    if (!newCategoryDialogOpen) return;
+
+    const listCurrency = listActions.currentList?.currency;
+    if (!listCurrency) return;
+    if (!newCategoryCurrency || newCategoryCurrency === listCurrency) return;
+
+    // Auto-fetch rate when creating a new category in a different currency.
+    (async () => {
+      try {
+        const rate = await getExchangeRate(listCurrency, newCategoryCurrency);
+        setNewCategoryExchangeRate(rate);
+      } catch {
+        // user will enter manually
+      }
+    })();
+  }, [newCategoryDialogOpen, newCategoryCurrency, listActions.currentList?.currency, getExchangeRate]);
+
+  const openEditCategoryDialog = async (categoryValue: string) => {
     const cat = availableCategories.find(
       (c) => c.value === categoryValue && c.listId === listActions.currentListId
     );
@@ -330,17 +404,30 @@ export default function Home() {
     setNewCategoryName(cat.label);
     setNewCategoryBudget(typeof cat.budget === 'number' ? cat.budget : '');
     setNewCategoryCurrency(categoryCurrency);
-    setNewCategoryExchangeRate(
-      categoryCurrency !== listCurrency
-        ? typeof (cat as any).exchangeRateToListCurrency === 'number'
-          ? (cat as any).exchangeRateToListCurrency
-          : ''
-        : 1
-    );
     setNewCategoryStrictBudget(!!cat.strictBudget);
     setNewCategoryIconKey(
       Object.keys(iconMap).find((k) => iconMap[k] === cat.icon) || ''
     );
+
+    const existingRate =
+      categoryCurrency !== listCurrency &&
+      typeof (cat as any).exchangeRateToListCurrency === 'number'
+        ? (cat as any).exchangeRateToListCurrency
+        : 1;
+
+    setNewCategoryExchangeRate(existingRate);
+    setExchangeRateError(null);
+
+    // Try to auto-fetch a fresh rate if currency differs from list currency.
+    if (categoryCurrency !== listCurrency) {
+      try {
+        const rate = await getExchangeRate(listCurrency, categoryCurrency);
+        setNewCategoryExchangeRate(rate);
+      } catch {
+        // allow manual override
+      }
+    }
+
     setNewCategoryDialogOpen(true);
   };
 
@@ -539,6 +626,17 @@ export default function Home() {
     setNewCategoryIconKey('');
   };
 
+  const convertToListCurrency = React.useCallback(
+    (amount: number, category?: string): number => {
+      // rate is stored as: 1 list currency = X category currency
+      // so to convert an amount in category currency into list currency, divide by the rate.
+      const rate = categoryExchangeRates[category ?? ''] ?? 1;
+      if (rate > 0) return amount / rate;
+      return amount;
+    },
+    [categoryExchangeRates]
+  );
+
   const categorySpend = React.useMemo(() => {
     const spend: Record<string, number> = {};
     todoActions.todos.forEach((todo) => {
@@ -550,8 +648,11 @@ export default function Home() {
   }, [todoActions.todos]);
 
   const totalSpent = React.useMemo(() => {
-    return todoActions.todos.reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0);
-  }, [todoActions.todos]);
+    return todoActions.todos.reduce((sum, t) => {
+      if (typeof t.amount !== 'number') return sum;
+      return sum + convertToListCurrency(t.amount, t.category);
+    }, 0);
+  }, [todoActions.todos, convertToListCurrency]);
 
   // derive categories that actually appear in the current todos list
   const filterCategories = React.useMemo(() => {
@@ -610,11 +711,32 @@ export default function Home() {
     const results = await Promise.all(
       activeLists.map(async (list) => {
         const todos = await apiFetchTodos(list._id);
-        const spent = todos.reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0);
+
+        const categoryRateMap: Record<string, number> = {};
+        availableCategories
+          .filter((c) => c.listId === list._id)
+          .forEach((c) => {
+            const rate = (c as any).exchangeRateToListCurrency;
+            if (typeof rate === 'number' && rate > 0) {
+              categoryRateMap[c.value] = rate;
+            }
+          });
+
+        const convertToListCurrency = (amount: number, category?: string) => {
+          const rate = categoryRateMap[category ?? ''] ?? 1;
+          return rate > 0 ? amount / rate : amount;
+        };
+
+        const spent = todos.reduce(
+          (sum, t) =>
+            sum + (typeof t.amount === 'number' ? convertToListCurrency(t.amount, t.category) : 0),
+          0
+        );
         const categorySpend: Record<string, number> = {};
         todos.forEach((t) => {
+          if (typeof t.amount !== 'number') return;
           const cat = t.category || '';
-          categorySpend[cat] = (categorySpend[cat] || 0) + (typeof t.amount === 'number' ? t.amount : 0);
+          categorySpend[cat] = (categorySpend[cat] || 0) + t.amount;
         });
 
         const categories = availableCategories
@@ -1279,14 +1401,25 @@ export default function Home() {
                       const v = e.target.value;
                       const num = v === '' ? '' : parseFloat(v);
                       setNewCategoryExchangeRate(Number.isNaN(num) ? '' : num);
+                      setExchangeRateError(null);
                     }}
-                    sx={{ mt: 1 }}
                     helperText={`1 ${listActions.currentList.currency} = ? ${newCategoryCurrency}`}
                     error={
                       newCategoryExchangeRate === '' ||
                       (typeof newCategoryExchangeRate === 'number' && newCategoryExchangeRate <= 0)
                     }
+                    InputProps={{
+                      endAdornment: exchangeRateLoading ? (
+                        <CircularProgress size={18} />
+                      ) : undefined,
+                    }}
+                    sx={{ mt: 1 }}
                   />
+                  {exchangeRateError ? (
+                    <Typography variant="caption" color="error.main">
+                      {exchangeRateError}
+                    </Typography>
+                  ) : null}
                   {(newCategoryExchangeRate === '' ||
                     (typeof newCategoryExchangeRate === 'number' && newCategoryExchangeRate <= 0)) && (
                     <Typography variant="caption" color="warning.main">
@@ -1354,6 +1487,20 @@ export default function Home() {
                   <Typography sx={{ mb: 1 }}>
                     {t.dialogs.currencyRate.description}
                   </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
+                    <Button
+                      size="small"
+                      onClick={handleFetchRatesForAll}
+                      disabled={exchangeRateLoading || currencyRateTargets.length === 0}
+                    >
+                      {exchangeRateLoading ? t.messages.loading : t.messages.fetchExchangeRate}
+                    </Button>
+                    {exchangeRateError ? (
+                      <Typography variant="caption" color="error.main">
+                        {exchangeRateError}
+                      </Typography>
+                    ) : null}
+                  </Box>
                   {currencyRateTargets.map((cat) => (
                     <TextField
                       key={cat.value}
@@ -1364,6 +1511,7 @@ export default function Home() {
                       onChange={(e) => {
                         const v = e.target.value;
                         const num = v === '' ? undefined : parseFloat(v);
+                        setExchangeRateError(null);
                         setCurrencyRateValues((prev) => ({
                           ...prev,
                           [cat.value]: Number.isNaN(num) ? undefined : num,
