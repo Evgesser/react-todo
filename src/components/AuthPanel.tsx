@@ -56,6 +56,8 @@ export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelPro
 
   if (userId) return null;
 
+  const renderedError = error ? (error.startsWith('messages.') ? formatMessage(error) : error) : null;
+
   return (
     <Box
       sx={(t) => ({
@@ -69,9 +71,9 @@ export default function AuthPanel({ t, formatMessage, onSnackbar }: AuthPanelPro
         backdropFilter: 'blur(6px) saturate(120%)',
       })}
     >
-      {error && (
+      {renderedError && (
         <Alert severity="error" onClose={() => clearError()}>
-          {error}
+          {renderedError}
         </Alert>
       )}
       <TextField

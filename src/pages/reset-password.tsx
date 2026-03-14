@@ -46,6 +46,16 @@ export default function ResetPassword() {
             <Button type="submit" variant="contained" color="primary" disabled={loading} fullWidth>
               {loading ? 'Сохраняем...' : 'Сохранить пароль'}
             </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              disabled={loading}
+              fullWidth
+              sx={{ mt: 1 }}
+              onClick={() => router.push('/')}
+            >
+              На главную
+            </Button>
             {message && <Alert severity={message.includes('успешно') ? 'success' : 'info'} sx={{ mt: 1 }}>{message}</Alert>}
           </Box>
         </CardContent>

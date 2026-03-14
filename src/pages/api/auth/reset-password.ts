@@ -2,7 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getUserByResetToken, resetUserPassword } from '../../../lib/mongodb';
 import clientPromise from '../../../lib/mongodb';
 import type { User } from '@/types/user';
-import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+
+function hashPassword(password: string): string {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -16,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!user) {
     return res.status(400).json({ message: 'Invalid or expired token' });
   }
-  const hash = await bcrypt.hash(password, 10);
+  const hash = hashPassword(password);
   await resetUserPassword(user._id, hash);
   // Сбросить счётчик попыток и блокировку
   const client = await clientPromise;
