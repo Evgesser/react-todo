@@ -282,10 +282,15 @@ export function usePersonalization(
       }
     } catch {
       // ignore invalid personalization
+    } finally {
+      personalizationLoadedRef.current = true;
     }
   }, [userId, t, setAvailableCategories, setAvailableTemplates, setNameCategoryMap, setProducts, flatCategoryKeywords, stem, isExpenses]);
 
+  const personalizationLoadedRef = React.useRef(false);
+
   React.useEffect(() => {
+    personalizationLoadedRef.current = false;
     if (userId) loadPersonalization();
   }, [userId, loadPersonalization]);
 
@@ -320,6 +325,10 @@ export function usePersonalization(
   // persist personalization whenever any of the pieces change
   React.useEffect(() => {
     if (!userId) return;
+    // Avoid saving personalization before we have loaded it from the server.
+    // Otherwise we may overwrite server state with the default/local initial state.
+    if (!personalizationLoadedRef.current) return;
+
     savePersonalization(
       userId,
       availableCategories.map((c) => ({
