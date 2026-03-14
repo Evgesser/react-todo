@@ -17,6 +17,7 @@ import {
   DialogTitle,
   DialogContent,
   Chip,
+  MenuItem,
   useMediaQuery,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -54,6 +55,8 @@ export default function TodoForm({
   setFormOpen,
   dialogMode = false,
   listType = null,
+  listId = null,
+  initialCategory,
 }: TodoFormProps) {
   // local state needed by the form (icon picker + quantity dialog)
   // language context no longer required for parsing
@@ -294,6 +297,11 @@ export default function TodoForm({
     quantity,
     comment,
     unit,
+    amount,
+    spentAt,
+    dueDate,
+    priority,
+    reminderAt,
     category,
     editingId,
     todos,
@@ -305,12 +313,16 @@ export default function TodoForm({
     setQuantity,
     setComment,
     setUnit,
+    setAmount,
+    setSpentAt,
+    setDueDate,
+    setPriority,
+    setReminderAt,
     setColor,
     setCategory,
     setCategoryManual,
     setEditingId,
     addItem,
-    
   } = todoActions as UseTodosReturn;
 
   React.useEffect(() => {
@@ -441,6 +453,7 @@ export default function TodoForm({
           value: v,
           label: (t.categoryLabels as Record<string, string>)?.[v] || iconChoices.find((x) => x.key === v)?.label || v,
           icon: finalKey ? iconMap[finalKey] : null,
+          listId: listId || undefined,
         };
         return [...prev, newCat];
       });
@@ -502,7 +515,12 @@ export default function TodoForm({
     setTempIconKey('');
     setParsed(null);
     setImageData(null);
-  }, [ensureCategoryExists, addItem, setName, setQuantity, setComment, setUnit, setCategory, name, category, comment, tempIconKey, updateNameCategory, parsed, imageData]);
+
+    // Close the form dialog after a successful add/update
+    if (dialogMode) {
+      setFormOpen(false);
+    }
+  }, [ensureCategoryExists, addItem, setName, setQuantity, setComment, setUnit, setCategory, name, category, comment, tempIconKey, updateNameCategory, parsed, imageData, dialogMode, setFormOpen]);
 
   // Cleanup residual state when form is closed to avoid stale listeners/backdrops
   React.useEffect(() => {
@@ -533,8 +551,11 @@ export default function TodoForm({
           setCategory('');
         } catch {}
       }
+    } else if (!editingId && formOpen && initialCategory) {
+      // pre-select category when form is opened for a new item via category header action
+      setCategory(initialCategory);
     }
-  }, [formOpen, editingId, setName, setDescription, setQuantity, setComment, setUnit, setColor, setCategory, listDefaultColor]);
+  }, [formOpen, editingId, initialCategory, setName, setDescription, setQuantity, setComment, setUnit, setColor, setCategory, listDefaultColor]);
 
   // build inner form container once so dialog/inline both use same markup
   const formInner = (
@@ -864,6 +885,63 @@ export default function TodoForm({
               ) : null,
             }}
           />
+
+          {listType === 'expenses' && (
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+              <TextField
+                label={t.todos.amount}
+                placeholder={t.todos.amountPlaceholder}
+                type="number"
+                value={amount ?? ''}
+                onChange={(e) => setAmount(e.target.value === '' ? undefined : Number(e.target.value))}
+                fullWidth
+                InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+              />
+              <TextField
+                label={t.todos.spentAt}
+                type="date"
+                value={spentAt}
+                onChange={(e) => setSpentAt(e.target.value)}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+          )}
+
+          {listType === 'todo' && (
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+              <TextField
+                label={t.todos.dueDate}
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                select
+                label={t.todos.priority}
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as 'low' | 'medium' | 'high' | '')}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              >
+                <MenuItem value="">{t.todos.priority}</MenuItem>
+                <MenuItem value="low">{t.todos.priorityLow}</MenuItem>
+                <MenuItem value="medium">{t.todos.priorityMedium}</MenuItem>
+                <MenuItem value="high">{t.todos.priorityHigh}</MenuItem>
+              </TextField>
+              <TextField
+                label={t.todos.reminder}
+                type="datetime-local"
+                value={reminderAt}
+                onChange={(e) => setReminderAt(e.target.value)}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+          )}
+
           <Box sx={{ mt: 0.5 }}>
             <Button variant="outlined" component="label" size="small">
               {t.todos.attachImage || 'Прикрепить изображение'}

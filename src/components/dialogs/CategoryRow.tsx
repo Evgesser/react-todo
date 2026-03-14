@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Box, IconButton, MenuItem } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { iconChoices } from '@/constants';
+import { iconChoices, currencySymbols } from '@/constants';
 import type { StoredCategory } from '@/types';
 import type { TranslationKeys } from '@/locales/ru';
 import ClearableTextField from '../ClearableTextField';
@@ -21,7 +21,7 @@ export default function CategoryRow({
   onRemove,
   autoFocusIcon,
 }: CategoryRowProps) {
-  const handleField = (key: keyof StoredCategory, value: string) => {
+  const handleField = (key: keyof StoredCategory, value: any) => {
     onChange({ ...category, [key]: value });
   };
 
@@ -76,6 +76,47 @@ export default function CategoryRow({
           </MenuItem>
         ))}
       </ClearableTextField>
+
+      <ClearableTextField
+        label={t.dialogs.personalization.categoryBudget}
+        type="number"
+        value={category.budget ?? ''}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          const v = e.target.value;
+          const num = v === '' ? undefined : parseFloat(v);
+          handleField('budget', Number.isNaN(num) ? undefined : num);
+        }}
+        sx={{ marginInlineEnd: 1, width: { xs: '100%', sm: 120 } }}
+      />
+
+      <ClearableTextField
+        select
+        label={t.dialogs.personalization.categoryCurrency}
+        value={category.currency || ''}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          handleField('currency', e.target.value)
+        }
+        sx={{ marginInlineEnd: 1, width: { xs: '100%', sm: 120 } }}
+      >
+        <MenuItem value="">{t.dialogs.personalization.none}</MenuItem>
+        {Object.keys(currencySymbols).map((code) => (
+          <MenuItem key={code} value={code}>
+            {code}
+          </MenuItem>
+        ))}
+      </ClearableTextField>
+
+      <ClearableTextField
+        label={t.dialogs.personalization.categoryExchangeRate}
+        type="number"
+        value={category.exchangeRateToListCurrency ?? ''}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          const v = e.target.value;
+          const num = v === '' ? undefined : parseFloat(v);
+          handleField('exchangeRateToListCurrency', Number.isNaN(num) ? undefined : num);
+        }}
+        sx={{ marginInlineEnd: 1, width: { xs: '100%', sm: 140 } }}
+      />
 
       <IconButton onClick={onRemove} aria-label={t.buttons.delete} size="small" title={t.buttons.delete}>
         <DeleteIcon />

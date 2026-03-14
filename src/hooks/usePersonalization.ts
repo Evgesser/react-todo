@@ -26,8 +26,10 @@ import useAppStore from '@/stores/useAppStore';
 // hook that wraps all of the "personalization" state and side effects
 export function usePersonalization(
   userId: string | null,
-  t: TranslationKeys
+  t: TranslationKeys,
+  listType?: string | null
 ) {
+  const isExpenses = listType === 'expenses';
 
   const availableCategories = useAppStore((s) => s.availableCategories);
   const setAvailableCategories = useAppStore((s) => s.setAvailableCategories);
@@ -67,37 +69,46 @@ export function usePersonalization(
           value: string;
           label: string;
           icon?: string;
+          listId?: string;
         }>;
         if (Array.isArray(arr)) {
-          const cats: Category[] = arr.map((c) => ({
+          const cats: Category[] = arr.map((c: any) => ({
             value: c.value,
             label: c.label,
             icon: c.icon && iconMap[c.icon] ? iconMap[c.icon] : null,
+            currency: typeof c.currency === 'string' ? c.currency : undefined,
+            exchangeRateToListCurrency:
+              typeof c.exchangeRateToListCurrency === 'number' ? c.exchangeRateToListCurrency : undefined,
+            listId: typeof c.listId === 'string' ? c.listId : undefined,
           }));
           setAvailableCategories(() => {
-            const merged: Category[] = defaultCategories.map((d) => ({ ...d }));
+            const merged: Category[] = isExpenses ? [] : defaultCategories.map((d) => ({ ...d }));
             cats.forEach((c) => {
               if (!merged.find((m) => m.value === c.value)) merged.push(c);
             });
-            // enrich merged by matching labels to known keywords
-            const mergedLower = merged.map((c) => c.label.toLowerCase());
-            const mergedValues = new Set(merged.map((c) => c.value));
-            Object.keys(flatCategoryKeywords).forEach((iconKey) => {
-              if (mergedValues.has(iconKey)) return;
-              const keywords = flatCategoryKeywords[iconKey] || [];
-              const matchesLabel = mergedLower.some((lbl) => {
-                if (stem) {
-                  const stemLbl = stem(lbl);
-                  return keywords.some((k) => stem(k) === stemLbl);
+
+            // Only auto-enrich categories for non-expenses lists (expenses should be fully user-defined)
+            if (!isExpenses) {
+              const mergedLower = merged.map((c) => c.label.toLowerCase());
+              const mergedValues = new Set(merged.map((c) => c.value));
+              Object.keys(flatCategoryKeywords).forEach((iconKey) => {
+                if (mergedValues.has(iconKey)) return;
+                const keywords = flatCategoryKeywords[iconKey] || [];
+                const matchesLabel = mergedLower.some((lbl) => {
+                  if (stem) {
+                    const stemLbl = stem(lbl);
+                    return keywords.some((k) => stem(k) === stemLbl);
+                  }
+                  return keywords.some((k) => lbl.includes(k));
+                });
+                if (matchesLabel) {
+                  const ic = iconMap[iconKey] || null;
+                  const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+                  merged.push({ value: iconKey, label, icon: ic });
                 }
-                return keywords.some((k) => lbl.includes(k));
               });
-              if (matchesLabel) {
-                const ic = iconMap[iconKey] || null;
-                const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
-                merged.push({ value: iconKey, label, icon: ic });
-              }
-            });
+            }
+
             return merged;
           });
           localStorage.removeItem('availCats');
@@ -106,7 +117,7 @@ export function usePersonalization(
     } catch {
       /* ignore malformed local cache */
     }
-  }, [userId, t, setAvailableCategories, flatCategoryKeywords, stem]);
+  }, [userId, t, setAvailableCategories, flatCategoryKeywords, stem, isExpenses]);
 
   // persist categories locally when unauthenticated so they survive reloads
   React.useEffect(() => {
@@ -116,6 +127,8 @@ export function usePersonalization(
         value: c.value,
         label: c.label,
         icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
+        currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
+        listId: typeof (c as any).listId === 'string' ? (c as any).listId : undefined,
       }));
       localStorage.setItem('availCats', JSON.stringify(toStore));
     } catch {
@@ -133,8 +146,8 @@ export function usePersonalization(
       ]);
       if (data) {
         if (Array.isArray(data.categories)) {
-          // start with defaults, override or append from personalization
-          const merged: Category[] = defaultCategories.map((d) => ({ ...d }));
+          // start with defaults (unless we're in expenses mode), then override/append from personalization
+          const merged: Category[] = isExpenses ? [] : defaultCategories.map((d) => ({ ...d }));
           data.categories.forEach((c) => {
             const idx = merged.findIndex((m) => m.value === c.value);
             const iconFromPersonal = c.icon && iconMap[c.icon] ? iconMap[c.icon] : null;
@@ -142,6 +155,12 @@ export function usePersonalization(
               value: c.value,
               label: c.label,
               icon: iconFromPersonal || merged[idx]?.icon || null,
+              budget: typeof c.budget === 'number' ? c.budget : undefined,
+              currency: typeof c.currency === 'string' ? c.currency : undefined,
+              exchangeRateToListCurrency:
+                typeof c.exchangeRateToListCurrency === 'number' ? c.exchangeRateToListCurrency : undefined,
+              strictBudget: !!c.strictBudget,
+              listId: typeof c.listId === 'string' ? c.listId : undefined,
             };
             if (idx !== -1) {
               merged[idx] = cat;
@@ -149,54 +168,59 @@ export function usePersonalization(
               merged.push(cat);
             }
           });
-          // enrich merged categories by auto-adding category entries when
-          // product names or existing category labels match known keywords
-          const mergedLowerLabels = merged.map((c) => c.label.toLowerCase());
-          const mergedValues = new Set(merged.map((c) => c.value));
-          const toAdd: Category[] = [];
-          Object.keys(flatCategoryKeywords).forEach((iconKey) => {
-            if (mergedValues.has(iconKey)) return; // already present
-            const keywords = flatCategoryKeywords[iconKey] || [];
-            // match against existing category labels
-            const matchesLabel = mergedLowerLabels.some((lbl) => {
-              if (stem) {
-                const stemLbl = stem(lbl);
-                return keywords.some((k) => stem(k) === stemLbl);
-              }
-              return keywords.some((k) => lbl.includes(k));
-            });
-            if (matchesLabel) {
-              const ic = iconMap[iconKey] || null;
-              const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
-              toAdd.push({ value: iconKey, label, icon: ic });
-            }
-          });
-          // also inspect saved products for matches and add categories if needed
-          if (Array.isArray(data.products)) {
-            (data.products as Array<{ name?: string }> ).forEach((p) => {
-              if (!p?.name) return;
-              const name = p.name.toLowerCase();
-              Object.keys(flatCategoryKeywords).forEach((iconKey) => {
-                if (mergedValues.has(iconKey)) return;
-                if (toAdd.find((c) => c.value === iconKey)) return;
-                const keywords = flatCategoryKeywords[iconKey] || [];
-                let match = false;
+
+          // For non-expenses lists, auto-enrich categories by keyword matching.
+          // Expenses lists should stay empty unless the user creates categories.
+          if (!isExpenses) {
+            const mergedLowerLabels = merged.map((c) => c.label.toLowerCase());
+            const mergedValues = new Set(merged.map((c) => c.value));
+            const toAdd: Category[] = [];
+            Object.keys(flatCategoryKeywords).forEach((iconKey) => {
+              if (mergedValues.has(iconKey)) return; // already present
+              const keywords = flatCategoryKeywords[iconKey] || [];
+              // match against existing category labels
+              const matchesLabel = mergedLowerLabels.some((lbl) => {
                 if (stem) {
-                  const stemName = stem(name);
-                  match = keywords.some((k) => stem(k) === stemName);
-                } else {
-                  match = keywords.some((k) => name.includes(k));
+                  const stemLbl = stem(lbl);
+                  return keywords.some((k) => stem(k) === stemLbl);
                 }
-                if (match) {
-                  const ic = iconMap[iconKey] || null;
-                    const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
-                  toAdd.push({ value: iconKey, label, icon: ic });
-                }
+                return keywords.some((k) => lbl.includes(k));
               });
+              if (matchesLabel) {
+                const ic = iconMap[iconKey] || null;
+                const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+                toAdd.push({ value: iconKey, label, icon: ic });
+              }
             });
+            // also inspect saved products for matches and add categories if needed
+            if (Array.isArray(data.products)) {
+              (data.products as Array<{ name?: string }> ).forEach((p) => {
+                if (!p?.name) return;
+                const name = p.name.toLowerCase();
+                Object.keys(flatCategoryKeywords).forEach((iconKey) => {
+                  if (mergedValues.has(iconKey)) return;
+                  if (toAdd.find((c) => c.value === iconKey)) return;
+                  const keywords = flatCategoryKeywords[iconKey] || [];
+                  let match = false;
+                  if (stem) {
+                    const stemName = stem(name);
+                    match = keywords.some((k) => stem(k) === stemName);
+                  } else {
+                    match = keywords.some((k) => name.includes(k));
+                  }
+                  if (match) {
+                    const ic = iconMap[iconKey] || null;
+                    const label = (t.categoryLabels as Record<string, string>)?.[iconKey] || iconChoices.find((x) => x.key === iconKey)?.label || iconKey;
+                    toAdd.push({ value: iconKey, label, icon: ic });
+                  }
+                });
+              });
+            }
+            const finalCats = merged.concat(toAdd);
+            setAvailableCategories(finalCats);
+          } else {
+            setAvailableCategories(merged);
           }
-          const finalCats = merged.concat(toAdd);
-          setAvailableCategories(finalCats);
         }
         if (Array.isArray(data.templates)) {
           setAvailableTemplates(data.templates);
@@ -259,7 +283,7 @@ export function usePersonalization(
     } catch {
       // ignore invalid personalization
     }
-  }, [userId, t, setAvailableCategories, setAvailableTemplates, setNameCategoryMap, setProducts, flatCategoryKeywords, stem]);
+  }, [userId, t, setAvailableCategories, setAvailableTemplates, setNameCategoryMap, setProducts, flatCategoryKeywords, stem, isExpenses]);
 
   React.useEffect(() => {
     if (userId) loadPersonalization();
@@ -267,6 +291,8 @@ export function usePersonalization(
 
   // when language changes, refresh labels for built-in defaults (preserve user-defined ones)
   React.useEffect(() => {
+    if (isExpenses) return;
+
     setAvailableCategories((prev) => {
       const defaultVals = new Set(defaultCategories.map((d) => d.value));
       return prev.map((c) => {
@@ -289,7 +315,7 @@ export function usePersonalization(
         return tmpl;
       })
     );
-  }, [t, setAvailableCategories, setAvailableTemplates]);
+  }, [t, setAvailableCategories, setAvailableTemplates, isExpenses]);
 
   // persist personalization whenever any of the pieces change
   React.useEffect(() => {
@@ -300,6 +326,17 @@ export function usePersonalization(
         value: c.value,
         label: c.label,
         icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
+        budget:
+          typeof (c as any).budget === 'number' && Number.isFinite((c as any).budget)
+            ? (c as any).budget
+            : undefined,
+        currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
+        exchangeRateToListCurrency:
+          typeof (c as any).exchangeRateToListCurrency === 'number'
+            ? (c as any).exchangeRateToListCurrency
+            : undefined,
+        strictBudget: typeof (c as any).strictBudget === 'boolean' ? (c as any).strictBudget : undefined,
+        listId: typeof (c as any).listId === 'string' ? (c as any).listId : undefined,
       })),
       availableTemplates,
       nameCategoryMap,
@@ -334,6 +371,15 @@ export function usePersonalization(
               value: c.value,
               label: c.label,
               icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
+              budget:
+                typeof (c as any).budget === 'number' && Number.isFinite((c as any).budget)
+                  ? (c as any).budget
+                  : undefined,
+              currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
+              exchangeRateToListCurrency:
+                typeof (c as any).exchangeRateToListCurrency === 'number'
+                  ? (c as any).exchangeRateToListCurrency
+                  : undefined,
             })),
             availableTemplates,
             next,

@@ -138,6 +138,39 @@ export function useLists({ userId, listType, onSnackbar, formatMessage }: UseLis
     [lists, currentListId, onSnackbar, formatMessage, setLists, setListDefaultColor, setCurrentList]
   );
 
+  const updateListBudget = React.useCallback(
+    async (id: string, budget: number, currency?: string) => {
+      try {
+        await apiUpdateList(id, { budget, currency });
+        const updated = lists.map((l) => (l._id === id ? { ...l, budget, currency } : l));
+        setLists(updated);
+        if (currentListId === id) {
+          setCurrentList(updated.find((l) => l._id === id) || null);
+        }
+        onSnackbar(formatMessage('messages.budgetSaved'));
+      } catch {
+        onSnackbar(formatMessage('messages.saveError'));
+      }
+    },
+    [lists, currentListId, onSnackbar, formatMessage, setLists, setCurrentList]
+  );
+
+  const updateListStrictBudget = React.useCallback(
+    async (id: string, strictBudget: boolean) => {
+      try {
+        await apiUpdateList(id, { strictBudget });
+        const updated = lists.map((l) => (l._id === id ? { ...l, strictBudget } : l));
+        setLists(updated);
+        if (currentListId === id) {
+          setCurrentList(updated.find((l) => l._id === id) || null);
+        }
+      } catch {
+        onSnackbar(formatMessage('messages.saveError'));
+      }
+    },
+    [lists, currentListId, onSnackbar, formatMessage, setLists, setCurrentList]
+  );
+
   const updateShareToken = React.useCallback(
     async (id: string, token: string) => {
       try {
@@ -212,6 +245,8 @@ export function useLists({ userId, listType, onSnackbar, formatMessage }: UseLis
     selectList,
     deleteList,
     updateListColor,
+    updateListBudget,
+    updateListStrictBudget,
     updateShareToken,
     completeList,
     clearAllLists,

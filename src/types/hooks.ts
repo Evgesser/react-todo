@@ -7,6 +7,13 @@ import type { Todo } from './todo';
 export interface UseTodosParams {
   currentListId: string | null;
   listDefaultColor: string;
+  listType?: ListType | null;
+  listBudget?: number;
+  strictBudget?: boolean;
+  categoryBudgets?: Record<string, number>;
+  categoryStrictBudgets?: Record<string, boolean>;
+  categoryExchangeRates?: Record<string, number>;
+  listCurrency?: string;
   onSnackbar: (message: string) => void;
   t: TranslationKeys;
   formatMessage?: (id: string, values?: any) => string;
@@ -34,6 +41,11 @@ export interface UseTodosReturn {
   comment: string;
   unit: string;
   color: string;
+  amount?: number;
+  spentAt: string;
+  dueDate: string;
+  priority: 'low' | 'medium' | 'high' | '';
+  reminderAt: string;
   category: string;
   editingId: string | null;
   filterText: string;
@@ -59,6 +71,11 @@ export interface UseTodosReturn {
   setComment: (comment: string) => void;
   setUnit: (unit: string) => void;
   setColor: (color: string) => void;
+  setAmount: (amount?: number) => void;
+  setSpentAt: (date: string) => void;
+  setDueDate: (date: string) => void;
+  setPriority: (priority: 'low' | 'medium' | 'high' | '') => void;
+  setReminderAt: (dateTime: string) => void;
   setCategory: (category: string) => void;
   setCategoryManual: (category: string) => void;
   setEditingId: (id: string | null) => void;
@@ -155,6 +172,8 @@ export interface UseListsReturn {
   selectList: (id: string) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   updateListColor: (id: string, color: string) => Promise<void>;
+  updateListBudget: (id: string, budget: number, currency?: string) => Promise<void>;
+  updateListStrictBudget: (id: string, strictBudget: boolean) => Promise<void>;
   updateShareToken: (id: string, token: string) => Promise<void>;
   completeList: (id: string) => Promise<void>;
   clearAllLists: () => void;

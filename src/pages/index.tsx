@@ -7,6 +7,19 @@ import {
   LinearProgress,
   Fab,
   Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Checkbox,
+  FormControlLabel,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  MenuItem,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 
@@ -15,9 +28,13 @@ import AddIcon from '@mui/icons-material/Add';
 import {
   createList as apiCreateList,
   createTodosBulk,
+  fetchTodos as apiFetchTodos,
+  savePersonalization,
+  updateTodo as apiUpdateTodo,
 } from '@/lib/api';
 
 import { useViewportHeight } from '@/hooks/useViewportHeight';
+import { formatCurrency, iconMap, currencySymbols } from '@/constants';
 
 
 // Custom hooks
@@ -40,6 +57,7 @@ import SearchBulk from '../components/toolbar/SearchBulk';
 import HistoryDialog from '../components/dialogs/HistoryDialog';
 import NewListDialog from '../components/dialogs/NewListDialog';
 import PersonalizationDialog from '@/components/dialogs/PersonalizationDialog';
+import CategoryIconPicker from '@/components/CategoryIconPicker';
 import ListToolbar from '../components/toolbar/ListToolbar';
 import TodoList from '../components/TodoList';
 import AuthPanel from '../components/AuthPanel';
@@ -53,11 +71,31 @@ export default function Home() {
   const closeMenu = () => setMenuAnchor(null);
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMsg, setSnackbarMsg] = React.useState('');
+  const [budgetOverviewOpen, setBudgetOverviewOpen] = React.useState(false);
+  const [budgetOverviewMode, setBudgetOverviewMode] = React.useState<'current' | 'overall'>('current');
+  const [overallBudgetData, setOverallBudgetData] = React.useState<Array<{
+    listId: string;
+    name: string;
+    budget?: number;
+    currency: string;
+    spent: number;
+    remaining?: number;
+    categories: Array<{
+      category: string;
+      label: string;
+      budget: number;
+      spent: number;
+      over: boolean;
+      currency: string;
+    }>;
+  }>>([]);
+  const [overallBudgetLoading, setOverallBudgetLoading] = React.useState(false);
 
 
   // Authentication: select only userId to avoid wide re-renders
   const userId = useAppStore((s) => s.userId);
   const listType = useAppStore((s) => s.listType);
+  const language = useAppStore((s) => s.language);
   const setListType = useAppStore((s) => s.setListType);
 
   // List management hook
@@ -93,17 +131,81 @@ export default function Home() {
     personalDialogOpen,
     setPersonalDialogOpen,
     updateNameCategory,
-  } = usePersonalization(userId, t);
+  } = usePersonalization(userId, t, listType);
 
   // new-list dialog state
   const [newListDialogOpen, setNewListDialogOpen] = React.useState(false);
+  const [newCategoryDialogOpen, setNewCategoryDialogOpen] = React.useState(false);
+  const [newCategoryName, setNewCategoryName] = React.useState('');
+  const [newCategoryBudget, setNewCategoryBudget] = React.useState<number | ''>('');
+  const [newCategoryCurrency, setNewCategoryCurrency] = React.useState<string>('RUB');
+  const [newCategoryExchangeRate, setNewCategoryExchangeRate] = React.useState<number | ''>(1);
+  const [newCategoryStrictBudget, setNewCategoryStrictBudget] = React.useState(false);
+  const [newCategoryIconKey, setNewCategoryIconKey] = React.useState('');
+  const [initialCategory, setInitialCategory] = React.useState('');
+  const [categoryPickerOpen, setCategoryPickerOpen] = React.useState(false);
+  const [editingCategoryValue, setEditingCategoryValue] = React.useState<string | null>(null);
+  const [deleteCategoryDialogOpen, setDeleteCategoryDialogOpen] = React.useState(false);
+  const [deletingCategoryValue, setDeletingCategoryValue] = React.useState<string | null>(null);
+  const [deleteCategoryTodos, setDeleteCategoryTodos] = React.useState(false);
 
+  const [currencyRateDialogOpen, setCurrencyRateDialogOpen] = React.useState(false);
+  const [currencyRateValues, setCurrencyRateValues] = React.useState<Record<string, number | undefined>>({});
+  const prevListRef = React.useRef<{ id: string | null; currency: string | null }>({ id: null, currency: null });
 
 
   // Todo management hook
+  const categoryBudgets = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    const currentListId = listActions.currentListId;
+
+    availableCategories
+      .filter((c) => {
+        if (listType === 'expenses') {
+          // For expenses, only show budgets for categories in the current list
+          return c.listId === currentListId;
+        }
+        return true;
+      })
+      .forEach((c) => {
+        if (typeof (c as any).budget === 'number') {
+          map[c.value] = (c as any).budget as number;
+        }
+      });
+
+    return map;
+  }, [availableCategories, listActions.currentListId, listType]);
+
+  const categoryExchangeRates = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    const currentListId = listActions.currentListId;
+
+    availableCategories
+      .filter((c) => {
+        if (listType === 'expenses') {
+          return c.listId === currentListId;
+        }
+        return true;
+      })
+      .forEach((c) => {
+        const rate = (c as any).exchangeRateToListCurrency;
+        if (typeof rate === 'number' && rate > 0) {
+          map[c.value] = rate;
+        }
+      });
+
+    return map;
+  }, [availableCategories, listActions.currentListId, listType]);
+
   const todoActions = useTodos({
     currentListId: listActions.currentListId,
     listDefaultColor: listActions.listDefaultColor,
+    listType,
+    listBudget: listActions.currentList?.budget,
+    listCurrency: listActions.currentList?.currency,
+    strictBudget: !!listActions.currentList?.strictBudget,
+    categoryBudgets,
+    categoryExchangeRates,
     onSnackbar: (msg) => {
       setSnackbarMsg(msg);
       setSnackbarOpen(true);
@@ -114,23 +216,363 @@ export default function Home() {
     products,
   });
 
+  const openNewCategoryDialog = (budget?: number) => {
+    setEditingCategoryValue(null);
+    setNewCategoryName('');
+    setNewCategoryBudget(budget ?? '');
+    const listCurrency = listActions.currentList?.currency || 'RUB';
+    setNewCategoryCurrency(listCurrency);
+    setNewCategoryExchangeRate(1);
+    setNewCategoryStrictBudget(false);
+    setNewCategoryIconKey('');
+    setNewCategoryDialogOpen(true);
+  };
+
+  const currencyRateTargets = React.useMemo(() => {
+    const currentList = listActions.currentList;
+    if (!currentList) return [];
+    return availableCategories
+      .filter(
+        (c) =>
+          c.listId === currentList._id &&
+          c.currency &&
+          c.currency !== currentList.currency
+      )
+      .map((c) => ({ value: c.value, label: c.label, currency: c.currency || '' }));
+  }, [availableCategories, listActions.currentList]);
+
+  React.useEffect(() => {
+    const currentList = listActions.currentList;
+    const prev = prevListRef.current;
+    if (
+      currentList &&
+      prev.id === currentList._id &&
+      prev.currency &&
+      currentList.currency &&
+      prev.currency !== currentList.currency
+    ) {
+      // Detect currency change within the same list and prompt for exchange rates
+      const categoriesToUpdate = currencyRateTargets;
+      if (categoriesToUpdate.length > 0) {
+        setCurrencyRateValues(
+          Object.fromEntries(
+            categoriesToUpdate.map((c) => [
+              c.value,
+              typeof (availableCategories.find((ac) => ac.value === c.value) as any)
+                .exchangeRateToListCurrency === 'number'
+                ? ((availableCategories.find((ac) => ac.value === c.value) as any)
+                    .exchangeRateToListCurrency as number)
+                : 1,
+            ])
+          )
+        );
+        setCurrencyRateDialogOpen(true);
+      }
+    }
+
+    prevListRef.current = {
+      id: currentList?._id || null,
+      currency: currentList?.currency || null,
+    };
+  }, [currencyRateTargets, listActions.currentList, availableCategories]);
+
+  const handleSaveCurrencyRates = async () => {
+    const invalid = Object.values(currencyRateValues).some(
+      (v) => typeof v !== 'number' || v <= 0
+    );
+    if (invalid) return;
+
+    const nextCategories = availableCategories.map((c) => {
+      if (c.listId !== listActions.currentListId) return c;
+      if (!currencyRateValues[c.value]) return c;
+      return {
+        ...c,
+        exchangeRateToListCurrency: currencyRateValues[c.value],
+      };
+    });
+
+    setAvailableCategories(nextCategories);
+
+    if (userId) {
+      try {
+        const storedCategories = nextCategories.map((c) => ({
+          value: c.value,
+          label: c.label,
+          icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
+          budget: typeof (c as any).budget === 'number' ? (c as any).budget : undefined,
+          currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
+          exchangeRateToListCurrency:
+            typeof (c as any).exchangeRateToListCurrency === 'number'
+              ? (c as any).exchangeRateToListCurrency
+              : undefined,
+          strictBudget: typeof (c as any).strictBudget === 'boolean' ? (c as any).strictBudget : undefined,
+          listId: typeof (c as any).listId === 'string' ? (c as any).listId : undefined,
+        }));
+        await savePersonalization(userId, storedCategories);
+      } catch {
+        // ignore
+      }
+    }
+
+    setCurrencyRateDialogOpen(false);
+  };
+
+  const openEditCategoryDialog = (categoryValue: string) => {
+    const cat = availableCategories.find(
+      (c) => c.value === categoryValue && c.listId === listActions.currentListId
+    );
+    if (!cat) return;
+
+    const listCurrency = listActions.currentList?.currency || 'RUB';
+    const categoryCurrency = cat.currency || listCurrency;
+
+    setEditingCategoryValue(categoryValue);
+    setNewCategoryName(cat.label);
+    setNewCategoryBudget(typeof cat.budget === 'number' ? cat.budget : '');
+    setNewCategoryCurrency(categoryCurrency);
+    setNewCategoryExchangeRate(
+      categoryCurrency !== listCurrency
+        ? typeof (cat as any).exchangeRateToListCurrency === 'number'
+          ? (cat as any).exchangeRateToListCurrency
+          : ''
+        : 1
+    );
+    setNewCategoryStrictBudget(!!cat.strictBudget);
+    setNewCategoryIconKey(
+      Object.keys(iconMap).find((k) => iconMap[k] === cat.icon) || ''
+    );
+    setNewCategoryDialogOpen(true);
+  };
+
+  const handleDeleteCategory = async (categoryValue: string) => {
+    const nextCategories = availableCategories.filter(
+      (c) => !(c.value === categoryValue && c.listId === listActions.currentListId)
+    );
+
+    setAvailableCategories(nextCategories);
+
+    if (userId) {
+      try {
+        const storedCategories = nextCategories.map((c) => ({
+          value: c.value,
+          label: c.label,
+          icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
+          budget: typeof (c as any).budget === 'number' ? (c as any).budget : undefined,
+          currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
+          strictBudget: typeof (c as any).strictBudget === 'boolean' ? (c as any).strictBudget : undefined,
+          listId: typeof (c as any).listId === 'string' ? (c as any).listId : undefined,
+        }));
+        await savePersonalization(userId, storedCategories);
+      } catch {
+        // ignore failures (still have local state updated)
+      }
+    }
+  };
+
+  const openDeleteCategoryDialog = (categoryValue: string) => {
+    setDeletingCategoryValue(categoryValue);
+    setDeleteCategoryDialogOpen(true);
+  };
+
+  const closeDeleteCategoryDialog = () => {
+    setDeletingCategoryValue(null);
+    setDeleteCategoryTodos(false);
+    setDeleteCategoryDialogOpen(false);
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!deletingCategoryValue) return;
+
+    if (deleteCategoryTodos) {
+      // delete all todos in this category first
+      const idsToDelete = todoActions.todos
+        .filter((t) => t.category === deletingCategoryValue)
+        .map((t) => t._id);
+      await Promise.all(idsToDelete.map((id) => todoActions.deleteTodo(id)));
+    } else {
+      // reset category on todos, so they become 'no category'
+      const todosToUpdate = todoActions.todos.filter((t) => t.category === deletingCategoryValue);
+      await Promise.all(
+        todosToUpdate.map((todo) =>
+          apiUpdateTodo(todo._id, { listId: listActions.currentListId!, category: '' })
+        )
+      );
+      todoActions.setTodos((prev) =>
+        prev.map((t) =>
+          t.category === deletingCategoryValue
+            ? {
+                ...t,
+                category: '',
+              }
+            : t
+        )
+      );
+    }
+
+    await handleDeleteCategory(deletingCategoryValue);
+    await todoActions.fetchTodos(listActions.currentListId || '');
+
+    // close parent dialogs if we were editing
+    setNewCategoryDialogOpen(false);
+    setEditingCategoryValue(null);
+    setNewCategoryIconKey('');
+    closeDeleteCategoryDialog();
+  };
+
+
+  const availableCategoriesForList = React.useMemo(() => {
+    const currentListId = listActions.currentListId;
+
+    // For expenses we want list-scoped categories only (no globals or defaults).
+    // If no list is selected, there are no applicable categories.
+    if (listType === 'expenses') {
+      if (!currentListId) return [];
+      return availableCategories.filter((c) => c.listId === currentListId);
+    }
+
+    return availableCategories.filter((c) => !c.listId || c.listId === currentListId);
+  }, [availableCategories, listActions.currentListId, listType]);
+
+  // Reset category selection when form closes (to avoid pre-filling it on next open).
+  React.useEffect(() => {
+    if (!formOpen) {
+      setInitialCategory('');
+    }
+  }, [formOpen]);
+
+  // When switching lists, close category dialogs and clear initial selection.
+  React.useEffect(() => {
+    setCategoryPickerOpen(false);
+    setNewCategoryDialogOpen(false);
+    setEditingCategoryValue(null);
+    setInitialCategory('');
+  }, [listActions.currentListId]);
+
+  const isExchangeRateRequired =
+    !!listActions.currentList?.currency &&
+    newCategoryCurrency &&
+    listActions.currentList.currency !== newCategoryCurrency;
+
+  const isExchangeRateValid =
+    !isExchangeRateRequired ||
+    (typeof newCategoryExchangeRate === 'number' && newCategoryExchangeRate > 0);
+
+  const handleCreateCategoryWithBudget = async () => {
+    if (!isExchangeRateValid) {
+      setSnackbarMsg(t.messages.invalidExchangeRate);
+      setSnackbarOpen(true);
+      return;
+    }
+
+    const name = newCategoryName.trim();
+    if (!name) {
+      setSnackbarMsg(t.messages.saveError);
+      setSnackbarOpen(true);
+      return;
+    }
+
+    // When editing an existing category, keep its original value (key) so todos linked to it stay connected.
+    const categoryValue = editingCategoryValue
+      ? editingCategoryValue
+      : name.toLowerCase().replace(/\s+/g, '-');
+    const budgetValue = typeof newCategoryBudget === 'number' && Number.isFinite(newCategoryBudget) ? newCategoryBudget : undefined;
+    const existingIndex = availableCategories.findIndex((c) => c.value === categoryValue);
+
+    const nextCategories = [...availableCategories];
+    const selectedIcon = newCategoryIconKey && iconMap[newCategoryIconKey] ? iconMap[newCategoryIconKey] : null;
+
+    const listCurrency = listActions.currentList?.currency;
+    let exchangeRate =
+      listCurrency && newCategoryCurrency && newCategoryCurrency !== listCurrency
+        ? (typeof newCategoryExchangeRate === 'number' ? newCategoryExchangeRate : undefined)
+        : undefined;
+
+    // Internally we store rate as: how many list currency units = 1 category currency unit.
+    // This matches the UI prompt "1 <list currency> = ? <category currency>".
+    // The user should enter a value like 3.2 if 1 USD = 3.2 ILS.
+
+    if (existingIndex !== -1) {
+      // update budget/currency/icon for existing category
+      nextCategories[existingIndex] = {
+        ...nextCategories[existingIndex],
+        label: name,
+        icon: selectedIcon,
+        budget: budgetValue,
+        currency: newCategoryCurrency,
+        exchangeRateToListCurrency: exchangeRate,
+        strictBudget: newCategoryStrictBudget,
+      };
+    } else {
+      nextCategories.push({
+        value: categoryValue,
+        label: name,
+        icon: selectedIcon,
+        budget: budgetValue,
+        currency: newCategoryCurrency,
+        exchangeRateToListCurrency: exchangeRate,
+        strictBudget: newCategoryStrictBudget,
+        listId: listActions.currentListId || undefined,
+      });
+    }
+
+    setAvailableCategories(nextCategories);
+
+    if (userId) {
+      try {
+        const storedCategories = nextCategories.map((c) => ({
+          value: c.value,
+          label: c.label,
+          icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
+          budget: typeof (c as any).budget === 'number' ? (c as any).budget : undefined,
+          currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
+          strictBudget: typeof (c as any).strictBudget === 'boolean' ? (c as any).strictBudget : undefined,
+          listId: typeof (c as any).listId === 'string' ? (c as any).listId : undefined,
+        }));
+        await savePersonalization(userId, storedCategories);
+      } catch {
+        // ignore failures (still have local state updated)
+      }
+    }
+
+    setNewCategoryDialogOpen(false);
+    setEditingCategoryValue(null);
+    setNewCategoryIconKey('');
+  };
+
+  const categorySpend = React.useMemo(() => {
+    const spend: Record<string, number> = {};
+    todoActions.todos.forEach((todo) => {
+      if (typeof todo.amount !== 'number') return;
+      const cat = todo.category || '';
+      spend[cat] = (spend[cat] || 0) + todo.amount;
+    });
+    return spend;
+  }, [todoActions.todos]);
+
+  const totalSpent = React.useMemo(() => {
+    return todoActions.todos.reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0);
+  }, [todoActions.todos]);
+
   // derive categories that actually appear in the current todos list
   const filterCategories = React.useMemo(() => {
+    const result = [...availableCategoriesForList];
+
     const present = new Set(
       (todoActions.todos || [])
         .map((x) => (x.category || '').trim())
         .filter((v) => v)
     );
-    const result = availableCategories.filter((c) => present.has(c.value));
-    // add any categories seen in todos that are not part of availableCategories
+
+    // ensure any category used in todos (even if not in personalization) remains selectable
     present.forEach((val) => {
       if (!result.find((r) => r.value === val)) {
         const label = (t.categoryLabels as Record<string, string>)?.[val] || val;
         result.push({ value: val, label, icon: null });
       }
     });
+
     return result;
-  }, [todoActions.todos, availableCategories, t]);
+  }, [todoActions.todos, availableCategoriesForList, t]);
 
 
 
@@ -160,15 +602,66 @@ export default function Home() {
     setNewListDialogOpen
   );
 
+  const fetchOverallBudget = React.useCallback(async () => {
+    if (!userId) return;
+    setOverallBudgetLoading(true);
+
+    const activeLists = listActions.lists.filter((l) => !l.completed && l.type === 'expenses');
+    const results = await Promise.all(
+      activeLists.map(async (list) => {
+        const todos = await apiFetchTodos(list._id);
+        const spent = todos.reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0);
+        const categorySpend: Record<string, number> = {};
+        todos.forEach((t) => {
+          const cat = t.category || '';
+          categorySpend[cat] = (categorySpend[cat] || 0) + (typeof t.amount === 'number' ? t.amount : 0);
+        });
+
+        const categories = availableCategories
+          .filter((c) => c.listId === list._id && typeof (c as any).budget === 'number')
+          .map((c) => {
+            const budget = (c as any).budget as number;
+            const cat = c.value || '';
+            const spentCat = categorySpend[cat] || 0;
+            return {
+              category: cat,
+              label: c.label,
+              budget,
+              spent: spentCat,
+              over: spentCat > budget,
+              currency: (c as any).currency || list.currency || 'RUB',
+            };
+          });
+
+        return {
+          listId: list._id,
+          name: list.name,
+          budget: typeof list.budget === 'number' ? list.budget : undefined,
+          currency: list.currency || 'RUB',
+          spent,
+          remaining: typeof list.budget === 'number' ? list.budget - spent : undefined,
+          categories,
+        };
+      })
+    );
+
+    setOverallBudgetData(results);
+    setOverallBudgetLoading(false);
+  }, [userId, listActions.lists, availableCategories]);
+
   React.useEffect(() => {
     if (listActions.viewingHistory) setFormOpen(false);
     // when switching back out of history, reload todos for current list
     if (!listActions.viewingHistory && listActions.currentListId) {
       todoActions.fetchTodos(listActions.currentListId);
     }
+    // also refresh overall budget when switching lists
+    if (budgetOverviewOpen && budgetOverviewMode === 'overall') {
+      fetchOverallBudget();
+    }
     // todoActions is intentionally omitted to avoid refetch loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listActions.viewingHistory, listActions.currentListId]);
+  }, [listActions.viewingHistory, listActions.currentListId, budgetOverviewOpen, budgetOverviewMode, fetchOverallBudget]);
 
   const headerColor =
     (listActions.currentList && listActions.currentList.defaultColor) ||
@@ -185,6 +678,7 @@ export default function Home() {
   const openNewListDialog = () => {
     setNewListDialogOpen(true);
   };
+
 
   return (
     <Container
@@ -231,36 +725,41 @@ export default function Home() {
           {listActions.isLoading && <LinearProgress />}
           <div ref={toolbarRef}>
             <ListToolbar
-            lists={listActions.lists}
-            listsLoading={listActions.isLoading}
-            currentListId={listActions.currentListId}
-            onSelectList={handleListChange}
-            listDefaultColor={listActions.listDefaultColor}
-            setListDefaultColor={listActions.setListDefaultColor}
-            saveListColor={() => {
-              if (!listActions.currentListId) return;
-              listActions.updateListColor(listActions.currentListId, listActions.listDefaultColor);
-            }}
-            openNewListDialog={openNewListDialog}
-            setHistoryOpen={setHistoryOpen}
-            formOpen={formOpen}
-            bulkMode={todoActions.bulkMode}
-            toggleBulkMode={() => todoActions.setBulkMode(!todoActions.bulkMode)}
-            menuAnchor={menuAnchor}
-            openMenu={openMenu}
-            closeMenu={closeMenu}
-            setSnackbarMsg={setSnackbarMsg}
-            setSnackbarOpen={setSnackbarOpen}
-            openPersonalDialog={() => setPersonalDialogOpen(true)}
-            completeCurrentList={async () => {
-              if (!listActions.currentListId) return;
-              await listActions.completeList(listActions.currentListId);
-              todoActions.setTodos([]);
-            }}
-            updateShareToken={listActions.updateShareToken}
-            t={t}
-            formatMessage={_formatMessage}
-          />
+              lists={listActions.lists}
+              listsLoading={listActions.isLoading}
+              currentListId={listActions.currentListId}
+              onSelectList={handleListChange}
+              listDefaultColor={listActions.listDefaultColor}
+              setListDefaultColor={listActions.setListDefaultColor}
+              saveListColor={() => {
+                if (!listActions.currentListId) return;
+                listActions.updateListColor(listActions.currentListId, listActions.listDefaultColor);
+              }}
+              openNewListDialog={openNewListDialog}
+              setHistoryOpen={setHistoryOpen}
+              formOpen={formOpen}
+              bulkMode={todoActions.bulkMode}
+              toggleBulkMode={() => todoActions.setBulkMode(!todoActions.bulkMode)}
+              menuAnchor={menuAnchor}
+              openMenu={openMenu}
+              closeMenu={closeMenu}
+              setSnackbarMsg={setSnackbarMsg}
+              setSnackbarOpen={setSnackbarOpen}
+              openPersonalDialog={() => setPersonalDialogOpen(true)}
+              completeCurrentList={async () => {
+                if (!listActions.currentListId) return;
+                await listActions.completeList(listActions.currentListId);
+                todoActions.setTodos([]);
+              }}
+              updateShareToken={listActions.updateShareToken}
+              updateBudget={listActions.updateListBudget}
+              updateStrictBudget={listActions.updateListStrictBudget}
+              onOpenBudgetOverview={() => setBudgetOverviewOpen(true)}
+              onAddCategoryWithBudget={(budget?: number) => openNewCategoryDialog(budget)}
+              listType={listType}
+              t={t}
+              formatMessage={_formatMessage}
+            />
           </div>
 
           {/* search field and optional bulk toolbar */}
@@ -341,7 +840,7 @@ export default function Home() {
           {!listActions.viewingHistory && (
             <TodoForm
               todoActions={todoActions}
-              availableCategories={availableCategories}
+              availableCategories={availableCategoriesForList}
               setAvailableCategories={setAvailableCategories}
               updateNameCategory={updateNameCategory}
               nameCategoryMap={nameCategoryMap}
@@ -352,6 +851,8 @@ export default function Home() {
               setFormOpen={setFormOpen}
               dialogMode // render inside dialog
               listType={listType}
+              listId={listActions.currentListId}
+              initialCategory={initialCategory}
             />
           )}
 
@@ -373,9 +874,16 @@ export default function Home() {
             <TodoList
               todoActions={todoActions}
               listActions={listActions}
-              availableCategories={availableCategories}
+              availableCategories={availableCategoriesForList}
               t={t}
+              listType={listType}
               onEdit={() => setFormOpen(true)}
+              onAddToCategory={(category) => {
+                setInitialCategory(category);
+                setFormOpen(true);
+              }}
+              onEditCategory={(categoryValue) => openEditCategoryDialog(categoryValue)}
+              onDeleteCategory={(categoryValue) => openDeleteCategoryDialog(categoryValue)}
             />
           </Box>
           {/* floating add button bottom-right */}
@@ -387,10 +895,81 @@ export default function Home() {
               zIndex: 1300,
             }}
           >
-            <Fab onClick={() => setFormOpen(true)} aria-label="add">
+            <Fab
+              onClick={() => setCategoryPickerOpen(true)}
+              aria-label="add"
+            >
               <AddIcon />
             </Fab>
           </Box>
+          <Dialog
+            open={categoryPickerOpen}
+            onClose={() => setCategoryPickerOpen(false)}
+            fullWidth
+            maxWidth="xs"
+            PaperProps={{ className: 'glass' }}
+          >
+            <DialogTitle>{t.todos.category}</DialogTitle>
+            <DialogContent>
+              <Typography sx={{ mb: 1 }}>
+                {t.todos.category}
+              </Typography>
+
+              {listType === 'expenses' && availableCategoriesForList.length === 0 ? (
+                <Box sx={{ mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {language === 'ru'
+                      ? 'Категории ещё не созданы — создайте первую, чтобы распределять расходы.'
+                      : 'No categories yet — create one to organize your expenses.'}
+                  </Typography>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => {
+                      setCategoryPickerOpen(false);
+                      openNewCategoryDialog();
+                    }}
+                  >
+                    {language === 'ru' ? 'Создать категорию' : 'Create category'}
+                  </Button>
+                </Box>
+              ) : null}
+
+              <List>
+                <ListItemButton
+                  onClick={() => {
+                    setInitialCategory('');
+                    setCategoryPickerOpen(false);
+                    setFormOpen(true);
+                  }}
+                >
+                  <ListItemText
+                    primary={(t.categoryLabels as Record<string, string>)?.[''] || '(none)'}
+                  />
+                </ListItemButton>
+                {availableCategoriesForList.map((cat) => (
+                  <ListItemButton
+                    key={cat.value}
+                    onClick={() => {
+                      setInitialCategory(cat.value);
+                      setCategoryPickerOpen(false);
+                      setFormOpen(true);
+                    }}
+                  >
+                    {cat.icon ? (
+                      <ListItemIcon>{React.createElement(cat.icon)}</ListItemIcon>
+                    ) : null}
+                    <ListItemText primary={cat.label} />
+                  </ListItemButton>
+                ))}
+              </List>
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: 'flex-end' }}>
+              <Button onClick={() => setCategoryPickerOpen(false)}>
+                {t.buttons.cancel}
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           {/* history dialog instead of inline section */}
           <HistoryDialog
@@ -454,14 +1033,365 @@ export default function Home() {
             formatMessage={_formatMessage}
           />
 
-          <AppSnackbar
-            open={snackbarOpen}
-            message={snackbarMsg}
-            onClose={() => setSnackbarOpen(false)}
-          />
-        </Box>
-      )}
+          <Dialog
+            open={budgetOverviewOpen}
+            onClose={() => setBudgetOverviewOpen(false)}
+            fullWidth
+            maxWidth="sm"
+            PaperProps={{ className: 'glass' }}
+          >
+            <DialogTitle>
+              {budgetOverviewMode === 'current'
+                ? t.lists.budgetOverview
+                : t.lists.overallBudget}
+            </DialogTitle>
 
+            <DialogContent>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <Button
+                  variant={budgetOverviewMode === 'current' ? 'contained' : 'outlined'}
+                  onClick={() => setBudgetOverviewMode('current')}
+                  size="small"
+                >
+                  {t.lists.budgetOverview}
+                </Button>
+                <Button
+                  variant={budgetOverviewMode === 'overall' ? 'contained' : 'outlined'}
+                  onClick={() => {
+                    setBudgetOverviewMode('overall');
+                    fetchOverallBudget();
+                  }}
+                  size="small"
+                >
+                  {t.lists.overallBudget}
+                </Button>
+              </Box>
+
+              {budgetOverviewMode === 'current' ? (
+                <>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                      {t.lists.budget}: {typeof listActions.currentList?.budget === 'number'
+                        ? formatCurrency(listActions.currentList.budget, listActions.currentList?.currency)
+                        : '-'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      {t.todos.spent}: {formatCurrency(totalSpent, listActions.currentList?.currency)}
+                      {typeof listActions.currentList?.budget === 'number'
+                        ? ` / ${formatCurrency(listActions.currentList.budget, listActions.currentList?.currency)}`
+                        : ''}
+                    </Typography>
+                    {typeof listActions.currentList?.budget === 'number' && (
+                      <LinearProgress
+                        variant="determinate"
+                        value={Math.min(100, (totalSpent / listActions.currentList.budget) * 100)}
+                        sx={{ height: 10, borderRadius: 6, mb: 1 }}
+                      />
+                    )}
+                    {typeof listActions.currentList?.budget === 'number' && (
+                      <Typography variant="caption" color={
+                        totalSpent > (listActions.currentList?.budget ?? 0) ? 'error' : 'text.secondary'
+                      }>
+                        {totalSpent > (listActions.currentList?.budget ?? 0)
+                          ? t.todos.overBudget
+                          : `${t.todos.remaining}: ${(listActions.currentList.budget - totalSpent).toFixed(2)}`}
+                      </Typography>
+                    )}
+                  </Box>
+                  {Object.entries(categoryBudgets)
+                    .filter(([_, b]) => typeof b === 'number')
+                    .map(([cat, b]) => {
+                      const spent = categorySpend[cat] ?? 0;
+                      const remaining = b - spent;
+                      const over = remaining < 0;
+                      const label =
+                        (t.categoryLabels as Record<string, string>)?.[cat] ||
+                        availableCategories.find((c) => c.value === cat)?.label ||
+                        cat;
+                      return (
+                        <Box
+                          key={cat}
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            py: 0.75,
+                            px: 1,
+                            borderRadius: 1,
+                            backgroundColor: (theme) =>
+                              theme.palette.mode === 'dark'
+                                ? 'rgba(255,255,255,0.02)'
+                                : 'rgba(0,0,0,0.04)',
+                            mb: 0.5,
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ color: over ? 'error.main' : 'text.primary' }}>
+                            {label}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: over ? 'error.main' : 'text.secondary' }}
+                          >
+                            {t.todos.spent}: {formatCurrency(spent, (availableCategories.find((c) => c.value === cat)?.currency) || listActions.currentList?.currency)} / {t.lists.budget}: {formatCurrency(b, (availableCategories.find((c) => c.value === cat)?.currency) || listActions.currentList?.currency)}
+                            {over ? ` (${t.todos.overBudget})` : ''}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                </>
+              ) : (
+                <>
+                  {overallBudgetLoading ? (
+                    <Box sx={{ py: 2 }}>
+                      <LinearProgress />
+                    </Box>
+                  ) : (
+                    <>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        {t.lists.totalBudget}
+                      </Typography>
+                      {overallBudgetData.map((data) => (
+                        <Box
+                          key={data.listId}
+                          sx={{
+                            borderRadius: 2,
+                            border: (theme) => `1px solid ${theme.palette.divider}`,
+                            p: 2,
+                            mb: 1,
+                          }}
+                        >
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                            {data.name}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            {t.lists.budget}: {data.budget != null ? formatCurrency(data.budget, data.currency) : '-'}
+                            {' • '}
+                            {t.todos.spent}: {formatCurrency(data.spent, data.currency)}
+                            {typeof data.remaining === 'number'
+                              ? ` • ${t.todos.remaining}: ${formatCurrency(data.remaining, data.currency)}`
+                              : ''}
+                          </Typography>
+
+                          {data.categories.length > 0 ? (
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600, mb: 0.5, display: 'block' }}>
+                                {t.lists.perList}
+                              </Typography>
+                              {data.categories.map((cat) => (
+                                <Box
+                                  key={cat.category}
+                                  sx={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    py: 0.5,
+                                    px: 1,
+                                    borderRadius: 1,
+                                    backgroundColor: (theme) =>
+                                      theme.palette.mode === 'dark'
+                                        ? 'rgba(255,255,255,0.02)'
+                                        : 'rgba(0,0,0,0.04)',
+                                    mb: 0.5,
+                                  }}
+                                >
+                                  <Typography variant="body2" sx={{ color: cat.over ? 'error.main' : 'text.primary' }}>
+                                    {cat.label}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: cat.over ? 'error.main' : 'text.secondary' }}>
+                                    {t.todos.spent}: {formatCurrency(cat.spent, cat.currency)} / {t.lists.budget}: {formatCurrency(cat.budget, cat.currency)}
+                                    {cat.over ? ` (${t.todos.overBudget})` : ''}
+                                  </Typography>
+                                </Box>
+                              ))}
+                            </Box>
+                          ) : null}
+                        </Box>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: 'flex-end' }}>
+              <Button onClick={() => setBudgetOverviewOpen(false)}>{t.buttons.close}</Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog
+            open={newCategoryDialogOpen}
+            onClose={() => {
+              setNewCategoryDialogOpen(false);
+              setNewCategoryIconKey('');
+            }}
+            fullWidth
+            maxWidth="sm"
+            PaperProps={{ className: 'glass' }}
+          >
+            <DialogTitle>{
+              editingCategoryValue
+                ? t.dialogs.editCategory.title
+                : t.dialogs.newCategory.title
+            }</DialogTitle>
+            <DialogContent>
+              <TextField
+                fullWidth
+                label={t.dialogs.newCategory.name}
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                sx={{ mt: 1, mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label={t.dialogs.newCategory.budget}
+                type="number"
+                value={newCategoryBudget}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewCategoryBudget(val === '' ? '' : parseFloat(val));
+                }}
+              />
+              <TextField
+                select
+                fullWidth
+                label={t.dialogs.newCategory.currency}
+                value={newCategoryCurrency}
+                onChange={(e) => {
+                  setNewCategoryCurrency(e.target.value);
+                  // reset exchange rate when changing currency
+                  setNewCategoryExchangeRate(1);
+                }}
+                sx={{ mt: 1 }}
+              >
+                {Object.keys(currencySymbols).map((code) => (
+                  <MenuItem key={code} value={code}>
+                    {code}
+                  </MenuItem>
+                ))}
+              </TextField>
+              {listActions.currentList?.currency && newCategoryCurrency && newCategoryCurrency !== listActions.currentList.currency ? (
+                <>
+                  <TextField
+                    fullWidth
+                    label={t.dialogs.newCategory.exchangeRate}
+                    type="number"
+                    value={newCategoryExchangeRate}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const num = v === '' ? '' : parseFloat(v);
+                      setNewCategoryExchangeRate(Number.isNaN(num) ? '' : num);
+                    }}
+                    sx={{ mt: 1 }}
+                    helperText={`1 ${listActions.currentList.currency} = ? ${newCategoryCurrency}`}
+                    error={
+                      newCategoryExchangeRate === '' ||
+                      (typeof newCategoryExchangeRate === 'number' && newCategoryExchangeRate <= 0)
+                    }
+                  />
+                  {(newCategoryExchangeRate === '' ||
+                    (typeof newCategoryExchangeRate === 'number' && newCategoryExchangeRate <= 0)) && (
+                    <Typography variant="caption" color="warning.main">
+                      {t.messages.invalidExchangeRate}
+                    </Typography>
+                  )}
+                </>
+              ) : null}
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={newCategoryStrictBudget}
+                    onChange={(e) => setNewCategoryStrictBudget(e.target.checked)}
+                  />
+                }
+                label={t.lists.strictBudget}
+                sx={{ mt: 1 }}
+              />
+              <Box sx={{ mt: 1 }}>
+                <CategoryIconPicker
+                  selected={newCategoryIconKey}
+                  onChange={setNewCategoryIconKey}
+                />
+              </Box>
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: 'flex-end' }}>
+              <Button
+                onClick={() => {
+                  setNewCategoryDialogOpen(false);
+                  setNewCategoryIconKey('');
+                  setEditingCategoryValue(null);
+                }}
+              >
+                {t.buttons.cancel}
+              </Button>
+              {editingCategoryValue ? (
+                <Button
+                  color="error"
+                  onClick={() => {
+                    if (editingCategoryValue) openDeleteCategoryDialog(editingCategoryValue);
+                  }}
+                >
+                  {t.buttons.delete}
+                </Button>
+              ) : null}
+              <Button
+                variant="contained"
+                onClick={handleCreateCategoryWithBudget}
+                disabled={!isExchangeRateValid}
+              >
+                {editingCategoryValue ? t.buttons.save : t.buttons.create}
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+              <Dialog
+                open={currencyRateDialogOpen}
+                onClose={() => setCurrencyRateDialogOpen(false)}
+                fullWidth
+                maxWidth="sm"
+                PaperProps={{ className: 'glass' }}
+              >
+                <DialogTitle>{t.dialogs.currencyRate.title}</DialogTitle>
+                <DialogContent>
+                  <Typography sx={{ mb: 1 }}>
+                    {t.dialogs.currencyRate.description}
+                  </Typography>
+                  {currencyRateTargets.map((cat) => (
+                    <TextField
+                      key={cat.value}
+                      fullWidth
+                      label={`${cat.label} (${cat.currency})`}
+                      type="number"
+                      value={currencyRateValues[cat.value] ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const num = v === '' ? undefined : parseFloat(v);
+                        setCurrencyRateValues((prev) => ({
+                          ...prev,
+                          [cat.value]: Number.isNaN(num) ? undefined : num,
+                        }));
+                      }}
+                      sx={{ mb: 1 }}
+                      helperText={`1 ${listActions.currentList?.currency} = ? ${cat.currency}`}
+                    />
+                  ))}
+                </DialogContent>
+                <DialogActions sx={{ justifyContent: 'flex-end' }}>
+                  <Button onClick={() => setCurrencyRateDialogOpen(false)}>
+                    {t.buttons.cancel}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleSaveCurrencyRates}
+                    disabled={
+                      Object.values(currencyRateValues).some(
+                        (v) => typeof v !== 'number' || v <= 0
+                      )
+                    }
+                  >
+                    {t.buttons.save}
+                  </Button>
+                </DialogActions>
+              </Dialog>        </Box>
+      )}
     </Container>
   );
 }

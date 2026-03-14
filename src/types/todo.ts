@@ -16,6 +16,13 @@ export interface Todo {
   order?: number;
   // optional base64-encoded image attachment
   image?: string;
+  // expense-specific
+  amount?: number;
+  spentAt?: string; // ISO date string
+  // todo-specific
+  dueDate?: string; // ISO date string
+  priority?: 'low' | 'medium' | 'high';
+  reminderAt?: string; // ISO date/time string
 }
 
 export interface TemplateItem {

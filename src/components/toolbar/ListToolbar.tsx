@@ -2,6 +2,9 @@ import * as React from 'react';
 import {
   Add as AddIcon,
   MoreVert as MoreVertIcon,
+  Lock as LockIcon,
+  LockOpen as LockOpenIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -14,10 +17,11 @@ import {
   Menu,
   MenuItem,
   Skeleton,
-  TextField
+  TextField,
 } from '@mui/material';
 
 import type { ListToolbarProps } from '@/types/componentProps';
+import type { ListType } from '@/types';
 
 export default function ListToolbar({
   lists,
@@ -36,6 +40,11 @@ export default function ListToolbar({
   openPersonalDialog,
   completeCurrentList,
   updateShareToken, // added destructure
+  updateBudget,
+  updateStrictBudget,
+  onOpenBudgetOverview,
+  onAddCategoryWithBudget,
+  listType,
   t,
   formatMessage,
 }: ListToolbarProps) {
@@ -57,6 +66,25 @@ export default function ListToolbar({
     }
   }, []);
 
+
+  const [budgetInput, setBudgetInput] = React.useState<string>('');
+  const [currencyInput, setCurrencyInput] = React.useState<string>('RUB');
+
+  const currentList = lists.find((l) => l._id === currentListId);
+  const currentBudget = typeof currentList?.budget === 'number' ? currentList.budget : undefined;
+  const currentStrictBudget = !!currentList?.strictBudget;
+  const currentCurrency = currentList?.currency || 'RUB';
+
+  const currencyOptions = ['RUB', 'USD', 'EUR', 'GBP', 'UAH', 'ILS'];
+
+  React.useEffect(() => {
+    if (currentBudget != null) {
+      setBudgetInput(String(currentBudget));
+    } else {
+      setBudgetInput('');
+    }
+    setCurrencyInput(currentCurrency || 'RUB');
+  }, [currentBudget, currentCurrency]);
 
   const handleOpenMenu = (e: React.MouseEvent<HTMLElement>) => {
     try {
@@ -154,6 +182,93 @@ export default function ListToolbar({
           </>
         )}
       </Box>
+
+      {listType === 'expenses' && currentListId && (
+        <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'nowrap' }}>
+          <TextField
+            label={t.lists.budget}
+            placeholder={t.lists.budgetPlaceholder}
+            value={budgetInput}
+            onChange={(e) => setBudgetInput(e.target.value)}
+            type="number"
+            size="small"
+            sx={{
+              width: 120,
+              '& .MuiOutlinedInput-root': {
+                height: 36,
+              },
+            }}
+          />
+          <TextField
+            select
+            label=""
+            value={currencyInput}
+            onChange={(e) => setCurrencyInput(e.target.value)}
+            size="small"
+            sx={{ width: 80, '& .MuiOutlinedInput-root': { height: 36 } }}
+          >
+            {currencyOptions.map((code) => (
+              <MenuItem key={code} value={code}>
+                {code}
+              </MenuItem>
+            ))}
+          </TextField>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={async () => {
+              const val = parseFloat(budgetInput);
+              if (Number.isNaN(val)) {
+                setSnackbarMsg(t.messages.saveError);
+                setSnackbarOpen(true);
+                return;
+              }
+              await updateBudget(currentListId, val, currencyInput);
+            }}
+            sx={{ height: 36 }}
+          >
+            {t.buttons.save}
+          </Button>
+
+          {typeof onAddCategoryWithBudget === 'function' && (
+            <IconButton
+              size="small"
+              onClick={() => onAddCategoryWithBudget(parseFloat(budgetInput) || undefined)}
+              title={t.lists.addCategoryWithBudget}
+              aria-label={t.lists.addCategoryWithBudget}
+              sx={{ height: 36, width: 36, color: 'success.main' }}
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+          )}
+
+          <IconButton
+            size="small"
+            onClick={() => {
+              if (typeof onOpenBudgetOverview === 'function') {
+                onOpenBudgetOverview();
+              }
+            }}
+            title={t.lists.budgetOverview}
+            aria-label={t.lists.budgetOverview}
+            sx={{ height: 36, width: 36 }}
+          >
+            <InfoIcon fontSize="small" />
+          </IconButton>
+
+          <IconButton
+            size="small"
+            onClick={async () => {
+              await updateStrictBudget(currentListId, !currentStrictBudget);
+            }}
+            title={currentStrictBudget ? t.lists.strictBudgetOn : t.lists.strictBudgetOff}
+            aria-label={currentStrictBudget ? t.lists.strictBudgetOn : t.lists.strictBudgetOff}
+            sx={{ height: 36, width: 36 }}
+          >
+            {currentStrictBudget ? <LockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
+          </IconButton>
+        </Box>
+      )}
 
       <Box
         sx={{

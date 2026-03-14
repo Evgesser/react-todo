@@ -42,6 +42,11 @@ export default async function handler(
       missing,
       unit,
       image,
+      amount,
+      spentAt,
+      dueDate,
+      priority,
+      reminderAt,
     } = req.body as {
       listId?: unknown;
       name?: unknown;
@@ -54,6 +59,11 @@ export default async function handler(
       missing?: unknown;
       unit?: unknown;
       image?: unknown;
+      amount?: unknown;
+      spentAt?: unknown;
+      dueDate?: unknown;
+      priority?: unknown;
+      reminderAt?: unknown;
     };
 
     if (!listId || typeof listId !== 'string') {
@@ -78,6 +88,11 @@ export default async function handler(
       category: string;
       order: number;
       image?: string;
+      amount?: number;
+      spentAt?: Date;
+      dueDate?: Date;
+      priority?: string;
+      reminderAt?: Date;
     }
     const item: TodoDoc = {
       listId: new ObjectId(listId),
@@ -92,6 +107,11 @@ export default async function handler(
       category: typeof category === 'string' ? category : '',
       order: typeof order === 'number' ? order : 0,
       image: typeof image === 'string' ? image : undefined,
+      amount: typeof amount === 'number' ? amount : undefined,
+      spentAt: typeof spentAt === 'string' ? new Date(spentAt) : undefined,
+      dueDate: typeof dueDate === 'string' ? new Date(dueDate) : undefined,
+      priority: typeof priority === 'string' ? priority : undefined,
+      reminderAt: typeof reminderAt === 'string' ? new Date(reminderAt) : undefined,
     };
 
     const result = await collection.insertOne(item);

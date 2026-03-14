@@ -43,6 +43,7 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import { useTheme, alpha } from '@mui/material/styles';
+import { formatCurrency } from '@/constants';
 import type { Category } from '@/constants';
 import type { TranslationKeys } from '@/locales/ru';
 import type { Todo } from '@/types';
@@ -56,6 +57,7 @@ export default function TodoListItem({
   globalIndex,
   todoActions,
   listActions,
+  availableCategories,
   t,
   onEdit,
 }: TodoListItemProps) {
@@ -82,6 +84,11 @@ export default function TodoListItem({
     setQuantity,
     setComment,
     setUnit,
+    setAmount,
+    setSpentAt,
+    setDueDate,
+    setPriority,
+    setReminderAt,
     setColor,
     setCategory,
     deleteTodo,
@@ -106,7 +113,12 @@ export default function TodoListItem({
   };
 
 
-  const { viewingHistory, listDefaultColor } = listActions;
+  const { viewingHistory, listDefaultColor, currentList } = listActions;
+  const listCurrency = currentList?.currency || 'RUB';
+  const categoryCurrency =
+    todo.category &&
+    (availableCategories.find((c) => c.value === todo.category) as Category | undefined)?.currency;
+  const currency = categoryCurrency || listCurrency;
   // allow callers (like the shared page) to explicitly override which
   // action buttons should be visible. If not provided, fall back to
   // the historical behaviour (hide when viewingHistory is true).
@@ -354,6 +366,18 @@ export default function TodoListItem({
                         ? ` (${todo.quantity}${todo.unit ? ' ' + todo.unit : ''})`
                         : ''}
                     </Typography>
+                    {(todo.amount != null || todo.spentAt) && (
+                      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mt: 0.5 }}>
+                        {todo.amount != null ? formatCurrency(todo.amount, currency) : ''}
+                        {todo.amount != null && todo.spentAt ? ' · ' : ''}
+                        {todo.spentAt ? new Date(todo.spentAt).toLocaleDateString() : ''}
+                      </Typography>
+                    )}
+                    {todo.priority && (
+                      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mt: 0.5 }}>
+                        {`Priority: ${todo.priority}`}
+                      </Typography>
+                    )}
                   </Box>
                 )}
               </Box>
@@ -391,6 +415,11 @@ export default function TodoListItem({
                       setUnit(todo.unit || '');
                       setColor(todo.color || listDefaultColor);
                       setCategory(todo.category || '');
+                      setAmount(typeof todo.amount === 'number' ? todo.amount : undefined);
+                      setSpentAt(todo.spentAt ? new Date(todo.spentAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+                      setDueDate(todo.dueDate ? new Date(todo.dueDate).toISOString().slice(0, 10) : '');
+                      setPriority(todo.priority || '');
+                      setReminderAt(todo.reminderAt ? new Date(todo.reminderAt).toISOString().slice(0, 16) : '');
                       if (onEdit) {
                         onEdit();
                       }

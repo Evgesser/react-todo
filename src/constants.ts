@@ -42,6 +42,16 @@ export interface Category {
   label: string;
   // store the icon component itself; rendering is deferred to the consumer
   icon: SvgIconComponent | null;
+  /** Optional budget for this category (expenses mode). */
+  budget?: number;
+  /** Optional currency code for this category budget (e.g. USD, EUR, RUB). */
+  currency?: string;
+  /** Optional strict budget enforcement (expenses mode). */
+  strictBudget?: boolean;
+  /** Optional exchange rate to the list currency (1 list currency = X category currency). */
+  exchangeRateToListCurrency?: number;
+  /** Optional list scope; if provided, category is only shown for that list. */
+  listId?: string;
 }
 
 export const categories: Category[] = [
@@ -100,6 +110,25 @@ export const iconMap: Record<string, SvgIconComponent> = iconChoices.reduce(
   (acc, item) => ({ ...acc, [item.key]: item.icon }),
   {}
 );
+
+// Common currency symbols used for display
+export const currencySymbols: Record<string, string> = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  RUB: '₽',
+  UAH: '₴',
+  ILS: '₪',
+  JPY: '¥',
+  CNY: '¥',
+  INR: '₹',
+};
+
+export const formatCurrency = (value: number, currency?: string) => {
+  if (!currency) return value.toFixed(2);
+  const symbol = currencySymbols[currency.toUpperCase()] || currency;
+  return `${value.toFixed(2)} ${symbol}`;
+};
 
 // keywords to heuristically map product/category names to icon keys
 // keys are iconChoice keys, values are arrays of lowercase tokens to match

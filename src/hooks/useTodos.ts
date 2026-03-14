@@ -10,7 +10,22 @@ import useAppStore from '@/stores/useAppStore';
 import type { UseTodosParams, UseTodosReturn, AddOverride } from '@/types/hooks';
 
 export function useTodos(params: UseTodosParams): UseTodosReturn {
-  const { currentListId, listDefaultColor, onSnackbar, t, nameCategoryMap, products, formatMessage } = params;
+  const {
+    currentListId,
+    listDefaultColor,
+    listType,
+    listBudget,
+    listCurrency,
+    strictBudget,
+    categoryBudgets,
+    categoryStrictBudgets,
+    categoryExchangeRates,
+    onSnackbar,
+    t,
+    nameCategoryMap,
+    products,
+    formatMessage,
+  } = params;
   const fm = formatMessage || ((id: string) => id);
 
   // Todo list state (migrated to global store)
@@ -27,6 +42,11 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   const [comment, setComment] = React.useState('');
   const [unit, setUnit] = React.useState('');
   const [color, setColor] = React.useState('#ffffff');
+  const [amount, setAmount] = React.useState<number | undefined>(undefined);
+  const [spentAt, setSpentAt] = React.useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [dueDate, setDueDate] = React.useState<string>('');
+  const [priority, setPriority] = React.useState<'low' | 'medium' | 'high' | ''>('');
+  const [reminderAt, setReminderAt] = React.useState<string>('');
   // category selected in add/edit form
   const [category, setCategoryState] = React.useState('');
   // remember which name triggered automatic assignment
@@ -102,6 +122,25 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
   const [pendingCompleteIds, setPendingCompleteIds] = React.useState<Set<string>>(new Set());
   const reorderInFlight = false;
   const toggleOpRef = React.useRef<Record<string, number>>({});
+
+  // When editing an existing item, prefill form fields from it
+  React.useEffect(() => {
+    if (!editingId) return;
+    const existing = todos.find((t) => t._id === editingId);
+    if (!existing) return;
+    setName(existing.name || '');
+    setDescription(existing.description || '');
+    setQuantity(typeof existing.quantity === 'number' ? existing.quantity : 1);
+    setComment(existing.comment || '');
+    setUnit(existing.unit || '');
+    setColor(existing.color || listDefaultColor);
+    setCategoryState(existing.category || '');
+    setAmount(typeof existing.amount === 'number' ? existing.amount : undefined);
+    setSpentAt(existing.spentAt ? (new Date(existing.spentAt)).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+    setDueDate(existing.dueDate ? (new Date(existing.dueDate)).toISOString().slice(0, 10) : '');
+    setPriority(existing.priority || '');
+    setReminderAt(existing.reminderAt ? (new Date(existing.reminderAt)).toISOString().slice(0, 16) : '');
+  }, [editingId, todos, listDefaultColor]);
 
   // Handle click outside inline edit
   React.useEffect(() => {
@@ -181,11 +220,64 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     color?: string;
     category?: string;
     image?: string;
+    amount?: number;
+    spentAt?: string;
+    dueDate?: string;
+    priority?: 'low' | 'medium' | 'high' | '';
+    reminderAt?: string;
   }
 
   const addItem = async (override: AddOverride = {}) => {
     const finalName = (override.name ?? name).trim();
     if (!finalName || !currentListId) return;
+
+    const newAmount = override.amount ?? amount;
+    const newCategory = override.category ?? category;
+
+    // compute current spent totals excluding the item being edited (if any)
+    const convertToListCurrency = (amount: number, category?: string) => {
+      if (!category) return amount;
+      const rate = categoryExchangeRates?.[category] ?? 1;
+      if (typeof rate === 'number' && rate > 0) {
+        return amount * rate;
+      }
+      return amount;
+    };
+
+    const totalSpent = todos.reduce((sum, t) => {
+      if (t._id === editingId) return sum;
+      if (typeof t.amount !== 'number') return sum;
+      return sum + convertToListCurrency(t.amount, t.category);
+    }, 0);
+    const categorySpent = todos.reduce((sum, t) => {
+      if (t._id === editingId) return sum;
+      if ((t.category || '') !== (newCategory || '')) return sum;
+      return sum + (typeof t.amount === 'number' ? t.amount : 0);
+    }, 0);
+
+    const projectedTotal =
+      totalSpent +
+      (typeof newAmount === 'number' ? convertToListCurrency(newAmount, newCategory) : 0);
+    const projectedCategory =
+      categorySpent + (typeof newAmount === 'number' ? newAmount : 0);
+
+    const overallBudgetExceeded =
+      typeof listBudget === 'number' ? projectedTotal > listBudget : false;
+    const categoryBudget = categoryBudgets?.[newCategory || ''];
+    const categoryBudgetExceeded =
+      typeof categoryBudget === 'number' ? projectedCategory > categoryBudget : false;
+    const categoryStrict = categoryStrictBudgets?.[newCategory || ''];
+
+    // Strict budget enforcement (expenses mode)
+    if (
+      listType === 'expenses' &&
+      (strictBudget || categoryStrict) &&
+      (overallBudgetExceeded || categoryBudgetExceeded)
+    ) {
+      onSnackbar(t.messages.budgetExceeded);
+      return;
+    }
+
     const payload: Partial<Todo> & { listId: string } = {
       listId: currentListId,
       name: finalName,
@@ -194,7 +286,12 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       comment: (override.comment ?? comment).trim(),
       unit: override.unit ?? unit,
       color: override.color ?? color,
-      category: override.category ?? category,
+      category: newCategory,
+      amount: newAmount,
+      spentAt: override.spentAt ?? spentAt,
+      dueDate: override.dueDate ?? dueDate,
+      priority: (override.priority ?? priority) || undefined,
+      reminderAt: override.reminderAt ?? reminderAt,
       image: override.image ?? undefined,
     };
     // when editing, preserve the missing flag if it already existed
@@ -257,11 +354,21 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
       setComment('');
       setUnit('');
       setColor(listDefaultColor);
+      setAmount(undefined);
+      setSpentAt(new Date().toISOString().slice(0, 10));
+      setDueDate('');
+      setPriority('');
+      setReminderAt('');
       setCategoryState('');
-    setAutoAssignedFor(null);
+      setAutoAssignedFor(null);
       setEditingId(null);
       setLastAdded(addedName);
       onSnackbar(editingId ? fm('messages.itemUpdated') : fm('messages.itemAdded'));
+
+      if (listType === 'expenses' && !strictBudget && (overallBudgetExceeded || categoryBudgetExceeded)) {
+        onSnackbar(t.messages.budgetExceeded);
+      }
+
       if (currentListId) {
         await fetchTodos(currentListId);
       }
@@ -718,6 +825,11 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     comment,
     unit,
     color,
+    amount,
+    spentAt,
+    dueDate,
+    priority,
+    reminderAt,
     category,
     editingId,
     filterText,
@@ -742,6 +854,11 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     setComment,
     setUnit,
     setColor,
+    setAmount,
+    setSpentAt,
+    setDueDate,
+    setPriority,
+    setReminderAt,
     setCategory,
     setCategoryManual,
     setEditingId,

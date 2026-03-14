@@ -112,6 +112,8 @@ export default function PersonalizationDialog({
         value: category.value,
         label: category.label,
         icon: Object.keys(iconMap).find((k) => iconMap[k] === category.icon) || '',
+        budget: typeof (category as any).budget === 'number' ? (category as any).budget : undefined,
+        currency: typeof (category as any).currency === 'string' ? (category as any).currency : undefined,
       }))
     );
     setEditingTemplates(availableTemplates.map((template) => ({ ...template, items: [...template.items] })));
@@ -130,7 +132,15 @@ export default function PersonalizationDialog({
         const merged: Category[] = saved.categories.map((category) => {
           const found = defaultCategories.find((item) => item.value === category.value);
           const iconComp = category.icon && iconMap[category.icon] ? iconMap[category.icon] : null;
-          return { value: category.value, label: category.label, icon: iconComp || found?.icon || null };
+          return {
+            value: category.value,
+            label: category.label,
+            icon: iconComp || found?.icon || null,
+            budget: typeof category.budget === 'number' ? category.budget : undefined,
+            currency: typeof category.currency === 'string' ? category.currency : undefined,
+            strictBudget: typeof category.strictBudget === 'boolean' ? category.strictBudget : undefined,
+            listId: typeof category.listId === 'string' ? category.listId : undefined,
+          };
         });
         setAvailableCategories(merged);
       }

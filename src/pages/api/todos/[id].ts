@@ -37,6 +37,11 @@ export default async function handler(
         missing,
         unit,
         image,
+        amount,
+        spentAt,
+        dueDate,
+        priority,
+        reminderAt,
       } = body as {
         listId?: unknown;
         name?: unknown;
@@ -51,6 +56,11 @@ export default async function handler(
         missing?: unknown;
         unit?: unknown;
         image?: unknown;
+        amount?: unknown;
+        spentAt?: unknown;
+        dueDate?: unknown;
+        priority?: unknown;
+        reminderAt?: unknown;
       };
 
       if (!listId || typeof listId !== 'string') {
@@ -71,6 +81,11 @@ export default async function handler(
         category?: string;
         order?: number;
         image?: string;
+        amount?: number;
+        spentAt?: Date;
+        dueDate?: Date;
+        priority?: string;
+        reminderAt?: Date;
       } = {};
 
       if (typeof name === 'string') update.name = name;
@@ -85,6 +100,11 @@ export default async function handler(
       if (typeof category === 'string') update.category = category;
       if (typeof order === 'number') update.order = order;
       if (typeof image === 'string') update.image = image;
+      if (typeof amount === 'number') update.amount = amount;
+      if (typeof spentAt === 'string') update.spentAt = new Date(spentAt);
+      if (typeof dueDate === 'string') update.dueDate = new Date(dueDate);
+      if (typeof priority === 'string') update.priority = priority;
+      if (typeof reminderAt === 'string') update.reminderAt = new Date(reminderAt);
 
       if (Object.keys(update).length === 0) {
         res.status(400).json({ error: 'Nothing to update' });

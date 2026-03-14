@@ -45,7 +45,7 @@ export default async function handler(
       updatedAt: new Date(),
     };
     if (Array.isArray(categories)) {
-      // filter elements so they have value/label (and optionally icon) strings
+      // filter elements so they have value/label (and optionally icon/budget/currency/listId) strings
       update.categories = categories
         .filter(
           (c: unknown): c is StoredCategory => {
@@ -53,10 +53,31 @@ export default async function handler(
             const o = c as { [key: string]: unknown };
             if (typeof o.value !== 'string' || typeof o.label !== 'string') return false;
             if (o.icon !== undefined && typeof o.icon !== 'string') return false;
+            if (o.budget !== undefined && typeof o.budget !== 'number') return false;
+            if (o.currency !== undefined && typeof o.currency !== 'string') return false;
+            if (
+              o.exchangeRateToListCurrency !== undefined &&
+              typeof o.exchangeRateToListCurrency !== 'number'
+            )
+              return false;
+            if (o.strictBudget !== undefined && typeof o.strictBudget !== 'boolean') return false;
+            if (o.listId !== undefined && typeof o.listId !== 'string') return false;
             return true;
           }
         )
-        .map((c) => ({ value: c.value, label: c.label, icon: c.icon }));
+        .map((c) => ({
+          value: c.value,
+          label: c.label,
+          icon: c.icon,
+          budget: typeof c.budget === 'number' ? c.budget : undefined,
+          currency: typeof c.currency === 'string' ? c.currency : undefined,
+          exchangeRateToListCurrency:
+            typeof c.exchangeRateToListCurrency === 'number'
+              ? c.exchangeRateToListCurrency
+              : undefined,
+          strictBudget: typeof c.strictBudget === 'boolean' ? c.strictBudget : undefined,
+          listId: typeof c.listId === 'string' ? c.listId : undefined,
+        }));
     }
     if (Array.isArray(templates)) {
       update.templates = templates as Template[];

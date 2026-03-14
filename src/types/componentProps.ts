@@ -31,6 +31,11 @@ export interface ListToolbarProps {
   openPersonalDialog: () => void;
   completeCurrentList: () => void;
   updateShareToken: (id: string, token: string) => Promise<void>;
+  updateBudget: (id: string, budget: number, currency?: string) => Promise<void>;
+  updateStrictBudget: (id: string, strictBudget: boolean) => Promise<void>;
+  onOpenBudgetOverview?: () => void;
+  onAddCategoryWithBudget?: (budget?: number) => void;
+  listType?: ListType | null;
   t: TranslationKeys;
   formatMessage: (id: string, values?: any) => string;
 }
@@ -82,6 +87,8 @@ export interface TodoFormProps {
   setFormOpen: React.Dispatch<React.SetStateAction<boolean>>;
   dialogMode?: boolean;
   listType?: ListType | null;
+  listId?: string | null;
+  initialCategory?: string;
 }
 
 export interface TodoListProps {
@@ -89,7 +96,11 @@ export interface TodoListProps {
   listActions: UseListsReturn;
   availableCategories: Category[];
   t: TranslationKeys;
+  listType?: ListType | null;
   onEdit?: () => void;
+  onAddToCategory?: (category: string) => void;
+  onEditCategory?: (category: string) => void;
+  onDeleteCategory?: (category: string) => void;
 }
 
 export interface TodoListItemProps {

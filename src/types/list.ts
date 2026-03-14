@@ -7,6 +7,9 @@ export interface List {
   finishedAt?: string;
   defaultColor?: string;
   type?: ListType;
+  budget?: number; // for expenses mode
+  currency?: string; // currency code for budget display (e.g. USD, EUR, RUB)
+  strictBudget?: boolean; // if set, prevent spending beyond budgets
   // random token used for password‑less sharing
   shareToken?: string;
 }

@@ -25,11 +25,14 @@ export default async function handler(
 
   switch (method) {
     case 'PUT': {
-      const { completed, name, defaultColor, shareToken } = body as {
+      const { completed, name, defaultColor, shareToken, budget, strictBudget, currency } = body as {
         completed?: unknown;
         name?: unknown;
         defaultColor?: unknown;
         shareToken?: unknown;
+        budget?: unknown;
+        strictBudget?: unknown;
+        currency?: unknown;
       };
       type UpdateOpts = Partial<{
         name: string;
@@ -37,12 +40,24 @@ export default async function handler(
         shareToken: string;
         completed: boolean;
         finishedAt: Date;
+        budget: number;
+        strictBudget: boolean;
+        currency: string;
       }>;
       const update: UpdateOpts = {};
       if (typeof name === 'string') update.name = name;
       if (typeof defaultColor === 'string') update.defaultColor = defaultColor;
       if (typeof shareToken === 'string') {
         update.shareToken = shareToken;
+      }
+      if (typeof budget === 'number') {
+        update.budget = budget;
+      }
+      if (typeof strictBudget === 'boolean') {
+        update.strictBudget = strictBudget;
+      }
+      if (typeof currency === 'string') {
+        update.currency = currency;
       }
       if (typeof completed === 'boolean') {
         update.completed = completed;
