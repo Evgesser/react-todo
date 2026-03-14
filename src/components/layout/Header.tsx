@@ -4,6 +4,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useTheme, alpha } from '@mui/material/styles';
 import { ColorModeContext } from '@/pages/_app';
 import type { HeaderProps } from '@/types/componentProps';
@@ -11,12 +12,14 @@ import useAppStore from '@/stores/useAppStore';
 import LanguageSwitcher from '../LanguageSwitcher';
 import Link from 'next/link';
 
-const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, t }) => {
+const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, t, title }) => {
   const theme = useTheme();
   const colorMode = React.useContext(ColorModeContext);
   const userId = useAppStore((s) => s.userId);
   const username = useAppStore((s) => s.username);
   const avatar = useAppStore((s) => s.avatar);
+  const listType = useAppStore((s) => s.listType);
+  const setListType = useAppStore((s) => s.setListType);
   const logout = useAppStore((s) => s.logout);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -69,7 +72,7 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
                 : '0 1px 2px rgba(0,0,0,0.06)',
           }}
         >
-          {t.header.title}
+          {title || t.header.title}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <LanguageSwitcher />
@@ -140,6 +143,17 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
                     {username}
                   </Typography>
                 </MenuItem>
+                {listType ? (
+                  <MenuItem
+                    onClick={() => {
+                      setListType(null);
+                      handleMenuClose();
+                    }}
+                  >
+                    <SwapHorizIcon sx={{ marginInlineEnd: 1, fontSize: '1.2rem' }} />
+                    <Typography variant="body2">{t.header.changeType}</Typography>
+                  </MenuItem>
+                ) : null}
                 <Divider />
                 <MenuItem
                   component={Link}

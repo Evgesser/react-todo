@@ -1,9 +1,12 @@
+export type ListType = 'shopping' | 'expenses' | 'todo';
+
 export interface List {
   _id: string;
   name: string;
   completed: boolean;
   finishedAt?: string;
   defaultColor?: string;
+  type?: ListType;
   // random token used for password‑less sharing
   shareToken?: string;
 }
@@ -16,4 +19,5 @@ export interface ShoppingList {
   completed: boolean;
   createdAt: Date;
   finishedAt?: Date;
+  type?: ListType;
 }

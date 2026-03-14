@@ -2,8 +2,7 @@ import { create } from 'zustand';
 import { login as apiLogin, fetchUserProfile } from '@/lib/api';
 import { Language } from '@/locales';
 import { Category, templates as defaultTemplates, categories as defaultCategories } from '@/constants';
-import type { Template, StoredProduct } from '@/types';
-import type { List as ListType, Todo } from '@/types';
+import type { Template, StoredProduct, ListType, List as ListDoc, Todo } from '@/types';
 
 type AuthState = {
   userId: string | null;
@@ -25,6 +24,12 @@ type LanguageState = {
   hydrateLanguage: () => void;
 };
 
+type ModeState = {
+  listType: ListType | null;
+  setListType: (type: ListType | null) => void;
+  hydrateListType: () => void;
+};
+
 type PersonalizationState = {
   availableCategories: Category[];
   availableTemplates: Template[];
@@ -39,15 +44,15 @@ type PersonalizationState = {
 };
 
 type ListsState = {
-  lists: ListType[];
+  lists: ListDoc[];
   currentListId: string | null;
-  currentList: ListType | null;
+  currentList: ListDoc | null;
   listDefaultColor: string;
   viewingHistory: boolean;
   listsLoading: boolean;
-  setLists: (lists: ListType[]) => void;
+  setLists: (lists: ListDoc[]) => void;
   setCurrentListId: (id: string | null) => void;
-  setCurrentList: (list: ListType | null) => void;
+  setCurrentList: (list: ListDoc | null) => void;
   setListDefaultColor: (color: string) => void;
   setViewingHistory: (v: boolean) => void;
   setListsLoading: (v: boolean) => void;
@@ -60,7 +65,7 @@ type TodosState = {
   setTodosLoading: (v: boolean) => void;
 };
 
-type AppStore = AuthState & LanguageState & PersonalizationState & ListsState & TodosState;
+type AppStore = AuthState & LanguageState & ModeState & PersonalizationState & ListsState & TodosState;
 
 export const useAppStore = create<AppStore>((set, get) => ({
   // Auth initial
@@ -72,6 +77,32 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // Language initial
   language: 'ru',
+
+  // List mode (shopping/expenses/todo)
+  listType: null,
+  setListType: (type) => {
+    set({ listType: type });
+    if (typeof window !== 'undefined') {
+      try {
+        if (type) {
+          localStorage.setItem('listType', type);
+        } else {
+          localStorage.removeItem('listType');
+        }
+      } catch {}
+    }
+  },
+  hydrateListType: () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem('listType');
+      if (stored === 'shopping' || stored === 'expenses' || stored === 'todo') {
+        set({ listType: stored });
+      }
+    } catch {
+      // noop
+    }
+  },
 
   // Auth actions
   login: async (username, password) => {
@@ -130,9 +161,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   logout: () => {
-    set({ userId: null, username: null, avatar: null, error: null });
+    set({ userId: null, username: null, avatar: null, error: null, listType: null });
     if (typeof window !== 'undefined') {
       try { localStorage.removeItem('auth'); } catch {}
+      try { localStorage.removeItem('listType'); } catch {}
     }
   },
 
@@ -194,17 +226,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setPersonalDialogOpen: (open: boolean) => set({ personalDialogOpen: open }),
   
   // Lists state
-  lists: [] as ListType[],
+  lists: [] as ListDoc[],
   currentListId: null as string | null,
-  currentList: null as ListType | null,
+  currentList: null as ListDoc | null,
   listDefaultColor: '#ffffff',
   viewingHistory: false,
   listsLoading: false,
 
   // Lists setters
-  setLists: (lists: ListType[]) => set({ lists }),
+  setLists: (lists: ListDoc[]) => set({ lists }),
   setCurrentListId: (id: string | null) => set({ currentListId: id }),
-  setCurrentList: (list: ListType | null) => set({ currentList: list }),
+  setCurrentList: (list: ListDoc | null) => set({ currentList: list }),
   setListDefaultColor: (color: string) => set({ listDefaultColor: color }),
   setViewingHistory: (v: boolean) => set({ viewingHistory: v }),
   setListsLoading: (v: boolean) => set({ listsLoading: v }),

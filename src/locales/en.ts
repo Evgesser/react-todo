@@ -31,10 +31,22 @@ export const en: TranslationKeys = {
   
   // Header
   header: {
-    title: 'Shopping List',
+    title: 'Lists',
     profile: 'Profile',
     logout: 'Logout',
     language: 'Language',
+    changeType: 'Change list type',
+  },
+
+  // List types / modes
+  listTypes: {
+    selectTitle: 'Choose your list type',
+    shopping: 'Shopping',
+    shoppingDesc: 'Track your shopping and groceries',
+    expenses: 'Expenses',
+    expensesDesc: 'Track spending and budget',
+    todo: 'To-do',
+    todoDesc: 'Tasks and to-dos',
   },
   
   // Lists
@@ -65,6 +77,9 @@ export const en: TranslationKeys = {
     editTask: 'Edit task',
     name: 'Name',
     namePlaceholder: 'What to buy?',
+    namePlaceholderShopping: 'What to buy?',
+    namePlaceholderExpenses: 'What did you spend on?',
+    namePlaceholderTodo: 'What needs to be done?',
     description: 'Description',
     descriptionPlaceholder: 'Additional information',
     quantity: 'Quantity',

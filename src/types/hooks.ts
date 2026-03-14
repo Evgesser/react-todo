@@ -1,5 +1,5 @@
 // Централизованные типы для хуков
-import type { List as ListType } from './list';
+import type { List as ListDoc, ListType } from './list';
 import type { Category } from '../constants';
 import type { TranslationKeys } from '../locales/ru';
 import type { Todo } from './todo';
@@ -128,6 +128,7 @@ export interface UseTodoFormReturn {
 
 export interface UseListsParams {
   userId: string | null;
+  listType?: ListType | null;
   onSnackbar: (message: string) => void;
   t?: TranslationKeys;
   formatMessage: (id: string, values?: any) => string;
@@ -135,22 +136,22 @@ export interface UseListsParams {
 
 export interface UseListsReturn {
   // State
-  lists: ListType[];
+  lists: ListDoc[];
   currentListId: string | null;
-  currentList: ListType | null;
+  currentList: ListDoc | null;
   listDefaultColor: string;
   viewingHistory: boolean;
   isLoading: boolean;
 
   // Setters
-  setLists: (lists: ListType[]) => void;
+  setLists: (lists: ListDoc[]) => void;
   setCurrentListId: (id: string | null) => void;
-  setCurrentList: (list: ListType | null) => void;
+  setCurrentList: (list: ListDoc | null) => void;
   setListDefaultColor: (color: string) => void;
   setViewingHistory: (viewing: boolean) => void;
 
   // Methods
-  loadLists: () => Promise<ListType[] | null>;
+  loadLists: () => Promise<ListDoc[] | null>;
   selectList: (id: string) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   updateListColor: (id: string, color: string) => Promise<void>;

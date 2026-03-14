@@ -53,10 +53,19 @@ export default function TodoForm({
   formOpen,
   setFormOpen,
   dialogMode = false,
+  listType = null,
 }: TodoFormProps) {
   // local state needed by the form (icon picker + quantity dialog)
   // language context no longer required for parsing
   const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+  const namePlaceholder =
+    listType === 'expenses'
+      ? t.todos.namePlaceholderExpenses
+      : listType === 'todo'
+      ? t.todos.namePlaceholderTodo
+      : t.todos.namePlaceholderShopping || t.todos.namePlaceholder;
+
   // convert spoken number words to digits for common languages (ru/en)
   const convertNumberWordsToDigits = (input: string, langCode?: string) => {
     if (!input) return input;
@@ -625,7 +634,7 @@ export default function TodoForm({
               <TextField
                 {...params}
                 label={t.todos.name}
-                placeholder={t.todos.namePlaceholder}
+                placeholder={namePlaceholder}
                 fullWidth
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {

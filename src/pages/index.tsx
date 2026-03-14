@@ -32,6 +32,7 @@ import { useInitialLists } from '../hooks/useInitialLists';
 
 import TodoForm from '../components/TodoForm';
 import AppSnackbar from '../components/AppSnackbar';
+import ListTypeSelector from '../components/ListTypeSelector';
 
 // UI components
 import Header from '../components/layout/Header';
@@ -56,12 +57,15 @@ export default function Home() {
 
   // Authentication: select only userId to avoid wide re-renders
   const userId = useAppStore((s) => s.userId);
+  const listType = useAppStore((s) => s.listType);
+  const setListType = useAppStore((s) => s.setListType);
 
   // List management hook
   const _formatMessage = (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) =>
     formatMessage(id, values);
   const listActions = useLists({
     userId,
+    listType,
     onSnackbar: (msg) => {
       setSnackbarMsg(msg);
       setSnackbarOpen(true);
@@ -149,6 +153,7 @@ export default function Home() {
   // load lists when userId changes
   useInitialLists(
     userId,
+    listType,
     listActions,
     todoActions,
     setFormOpen,
@@ -170,6 +175,8 @@ export default function Home() {
     listActions.listDefaultColor ||
     '#ffffff';
   const { effectiveHeaderTextColor } = useHeaderColors(headerColor, menuAnchor);
+
+  const headerTitle = listType ? _formatMessage(`listTypes.${listType}`) : t.header.title;
 
   // keep ref in sync so scroll handler can read latest value without needing it as a dependency
   // hook will handle auto‑collapse on scroll/keyboard; increase threshold so collapse happens later
@@ -204,10 +211,21 @@ export default function Home() {
         <title>{t.header.title}</title>
       </Head>
       <div ref={headerRef}>
-        <Header headerColor={headerColor} effectiveHeaderTextColor={effectiveHeaderTextColor} t={t} />
+        <Header headerColor={headerColor} effectiveHeaderTextColor={effectiveHeaderTextColor} t={t} title={headerTitle} />
       </div>
       {!userId ? (
         <AuthPanel t={t} formatMessage={_formatMessage} onSnackbar={(msg) => { setSnackbarMsg(msg); setSnackbarOpen(true); }} />
+      ) : !listType ? (
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <ListTypeSelector
+            t={t}
+            onSelect={(type) => {
+              setListType(type);
+              setSnackbarMsg('');
+              setSnackbarOpen(false);
+            }}
+          />
+        </Box>
       ) : (
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {listActions.isLoading && <LinearProgress />}
@@ -333,6 +351,7 @@ export default function Home() {
               formOpen={formOpen}
               setFormOpen={setFormOpen}
               dialogMode // render inside dialog
+              listType={listType}
             />
           )}
 
@@ -394,7 +413,7 @@ export default function Home() {
             t={t}
             onCreate={async (name, templateName) => {
               if (!userId) return false;
-              const created = await apiCreateList(userId, name, '#ffffff');
+              const created = await apiCreateList(userId, name, '#ffffff', listType || undefined);
               if (created) {
                 if (templateName) {
                   const tmpl = availableTemplates.find((t) => t.name === templateName);

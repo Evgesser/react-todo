@@ -1,4 +1,4 @@
-import { Todo, List, TemplateItem, Template } from '@/types';
+import { Todo, List, TemplateItem, Template, ListType } from '@/types';
 
 const BASE = '/api';
 
@@ -62,9 +62,12 @@ export async function deleteTodo(id: string, listId: string) {
 // --- lists ---------------------------------------------------------------
 export async function fetchLists(
   userId: string,
+  type?: ListType,
   options?: { signal?: AbortSignal }
 ): Promise<List[]> {
-  const res = await fetch(`${BASE}/lists?userId=${encodeURIComponent(userId)}`, {
+  const params = new URLSearchParams({ userId });
+  if (type) params.set('type', type);
+  const res = await fetch(`${BASE}/lists?${params.toString()}`, {
     signal: options?.signal,
   });
   if (!res.ok) throw new Error('Failed to load lists');
@@ -118,11 +121,13 @@ export async function updateList(id: string, data: Partial<List>) {
   return res.ok;
 }
 
-export async function createList(userId: string, name: string, defaultColor: string) {
+export async function createList(userId: string, name: string, defaultColor: string, type?: ListType) {
+  const body: Record<string, unknown> = { userId, name, defaultColor };
+  if (type) body.type = type;
   const res = await fetch(`${BASE}/lists`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, name, defaultColor }),
+    body: JSON.stringify(body),
   });
   return res.json();
 }

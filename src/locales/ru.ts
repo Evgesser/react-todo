@@ -29,9 +29,23 @@ export const ru = {
   
   // Header
   header: {
-    title: 'Список покупок',
+    title: 'Списки',
     profile: 'Профиль',
-    logout: 'Выход',    language: 'Язык',  },
+    logout: 'Выход',
+    language: 'Язык',
+    changeType: 'Сменить тип списка',
+  },
+
+  // List types / modes
+  listTypes: {
+    selectTitle: 'Выберите тип списка',
+    shopping: 'Покупки',
+    shoppingDesc: 'Список покупок и продуктов',
+    expenses: 'Траты',
+    expensesDesc: 'Отслеживайте расходы и бюджет',
+    todo: 'Задачи',
+    todoDesc: 'Список дел и задач',
+  },
   
   // Lists
   lists: {
@@ -59,6 +73,9 @@ export const ru = {
     addEdit: 'Добавить / редактировать',    addTask: 'Создать задачу',
     editTask: 'Редактировать задачу',    name: 'Название',
     namePlaceholder: 'Что купить?',
+    namePlaceholderShopping: 'Что купить?',
+    namePlaceholderExpenses: 'На что потратить?',
+    namePlaceholderTodo: 'Что сделать?',
     description: 'Описание',
     descriptionPlaceholder: 'Дополнительная информация',
     quantity: 'Количество',

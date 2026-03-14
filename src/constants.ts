@@ -30,7 +30,7 @@ import CookieIcon from '@mui/icons-material/Cookie';
 import PhishingIcon from '@mui/icons-material/Phishing';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import { Template } from './types';
+import { Template, ListType } from './types';
 import { OverridableComponent } from '@mui/material/OverridableComponent';
 import { SvgIconTypeMap } from '@mui/material/SvgIcon';
 
@@ -51,6 +51,12 @@ export const categories: Category[] = [
   { value: 'vegetables', label: 'Овощи', icon: AgricultureIcon },
   { value: 'electronics', label: 'Электроника', icon: DevicesIcon },
   { value: 'clothing', label: 'Одежда', icon: CheckroomIcon },
+];
+
+export const listTypes: { value: ListType; key: string; icon: SvgIconComponent }[] = [
+  { value: 'shopping', key: 'shopping', icon: ShoppingCartIcon },
+  { value: 'expenses', key: 'expenses', icon: LocalOfferIcon },
+  { value: 'todo', key: 'todo', icon: CheckroomIcon },
 ];
 
 // list of icons a user can choose when defining a category

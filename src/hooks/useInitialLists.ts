@@ -7,13 +7,14 @@ import type { UseListsReturn, UseTodosReturn } from '@/types/hooks';
  */
 export function useInitialLists(
   userId: string | null,
+  listType: string | null,
   listActions: UseListsReturn,
   todoActions: UseTodosReturn,
   setFormOpen: React.Dispatch<React.SetStateAction<boolean>>,
   setNewListDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
 ) {
   React.useEffect(() => {
-    if (!userId) return;
+    if (!userId || !listType) return;
 
     (async () => {
       const data = await listActions.loadLists();
@@ -35,5 +36,5 @@ export function useInitialLists(
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, listType]);
 }

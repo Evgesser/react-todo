@@ -53,10 +53,12 @@ export interface HeaderProps {
   headerColor: string;
   effectiveHeaderTextColor: string;
   t: TranslationKeys;
+  title?: string;
 }
 // Централизованные типы Props для компонентов
 import type { Category } from '../constants';
 import type { UseTodosReturn, UseListsReturn } from './hooks';
+import type { ListType } from './list';
 import type { StoredProduct } from './index';
 import type { TranslationKeys } from '../locales/ru';
 
@@ -79,6 +81,7 @@ export interface TodoFormProps {
   formOpen: boolean;
   setFormOpen: React.Dispatch<React.SetStateAction<boolean>>;
   dialogMode?: boolean;
+  listType?: ListType | null;
 }
 
 export interface TodoListProps {

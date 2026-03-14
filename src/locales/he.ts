@@ -31,10 +31,22 @@ export const he: TranslationKeys = {
   
   // Header
   header: {
-    title: 'רשימת קניות',
+    title: 'רשימות',
     profile: 'פרופיל',
     logout: 'התנתק',
     language: 'שפה',
+    changeType: 'שנה סוג רשימה',
+  },
+
+  // List types / modes
+  listTypes: {
+    selectTitle: 'בחר סוג רשימה',
+    shopping: 'קניות',
+    shoppingDesc: 'עקוב אחר קניות ומצרכים',
+    expenses: 'הוצאות',
+    expensesDesc: 'עקוב אחר הוצאות ובתקציב',
+    todo: 'משימות',
+    todoDesc: 'משימות ולט-do',
   },
   
   // Lists
@@ -65,6 +77,9 @@ export const he: TranslationKeys = {
     editTask: 'ערוך משימה',
     name: 'שם',
     namePlaceholder: 'מה לקנות?',
+    namePlaceholderShopping: 'מה לקנות?',
+    namePlaceholderExpenses: 'על מה הוצאתם?',
+    namePlaceholderTodo: 'מה צריך לעשות?',
     description: 'תיאור',
     descriptionPlaceholder: 'מידע נוסף',
     quantity: 'כמות',

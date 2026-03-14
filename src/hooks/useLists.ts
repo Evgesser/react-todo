@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { List as ListType } from '@/types';
+import type { List as ListDoc, ListType } from '@/types';
 import {
   fetchLists as apiFetchLists,
   deleteList as apiDeleteList,
@@ -8,7 +8,7 @@ import {
 import useAppStore from '@/stores/useAppStore';
 import type { UseListsParams, UseListsReturn } from '@/types/hooks';
 
-export function useLists({ userId, onSnackbar, formatMessage }: UseListsParams): UseListsReturn {
+export function useLists({ userId, listType, onSnackbar, formatMessage }: UseListsParams): UseListsReturn {
   const abortRef = React.useRef<AbortController | null>(null);
 
   const lists = useAppStore((s) => s.lists);
@@ -24,7 +24,7 @@ export function useLists({ userId, onSnackbar, formatMessage }: UseListsParams):
   const viewingHistory = useAppStore((s) => s.viewingHistory);
   const setViewingHistory = useAppStore((s) => s.setViewingHistory);
 
-  const loadLists = React.useCallback(async (): Promise<ListType[] | null> => {
+  const loadLists = React.useCallback(async (): Promise<ListDoc[] | null> => {
     if (!userId) return null;
     // cancel any previous pending call
     if (abortRef.current) {
@@ -35,7 +35,7 @@ export function useLists({ userId, onSnackbar, formatMessage }: UseListsParams):
     setIsLoading(true);
 
     try {
-      let data = await apiFetchLists(userId, { signal: controller.signal });
+      let data = await apiFetchLists(userId, listType ?? undefined, { signal: controller.signal });
 
       // purge any lingering placeholder lists named "Список 1" (default from earlier)
       const defaultPattern = /^\s*Список\s*1\s*$/i;
@@ -46,7 +46,7 @@ export function useLists({ userId, onSnackbar, formatMessage }: UseListsParams):
             await apiDeleteList(l._id);
           }
         }
-        data = await apiFetchLists(userId, { signal: controller.signal });
+        data = await apiFetchLists(userId, listType ?? undefined, { signal: controller.signal });
       }
       // also filter them out of local data just in case
       data = data.filter((l) => !defaultPattern.test(l.name));
@@ -75,7 +75,7 @@ export function useLists({ userId, onSnackbar, formatMessage }: UseListsParams):
       setIsLoading(false);
       abortRef.current = null;
     }
-  }, [userId, currentListId, onSnackbar, formatMessage, setIsLoading, setLists, setCurrentListId, setCurrentList, setListDefaultColor, setViewingHistory]);
+  }, [userId, listType, currentListId, onSnackbar, formatMessage, setIsLoading, setLists, setCurrentListId, setCurrentList, setListDefaultColor, setViewingHistory]);
 
   const selectList = React.useCallback(
     async (id: string) => {

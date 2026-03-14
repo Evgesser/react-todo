@@ -36,6 +36,12 @@ export default function MyApp(props: MyAppProps) {
     } catch {
       // noop
     }
+    // hydrate list type/mode from localStorage into Zustand store
+    try {
+      useAppStore.getState().hydrateListType();
+    } catch {
+      // noop
+    }
     // hydrate language into Zustand store
     try {
       useAppStore.getState().hydrateLanguage();
