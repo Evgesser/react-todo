@@ -172,7 +172,7 @@ export const en: TranslationKeys = {
     },
     deleteCategory: {
       title: 'Delete Category',
-      confirm: 'Are you sure? The category will be removed, but items will stay.',
+      confirm: 'Are you sure? This will delete the category and {count} items.',
       deleteTodosLabel: 'Also delete all expenses in this category',
     },
     quantity: {
@@ -239,6 +239,7 @@ export const en: TranslationKeys = {
     invalidLink: 'Invalid link',
     loading: 'Loading...',
     saveError: 'Save failed',
+    deleteWarning: 'This action cannot be undone. All linked items will be permanently deleted.',
     budgetExceeded: 'Budget exceeded',
     invalidExchangeRate: 'Enter a valid exchange rate (greater than 0)',
     fetchExchangeRateError: 'Failed to fetch exchange rate',

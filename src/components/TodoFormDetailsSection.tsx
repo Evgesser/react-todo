@@ -10,7 +10,10 @@ import {
   MenuItem,
   TextField,
 } from '@mui/material';
+import { DatePicker, DateTimePicker } from '@mui/x-date-pickers';
+import { parseISO, format, isValid } from 'date-fns';
 import ClearIcon from '@mui/icons-material/Clear';
+import { formatDateDDMMYYYY, parseDateDDMMYYYY } from '@/utils/formatDate';
 import type { TranslationKeys } from '@/locales/ru';
 import { getUnitOptions } from '@/utils/parseSmartInput';
 import QuantityDialog from './dialogs/QuantityDialog';
@@ -173,26 +176,44 @@ export default function TodoFormDetailsSection({
             fullWidth
             InputProps={{ inputProps: { min: 0, step: 0.01 } }}
           />
-          <TextField
+          <DatePicker
             label={t.todos.spentAt}
-            type="date"
-            value={spentAt}
-            onChange={(e) => setSpentAt(e.target.value)}
-            fullWidth
-            InputLabelProps={{ shrink: true }}
+            value={spentAt ? parseISO(spentAt) : null}
+            onChange={(newValue) => {
+              if (newValue && isValid(newValue)) {
+                setSpentAt(format(newValue, 'yyyy-MM-dd'));
+              } else {
+                setSpentAt('');
+              }
+            }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                InputLabelProps: { shrink: true }
+              }
+            }}
           />
         </Box>
       )}
 
       {listType === 'todo' && (
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-          <TextField
+          <DatePicker
             label={t.todos.dueDate}
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            fullWidth
-            InputLabelProps={{ shrink: true }}
+            value={dueDate ? parseISO(dueDate) : null}
+            onChange={(newValue) => {
+              if (newValue && isValid(newValue)) {
+                setDueDate(format(newValue, 'yyyy-MM-dd'));
+              } else {
+                setDueDate('');
+              }
+            }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                InputLabelProps: { shrink: true }
+              }
+            }}
           />
           <TextField
             select
@@ -207,13 +228,24 @@ export default function TodoFormDetailsSection({
             <MenuItem value="medium">{t.todos.priorityMedium}</MenuItem>
             <MenuItem value="high">{t.todos.priorityHigh}</MenuItem>
           </TextField>
-          <TextField
+          <DateTimePicker
             label={t.todos.reminder}
-            type="datetime-local"
-            value={reminderAt}
-            onChange={(e) => setReminderAt(e.target.value)}
-            fullWidth
-            InputLabelProps={{ shrink: true }}
+            value={reminderAt ? parseISO(reminderAt) : null}
+            onChange={(newValue) => {
+              if (newValue && isValid(newValue)) {
+                // native format used in your app for datetime-local is yyyy-MM-ddThh:mm
+                setReminderAt(format(newValue, "yyyy-MM-dd'T'HH:mm"));
+              } else {
+                setReminderAt('');
+              }
+            }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                InputLabelProps: { shrink: true }
+              }
+            }}
+            ampm={false}
           />
         </Box>
       )}

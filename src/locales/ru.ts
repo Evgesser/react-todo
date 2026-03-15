@@ -168,7 +168,7 @@ export const ru = {
     },
     deleteCategory: {
       title: 'Удалить категорию',
-      confirm: 'Вы уверены? Категория будет удалена, но расходы останутся.',
+      confirm: 'Вы уверены? Категория и {count} элементов будут удалены.',
       deleteTodosLabel: 'Удалить все траты этой категории',
     },
     
@@ -238,6 +238,7 @@ export const ru = {
     invalidLink: 'Неверная ссылка',
     loading: 'Загрузка...',
     saveError: 'Ошибка при сохранении',
+    deleteWarning: 'Это действие необратимо. Все связанные элементы будут удалены.',
     budgetExceeded: 'Бюджет превышен',
     invalidExchangeRate: 'Введите корректный курс (больше 0)',
     fetchExchangeRateError: 'Не удалось получить курс',

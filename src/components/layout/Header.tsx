@@ -12,6 +12,7 @@ import type { HeaderProps } from '@/types/componentProps';
 import useAppStore from '@/stores/useAppStore';
 import LanguageSwitcher from '../LanguageSwitcher';
 import Link from 'next/link';
+import { formatDateDDMMYYYY } from '@/utils/formatDate';
 
 const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, t, title }) => {
   const theme = useTheme();
@@ -203,7 +204,7 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
                             {r.name}
                           </Typography>
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {r.listName} • {new Date(r.reminderAt).toLocaleString()}
+                            {r.listName} • {formatDateDDMMYYYY(r.reminderAt)}
                           </Typography>
                         </Box>
                       </MenuItem>

@@ -10,6 +10,9 @@ import { IntlProvider } from 'react-intl';
 import { translations } from '@/locales';
 import { flattenMessages } from '@/contexts/LanguageContext';
 import useAppStore from '@/stores/useAppStore';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { ru, he, enUS } from 'date-fns/locale';
 
 // context to toggle color mode
 export const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
@@ -67,6 +70,8 @@ export default function MyApp(props: MyAppProps) {
   const isRTL = currentLanguage === 'he';
   const theme = React.useMemo(() => getTheme(mode, isRTL ? 'rtl' : 'ltr'), [mode, isRTL]);
 
+  const dateLocale = currentLanguage === 'ru' ? ru : currentLanguage === 'he' ? he : enUS;
+
   React.useEffect(() => {
     try {
       document.documentElement.setAttribute('data-theme', mode);
@@ -89,12 +94,14 @@ export default function MyApp(props: MyAppProps) {
         messages={flattenMessages(translations[currentLanguage])}
         defaultLocale="en"
       >
-        <ColorModeContext.Provider value={colorMode}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <Component {...pageProps} />
-          </ThemeProvider>
-        </ColorModeContext.Provider>
+        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={dateLocale}>
+          <ColorModeContext.Provider value={colorMode}>
+            <ThemeProvider theme={theme}>
+              <CssBaseline />
+              <Component {...pageProps} />
+            </ThemeProvider>
+          </ColorModeContext.Provider>
+        </LocalizationProvider>
       </IntlProvider>
     </CacheProvider>
   );

@@ -21,6 +21,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import useAppStore from '@/stores/useAppStore';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDateDDMMYYYY } from '@/utils/formatDate';
 import {
   fetchUserProfile,
   updateUserProfile,
@@ -221,7 +222,7 @@ export default function ProfilePage() {
                 {profile.username}
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                {t.profile.memberSince} {new Date(profile.createdAt).toLocaleDateString()}
+                {t.profile.memberSince} {formatDateDDMMYYYY(profile.createdAt)}
               </Typography>
             </Box>
           </Box>

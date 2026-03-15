@@ -172,7 +172,7 @@ export const he: TranslationKeys = {
     },
     deleteCategory: {
       title: 'מחק קטגוריה',
-      confirm: 'אתה בטוח? הקטגוריה תוסר אך הפריטים יישארו.',
+      confirm: 'אתה בטוח? קטגוריה ו- {count} פריטים יימחקו.',
       deleteTodosLabel: 'מחק גם את כל ההוצאות בקטגוריה זו',
     },
     
@@ -242,6 +242,7 @@ export const he: TranslationKeys = {
     invalidLink: 'קישור לא חוקי',
     loading: 'טוען...',
     saveError: 'שגיאה בשמירה',
+    deleteWarning: 'פעולה זו אינה ניתנת לביטול. כל הפריטים הקשורים יימחקו לצמיתות.',
     budgetExceeded: 'תקציב הופר',
     invalidExchangeRate: 'הזן שער המרה תקין (גדול מ-0)',
     fetchExchangeRateError: 'לא ניתן לקבל את שער ההמרה',

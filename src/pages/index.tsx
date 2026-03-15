@@ -98,6 +98,7 @@ export default function Home() {
   // Authentication: select only userId to avoid wide re-renders
   const userId = useAppStore((s) => s.userId);
   const listType = useAppStore((s) => s.listType);
+  const isExpenses = listType === 'expenses';
   const language = useAppStore((s) => s.language);
   const setListType = useAppStore((s) => s.setListType);
 
@@ -150,7 +151,6 @@ export default function Home() {
   const [editingCategoryValue, setEditingCategoryValue] = React.useState<string | null>(null);
   const [deleteCategoryDialogOpen, setDeleteCategoryDialogOpen] = React.useState(false);
   const [deletingCategoryValue, setDeletingCategoryValue] = React.useState<string | null>(null);
-  const [deleteCategoryTodos, setDeleteCategoryTodos] = React.useState(false);
 
   const [currencyRateDialogOpen, setCurrencyRateDialogOpen] = React.useState(false);
   const [currencyRateValues, setCurrencyRateValues] = React.useState<Record<string, number | undefined>>({});
@@ -387,9 +387,11 @@ export default function Home() {
   }, [newCategoryDialogOpen, newCategoryCurrency, listActions.currentList?.currency, getExchangeRate]);
 
   const openEditCategoryDialog = async (categoryValue: string) => {
-    const cat = availableCategories.find(
-      (c) => c.value === categoryValue && c.listId === listActions.currentListId
-    );
+    // Prefer list-scoped categories, but fall back to global ones when needed.
+    const cat =
+      availableCategories.find(
+        (c) => c.value === categoryValue && c.listId === listActions.currentListId
+      ) || availableCategories.find((c) => c.value === categoryValue);
     if (!cat) return;
 
     const listCurrency = listActions.currentList?.currency || 'RUB';
@@ -458,38 +460,17 @@ export default function Home() {
 
   const closeDeleteCategoryDialog = () => {
     setDeletingCategoryValue(null);
-    setDeleteCategoryTodos(false);
     setDeleteCategoryDialogOpen(false);
   };
 
   const confirmDeleteCategory = async () => {
     if (!deletingCategoryValue) return;
 
-    if (deleteCategoryTodos) {
-      // delete all todos in this category first
-      const idsToDelete = todoActions.todos
-        .filter((t) => t.category === deletingCategoryValue)
-        .map((t) => t._id);
-      await Promise.all(idsToDelete.map((id) => todoActions.deleteTodo(id)));
-    } else {
-      // reset category on todos, so they become 'no category'
-      const todosToUpdate = todoActions.todos.filter((t) => t.category === deletingCategoryValue);
-      await Promise.all(
-        todosToUpdate.map((todo) =>
-          apiUpdateTodo(todo._id, { listId: listActions.currentListId!, category: '' })
-        )
-      );
-      todoActions.setTodos((prev) =>
-        prev.map((t) =>
-          t.category === deletingCategoryValue
-            ? {
-                ...t,
-                category: '',
-              }
-            : t
-        )
-      );
-    }
+    // delete all todos in this category first
+    const idsToDelete = todoActions.todos
+      .filter((t) => t.category === deletingCategoryValue)
+      .map((t) => t._id);
+    await Promise.all(idsToDelete.map((id) => todoActions.deleteTodo(id)));
 
     await handleDeleteCategory(deletingCategoryValue);
     await todoActions.fetchTodos(listActions.currentListId || '');
@@ -595,7 +576,9 @@ export default function Home() {
     const categoryValue = editingCategoryValue
       ? editingCategoryValue
       : name.toLowerCase().replace(/\s+/g, '-');
-    const budgetValue = typeof newCategoryBudget === 'number' && Number.isFinite(newCategoryBudget) ? newCategoryBudget : undefined;
+    const budgetValue = isExpenses && typeof newCategoryBudget === 'number' && Number.isFinite(newCategoryBudget)
+      ? newCategoryBudget
+      : undefined;
     const currentListId = listActions.currentListId;
 
     // Expenses lists should treat categories as scoped to a list.
@@ -612,10 +595,13 @@ export default function Home() {
     const selectedIcon = newCategoryIconKey && iconMap[newCategoryIconKey] ? iconMap[newCategoryIconKey] : null;
 
     const listCurrency = listActions.currentList?.currency;
-    const exchangeRate =
-      listCurrency && newCategoryCurrency && newCategoryCurrency !== listCurrency
+    const exchangeRate = isExpenses
+      ? listCurrency && newCategoryCurrency && newCategoryCurrency !== listCurrency
         ? (typeof newCategoryExchangeRate === 'number' ? newCategoryExchangeRate : undefined)
-        : undefined;
+        : undefined
+      : undefined;
+    const currencyValue = isExpenses ? newCategoryCurrency : undefined;
+    const strictBudgetValue = isExpenses ? newCategoryStrictBudget : false;
 
     // Internally we store rate as: how many list currency units = 1 category currency unit.
     // This matches the UI prompt "1 <list currency> = ? <category currency>".
@@ -628,9 +614,9 @@ export default function Home() {
         label: name,
         icon: selectedIcon,
         budget: budgetValue,
-        currency: newCategoryCurrency,
+        currency: currencyValue,
         exchangeRateToListCurrency: exchangeRate,
-        strictBudget: newCategoryStrictBudget,
+        strictBudget: strictBudgetValue,
       };
     } else {
       nextCategories.push({
@@ -638,9 +624,9 @@ export default function Home() {
         label: name,
         icon: selectedIcon,
         budget: budgetValue,
-        currency: newCategoryCurrency,
+        currency: currencyValue,
         exchangeRateToListCurrency: exchangeRate,
-        strictBudget: newCategoryStrictBudget,
+        strictBudget: strictBudgetValue,
         listId: listActions.currentListId || undefined,
       });
     }
@@ -1414,82 +1400,86 @@ export default function Home() {
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 sx={{ mt: 1, mb: 2 }}
               />
-              <TextField
-                fullWidth
-                label={t.dialogs.newCategory.budget}
-                type="number"
-                value={newCategoryBudget}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setNewCategoryBudget(val === '' ? '' : parseFloat(val));
-                }}
-              />
-              <TextField
-                select
-                fullWidth
-                label={t.dialogs.newCategory.currency}
-                value={newCategoryCurrency}
-                onChange={(e) => {
-                  setNewCategoryCurrency(e.target.value);
-                  // reset exchange rate when changing currency
-                  setNewCategoryExchangeRate(1);
-                }}
-                sx={{ mt: 1 }}
-              >
-                {Object.keys(currencySymbols).map((code) => (
-                  <MenuItem key={code} value={code}>
-                    {code}
-                  </MenuItem>
-                ))}
-              </TextField>
-              {listActions.currentList?.currency && newCategoryCurrency && newCategoryCurrency !== listActions.currentList.currency ? (
+              {isExpenses ? (
                 <>
                   <TextField
                     fullWidth
-                    label={t.dialogs.newCategory.exchangeRate}
+                    label={t.dialogs.newCategory.budget}
                     type="number"
-                    value={newCategoryExchangeRate}
+                    value={newCategoryBudget}
                     onChange={(e) => {
-                      const v = e.target.value;
-                      const num = v === '' ? '' : parseFloat(v);
-                      setNewCategoryExchangeRate(Number.isNaN(num) ? '' : num);
-                      setExchangeRateError(null);
+                      const val = e.target.value;
+                      setNewCategoryBudget(val === '' ? '' : parseFloat(val));
                     }}
-                    helperText={`1 ${listActions.currentList.currency} = ? ${newCategoryCurrency}`}
-                    error={
-                      newCategoryExchangeRate === '' ||
-                      (typeof newCategoryExchangeRate === 'number' && newCategoryExchangeRate <= 0)
-                    }
-                    InputProps={{
-                      endAdornment: exchangeRateLoading ? (
-                        <CircularProgress size={18} />
-                      ) : undefined,
+                  />
+                  <TextField
+                    select
+                    fullWidth
+                    label={t.dialogs.newCategory.currency}
+                    value={newCategoryCurrency}
+                    onChange={(e) => {
+                      setNewCategoryCurrency(e.target.value);
+                      // reset exchange rate when changing currency
+                      setNewCategoryExchangeRate(1);
                     }}
                     sx={{ mt: 1 }}
-                  />
-                  {exchangeRateError ? (
-                    <Typography variant="caption" color="error.main">
-                      {exchangeRateError}
-                    </Typography>
+                  >
+                    {Object.keys(currencySymbols).map((code) => (
+                      <MenuItem key={code} value={code}>
+                        {code}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  {listActions.currentList?.currency && newCategoryCurrency && newCategoryCurrency !== listActions.currentList.currency ? (
+                    <>
+                      <TextField
+                        fullWidth
+                        label={t.dialogs.newCategory.exchangeRate}
+                        type="number"
+                        value={newCategoryExchangeRate}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          const num = v === '' ? '' : parseFloat(v);
+                          setNewCategoryExchangeRate(Number.isNaN(num) ? '' : num);
+                          setExchangeRateError(null);
+                        }}
+                        helperText={`1 ${listActions.currentList.currency} = ? ${newCategoryCurrency}`}
+                        error={
+                          newCategoryExchangeRate === '' ||
+                          (typeof newCategoryExchangeRate === 'number' && newCategoryExchangeRate <= 0)
+                        }
+                        InputProps={{
+                          endAdornment: exchangeRateLoading ? (
+                            <CircularProgress size={18} />
+                          ) : undefined,
+                        }}
+                        sx={{ mt: 1 }}
+                      />
+                      {exchangeRateError ? (
+                        <Typography variant="caption" color="error.main">
+                          {exchangeRateError}
+                        </Typography>
+                      ) : null}
+                      {(newCategoryExchangeRate === '' ||
+                        (typeof newCategoryExchangeRate === 'number' && newCategoryExchangeRate <= 0)) && (
+                        <Typography variant="caption" color="warning.main">
+                          {t.messages.invalidExchangeRate}
+                        </Typography>
+                      )}
+                    </>
                   ) : null}
-                  {(newCategoryExchangeRate === '' ||
-                    (typeof newCategoryExchangeRate === 'number' && newCategoryExchangeRate <= 0)) && (
-                    <Typography variant="caption" color="warning.main">
-                      {t.messages.invalidExchangeRate}
-                    </Typography>
-                  )}
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={newCategoryStrictBudget}
+                        onChange={(e) => setNewCategoryStrictBudget(e.target.checked)}
+                      />
+                    }
+                    label={t.lists.strictBudget}
+                    sx={{ mt: 1 }}
+                  />
                 </>
               ) : null}
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={newCategoryStrictBudget}
-                    onChange={(e) => setNewCategoryStrictBudget(e.target.checked)}
-                  />
-                }
-                label={t.lists.strictBudget}
-                sx={{ mt: 1 }}
-              />
               <Box sx={{ mt: 1 }}>
                 <CategoryIconPicker
                   selected={newCategoryIconKey}
@@ -1527,14 +1517,40 @@ export default function Home() {
             </DialogActions>
           </Dialog>
 
-              <Dialog
-                open={currencyRateDialogOpen}
-                onClose={() => setCurrencyRateDialogOpen(false)}
-                fullWidth
-                maxWidth="sm"
-                PaperProps={{ className: 'glass' }}
-              >
-                <DialogTitle>{t.dialogs.currencyRate.title}</DialogTitle>
+          <Dialog
+            open={deleteCategoryDialogOpen}
+            onClose={closeDeleteCategoryDialog}
+            fullWidth
+            maxWidth="xs"
+            PaperProps={{ className: 'glass' }}
+          >
+            <DialogTitle>{t.dialogs.deleteCategory.title}</DialogTitle>
+            <DialogContent>
+              <Typography sx={{ mb: 1 }}>
+                {formatMessage('dialogs.deleteCategory.confirm', {
+                  count: todoActions.todos.filter((t) => t.category === deletingCategoryValue).length,
+                })}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {t.messages.deleteWarning}
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: 'flex-end' }}>
+              <Button onClick={closeDeleteCategoryDialog}>{t.buttons.cancel}</Button>
+              <Button color="error" variant="contained" onClick={confirmDeleteCategory}>
+                {t.buttons.delete}
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog
+            open={currencyRateDialogOpen}
+            onClose={() => setCurrencyRateDialogOpen(false)}
+            fullWidth
+            maxWidth="sm"
+            PaperProps={{ className: 'glass' }}
+          >
+            <DialogTitle>{t.dialogs.currencyRate.title}</DialogTitle>
                 <DialogContent>
                   <Typography sx={{ mb: 1 }}>
                     {t.dialogs.currencyRate.description}

@@ -44,6 +44,7 @@ import {
 } from '@mui/icons-material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { formatCurrency } from '@/constants';
+import { formatDateDDMMYYYY } from '@/utils/formatDate';
 import type { Category } from '@/constants';
 import type { TodoListItemProps } from '@/types/componentProps';
 import type { UseListsReturn } from '@/types/hooks';
@@ -366,7 +367,7 @@ export default function TodoListItem({
                       <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mt: 0.5 }}>
                         {todo.amount != null ? formatCurrency(todo.amount, currency) : ''}
                         {todo.amount != null && todo.spentAt ? ' · ' : ''}
-                        {todo.spentAt ? new Date(todo.spentAt).toLocaleDateString() : ''}
+                        {todo.spentAt ? formatDateDDMMYYYY(todo.spentAt) : ''}
                       </Typography>
                     )}
                     {todo.priority && (

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemButton, ListItemText, Grow, useTheme, useMediaQuery } from '@mui/material';
 import { List as ListType } from '@/types';
 import useAppStore from '@/stores/useAppStore';
+import { formatDateDDMMYYYY } from '@/utils/formatDate';
 import type { TranslationKeys } from '@/locales/ru';
 
 interface HistoryDialogProps {
@@ -36,15 +37,7 @@ export default function HistoryDialog({ open, lists, onSelect, onClose, t }: His
                     <ListItemText
                       primary={l.name}
                       secondary={
-                        l.finishedAt
-                          ? new Date(l.finishedAt).toLocaleString(language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'ru-RU', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
-                          : ''
+                        l.finishedAt ? formatDateDDMMYYYY(l.finishedAt) : ''
                       }
                     />
                   </ListItemButton>

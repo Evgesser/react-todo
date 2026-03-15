@@ -55,7 +55,6 @@ export interface Category {
 }
 
 export const categories: Category[] = [
-  { value: '', label: 'Нет', icon: null },
   { value: 'groceries', label: 'Продукты', icon: ShoppingCartIcon },
   { value: 'fruits', label: 'Фрукты', icon: LocalGroceryStoreIcon },
   { value: 'vegetables', label: 'Овощи', icon: AgricultureIcon },
