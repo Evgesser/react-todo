@@ -5,6 +5,7 @@ import {
   createTodo as apiCreateTodo,
   updateTodo as apiUpdateTodo,
   deleteTodo as apiDeleteTodo,
+  moveTodosCategory as apiMoveTodosCategory,
 } from '@/lib/api';
 import useAppStore from '@/stores/useAppStore';
 import type { UseTodosParams, UseTodosReturn, AddOverride } from '@/types/hooks';
@@ -490,6 +491,12 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     await fetchTodos(currentListId);
   };
 
+  const moveTodosCategory = async (fromCategory: string, toCategory: string) => {
+    if (!currentListId) return;
+    await apiMoveTodosCategory(currentListId, fromCategory, toCategory);
+    await fetchTodos(currentListId);
+  };
+
   // Toggle selection for bulk operations
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -880,6 +887,7 @@ export function useTodos(params: UseTodosParams): UseTodosReturn {
     toggleComplete,
     toggleMissing,
     deleteTodo,
+    moveTodosCategory,
     toggleSelect,
     clearSelection,
     bulkComplete,

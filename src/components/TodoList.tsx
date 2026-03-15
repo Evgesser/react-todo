@@ -206,10 +206,13 @@ function TodoList({
 
       // Prefer category definitions that are scoped to the current list (listId),
       // otherwise fall back to global categories.
+      // If we still don't find it by value, try finding it by label (for newly added ones from freeSolo).
       const catObj =
         availableCategories.find(
           (c) => c.value === realCat && c.listId === currentListId
-        ) || availableCategories.find((c) => c.value === realCat);
+        ) || 
+        availableCategories.find((c) => c.value === realCat) ||
+        availableCategories.find((c) => c.label.toLowerCase() === realCat.toLowerCase());
 
       const IconComp =
         catObj?.icon ||
@@ -226,7 +229,7 @@ function TodoList({
         catObj &&
         // Allow editing when category is scoped to this list, or when the category has no list scope
         // (e.g., saved without listId but still used for this list).
-        (catObj.listId === currentListId || !catObj.listId)
+        (catObj.listId === currentListId || !catObj.listId || catObj.label.toLowerCase() === realCat.toLowerCase())
       );
 
       const isStrictBudget = Boolean(catObj?.strictBudget);
@@ -267,7 +270,7 @@ function TodoList({
           {isEditable && onEditCategory ? (
             <IconButton
               size="small"
-              onClick={() => onEditCategory(realCat)}
+              onClick={() => onEditCategory(catObj?.value || realCat)}
               edge="start"
               aria-label={t.buttons.edit}
               title={t.buttons.edit}

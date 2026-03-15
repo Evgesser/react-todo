@@ -11,14 +11,14 @@ interface ListTypeSelectorProps {
 
 export default function ListTypeSelector({ t, onSelect }: ListTypeSelectorProps) {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%' }}>
-      <Typography variant="h5" align="center" sx={{ mb: 1 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, width: '100%' }}>
+      <Typography variant="h6" align="center" sx={{ mb: 0.5, fontWeight: 'bold' }}>
         {t.listTypes.selectTitle}
       </Typography>
       <Box
         sx={{
           display: 'grid',
-          gap: 2,
+          gap: 1.5,
           width: '100%',
           gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
         }}
@@ -26,20 +26,20 @@ export default function ListTypeSelector({ t, onSelect }: ListTypeSelectorProps)
         {listTypes.map((lt) => {
           const Icon = lt.icon;
           return (
-            <Card key={lt.value} variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                <Box sx={{ fontSize: 40, color: 'primary.main' }}>
+            <Card key={lt.value} variant="outlined" sx={{ height: 'auto', display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5, py: 1.5 }}>
+                <Box sx={{ fontSize: 32, color: 'primary.main' }}>
                   <Icon fontSize="inherit" />
                 </Box>
-                <Typography variant="h6" align="center">
+                <Typography variant="subtitle1" align="center" sx={{ fontWeight: 'bold', lineHeight: 1.2 }}>
                   {t.listTypes[lt.key as keyof typeof t.listTypes]}
                 </Typography>
-                <Typography variant="body2" align="center" color="text.secondary">
+                <Typography variant="caption" align="center" color="text.secondary" sx={{ px: 1 }}>
                   {t.listTypes[`${lt.key}Desc` as keyof typeof t.listTypes]}
                 </Typography>
               </CardContent>
-              <CardActions sx={{ justifyContent: 'center', p: 2 }}>
-                <Button fullWidth variant="contained" onClick={() => onSelect(lt.value)}>
+              <CardActions sx={{ justifyContent: 'center', p: 1, pt: 0 }}>
+                <Button fullWidth size="small" variant="contained" onClick={() => onSelect(lt.value)}>
                   {t.buttons.create}
                 </Button>
               </CardActions>

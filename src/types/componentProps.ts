@@ -92,6 +92,7 @@ export interface TodoFormProps {
   listType?: ListType | null;
   listId?: string | null;
   initialCategory?: string;
+  categoryLocked?: boolean;
 }
 
 export interface TodoListProps {

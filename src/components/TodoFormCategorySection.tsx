@@ -25,6 +25,7 @@ export interface TodoFormCategorySectionProps {
   tempIconKey: string;
   setTempIconKey: React.Dispatch<React.SetStateAction<string>>;
   categoryWarning: string;
+  categoryLocked?: boolean;
 }
 
 export default function TodoFormCategorySection({
@@ -38,11 +39,13 @@ export default function TodoFormCategorySection({
   tempIconKey,
   setTempIconKey,
   categoryWarning,
+  categoryLocked,
 }: TodoFormCategorySectionProps) {
   return (
     <>
       <Autocomplete
         freeSolo
+        disabled={!!categoryLocked}
         options={categoryOptions}
         getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.label || opt.value)}
         filterOptions={(opts, state) => {
@@ -95,11 +98,12 @@ export default function TodoFormCategorySection({
                 : '')
         }
         onInputChange={(_, v, reason) => {
-          if (reason === 'input') {
+          if (reason === 'input' && !categoryLocked) {
             setCategoryManual(v);
           }
         }}
         onChange={(_, v) => {
+          if (categoryLocked) return;
           let val = '';
           if (typeof v === 'string') {
             val = v;
@@ -137,7 +141,7 @@ export default function TodoFormCategorySection({
                   })
                 : undefined
             }
-            onDelete={() => setCategoryManual('')}
+            onDelete={categoryLocked ? undefined : () => setCategoryManual('')}
             color="primary"
             variant="outlined"
           />

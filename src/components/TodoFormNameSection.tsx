@@ -41,6 +41,8 @@ export interface TodoFormNameSectionProps {
     comment: string;
   } | null>>;
   setConfirmCategoryOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  smartEnabled: boolean;
+  categoryLocked?: boolean;
 }
 
 export default function TodoFormNameSection({
@@ -69,6 +71,8 @@ export default function TodoFormNameSection({
   unit,
   setPendingParsed,
   setConfirmCategoryOpen,
+  smartEnabled,
+  categoryLocked = false,
 }: TodoFormNameSectionProps) {
   const theme = useTheme();
 
@@ -115,27 +119,37 @@ export default function TodoFormNameSection({
           inputValue={name || ''}
           onInputChange={(_, v) => {
             setName(capitalize(v));
-            const p = parseSmartInput(v, language);
-            setParsed(p);
-            setUnit(p?.unit || '');
-            handleInferCategory(v);
+            if (smartEnabled && !categoryLocked) {
+              const p = parseSmartInput(v, language);
+              setParsed(p);
+              setUnit(p?.unit || '');
+              handleInferCategory(v);
+            } else {
+              setParsed(null);
+            }
           }}
           onChange={(_, v) => {
             let newName = '';
             if (typeof v === 'string') {
               newName = capitalize(v);
               setName(newName);
-              inferCategorySmart(newName, language).then((cat) => {
-                if (cat) setCategory(cat);
-              });
+              if (smartEnabled && !categoryLocked) {
+                inferCategorySmart(newName, language).then((cat) => {
+                  if (cat) setCategory(cat);
+                });
+              }
             } else if (v && typeof v === 'object') {
               newName = capitalize(v.name);
               setName(newName);
-              if (v.category) setCategory(v.category);
+              if (v.category && !categoryLocked) setCategory(v.category);
             }
-            const p = parseSmartInput(newName, language);
-            setParsed(p);
-            setUnit(p?.unit || '');
+            if (smartEnabled && !categoryLocked) {
+              const p = parseSmartInput(newName, language);
+              setParsed(p);
+              setUnit(p?.unit || '');
+            } else {
+              setParsed(null);
+            }
           }}
           renderOption={(props, option) => {
             const data = typeof option === 'string' ? { name: option } : option;
@@ -263,17 +277,19 @@ export default function TodoFormNameSection({
                 <Box component="span">{previewCategory.label}</Box>
               </Typography>
             )}
-            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<AutoAwesomeIcon sx={{ ml: theme.direction === 'rtl' ? 1 : 0, mr: theme.direction === 'rtl' ? 0 : 1 }} />}
-                onClick={onSmartAddClick}
-                disabled={todosLoading}
-              >
-                {t.buttons?.smartAdd || 'Умная подстановка'}
-              </Button>
-            </Box>
+            {smartEnabled && !categoryLocked ? (
+              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<AutoAwesomeIcon sx={{ ml: theme.direction === 'rtl' ? 1 : 0, mr: theme.direction === 'rtl' ? 0 : 1 }} />}
+                  onClick={onSmartAddClick}
+                  disabled={todosLoading}
+                >
+                  {t.buttons?.smartAdd || 'Умная подстановка'}
+                </Button>
+              </Box>
+            ) : null}
           </Box>
         )}
       </Stack>

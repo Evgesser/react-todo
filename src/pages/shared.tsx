@@ -10,8 +10,10 @@ import {
   IconButton,
   Snackbar,
   LinearProgress,
+  Button,
 } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
+import HomeIcon from '@mui/icons-material/Home';
 
 import { getLuminance, getTextColor } from '@/utils/color';
 import Header from '@/components/layout/Header';
@@ -211,28 +213,36 @@ export default function SharedPage() {
 
       {/* simple search input */}
       <div ref={toolbarRef}>
-        <Box sx={{ mb: 2 }}>
-        <TextField
-          label={t.search.placeholder}
-          value={todoActions.filterText}
-          onChange={(e) => todoActions.setFilterText(e.target.value)}
-          fullWidth
-          InputProps={{
-            endAdornment: todoActions.filterText ? (
-              <InputAdornment position="end">
-                <IconButton
-                  size="small"
-                  onClick={() => todoActions.setFilterText('')}
-                  edge="end"
-                  aria-label={`Clear ${t.search.placeholder}`}
-                  title={`Clear ${t.search.placeholder}`}
-                >
-                  <ClearIcon />
-                </IconButton>
-              </InputAdornment>
-            ) : null,
-          }}
-        />
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            startIcon={<HomeIcon />}
+            onClick={() => router.push('/')}
+            size="small"
+            variant="outlined"
+          >
+            {t.buttons.home}
+          </Button>
+          <TextField
+            label={t.search.placeholder}
+            value={todoActions.filterText}
+            onChange={(e) => todoActions.setFilterText(e.target.value)}
+            fullWidth
+            InputProps={{
+              endAdornment: todoActions.filterText ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => todoActions.setFilterText('')}
+                    edge="end"
+                    aria-label={`Clear ${t.search.placeholder}`}
+                    title={`Clear ${t.search.placeholder}`}
+                  >
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            }}
+          />
         </Box>
       </div>
 

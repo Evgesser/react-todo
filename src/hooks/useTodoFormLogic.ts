@@ -4,6 +4,7 @@ import { useSpeechRecognition } from './useSpeechRecognition';
 import { compressImage } from '@/utils/compressImage';
 import { parseSmartInput, inferCategorySmart, ParsedInput } from '@/utils/parseSmartInput';
 import { convertNumberWordsToDigits } from '@/utils/convertNumberWords';
+import { v4 as uuidv4 } from 'uuid';
 import type { Category } from '@/constants';
 import { iconChoices, iconMap } from '@/constants';
 import type { TranslationKeys } from '@/locales/ru';
@@ -24,6 +25,8 @@ export interface UseTodoFormLogicParams {
   listType?: string | null;
   listId?: string | null;
   initialCategory?: string;
+  smartEnabled?: boolean;
+  categoryLocked?: boolean;
 }
 
 export function useTodoFormLogic({
@@ -41,8 +44,11 @@ export function useTodoFormLogic({
   listType: _listType = null,
   listId = null,
   initialCategory,
+  smartEnabled = true,
+  categoryLocked = false,
 }: UseTodoFormLogicParams) {
   const language = useAppStore((s) => s.language);
+  const isSmartEnabled = smartEnabled;
 
   // These are passed for future flexibility (e.g. smarter suggestions) and may be
   // used once the logic expands.
@@ -80,15 +86,17 @@ export function useTodoFormLogic({
       const converted = convertNumberWordsToDigits(transcript, language);
       const capitalized = capitalize(converted);
       setName(capitalized);
-      const p = parseSmartInput(converted, language);
-      setParsed(p);
-      try {
-        setUnit(p?.unit || '');
-      } catch {
-        // ignore
+      if (isSmartEnabled) {
+        const p = parseSmartInput(converted, language);
+        setParsed(p);
+        try {
+          setUnit(p?.unit || '');
+        } catch {
+          // ignore
+        }
       }
     },
-    [language, setName, setParsed, setUnit, capitalize]
+    [language, setName, setParsed, setUnit, capitalize, isSmartEnabled]
   );
 
   const { isListening, supported: speechSupported, start: startListening, stop: stopListening } =
@@ -97,36 +105,59 @@ export function useTodoFormLogic({
   const ensureCategoryExists = React.useCallback(
     async (val: string, iconKey?: string) => {
       const v = val.trim();
-      if (!v) return;
-      setAvailableCategories((prev) => {
-        if (prev.find((c) => c.value === v)) return prev;
-        let finalKey = iconKey;
-        if (!finalKey) {
-          finalKey = Object.keys(iconMap).find((k) => k.toLowerCase() === v.toLowerCase());
-        }
-        const newCat: Category = {
-          value: v,
-          label:
-            (t.categoryLabels as Record<string, string>)?.[v] ||
-            iconChoices.find((x) => x.key === v)?.label ||
-            v,
-          icon: finalKey ? iconMap[finalKey] : null,
-          listId: listId || undefined,
-        };
-        return [...prev, newCat];
-      });
+      if (!v) return null;
+
+      const existingByValue = _availableCategories.find((c) => c.value === v);
+      const existingByLabel = _availableCategories.find(
+        (c) => c.label.trim().toLowerCase() === v.toLowerCase()
+      );
+
+      if (existingByValue) return existingByValue.value;
+      if (existingByLabel) return existingByLabel.value;
+
+      let finalKey = iconKey;
+      if (!finalKey) {
+        finalKey = Object.keys(iconMap).find((k) => k.toLowerCase() === v.toLowerCase());
+      }
+
+      const label =
+        (t.categoryLabels as Record<string, string>)?.[v] ||
+        iconChoices.find((x) => x.key === v)?.label ||
+        v;
+
+      // Double check if the resolved label already exists to avoid duplicates after translation
+      const existingByResolvedLabel = _availableCategories.find(
+        (c) => c.label.trim().toLowerCase() === label.trim().toLowerCase()
+      );
+      if (existingByResolvedLabel) {
+        return existingByResolvedLabel.value;
+      }
+
+      const newValue = uuidv4();
+      const newCat: Category = {
+        value: newValue,
+        label,
+        icon: finalKey ? iconMap[finalKey] : null,
+        listId: listId || undefined,
+      };
+
+      setAvailableCategories((prev) => [...prev, newCat]);
+      return newValue;
     },
-    [setAvailableCategories, t, listId]
+    [_availableCategories, setAvailableCategories, t, listId]
   );
 
   const handleAdd = React.useCallback(
     async (override?: Partial<{ name: string; quantity: number; comment: string; category: string; unit: string; image: string }>) => {
       let p: Partial<{ name: string; quantity: number; comment: string; category: string; unit: string; image: string }> | ParsedInput | null =
-        override ?? parsed ?? parseSmartInput(name || '', language);
+        override ?? parsed ?? (isSmartEnabled ? parseSmartInput(name || '', language) : null);
 
       let finalCategory: string | undefined;
-      if (p && override?.category === undefined && (!p.category || p.category === 'none')) {
+      if (!categoryLocked && isSmartEnabled && p && override?.category === undefined && (!p.category || p.category === 'none')) {
         finalCategory = await inferCategorySmart(p.name || name || '', language);
+      }
+      if (categoryLocked) {
+        finalCategory = category; // preserve locked category
       }
 
       if (!p && (name || '').trim().includes(' ')) {
@@ -141,12 +172,12 @@ export function useTodoFormLogic({
         setComment(p.comment || '');
         setUnit(p.unit || '');
         finalCategory = p.category ?? finalCategory;
-        if (finalCategory) setCategory(finalCategory);
+        if (!categoryLocked && finalCategory) setCategory(finalCategory);
       }
 
       if (name) setName(capitalize(name));
 
-      await ensureCategoryExists(category, tempIconKey || undefined);
+      const actualCategoryValue = await ensureCategoryExists(category, tempIconKey || undefined);
 
       const overridePayload: Partial<{ name: string; quantity: number; comment: string; category: string; unit: string; image: string }> = {};
       if (p) {
@@ -154,9 +185,20 @@ export function useTodoFormLogic({
         if (p.quantity != null) overridePayload.quantity = p.quantity;
         if (p.comment) overridePayload.comment = p.comment;
         if (p.unit) overridePayload.unit = p.unit;
-        if (finalCategory) overridePayload.category = finalCategory;
+        if (finalCategory) {
+          // If we just resolved a custom name to a UUID, use that UUID
+          overridePayload.category = (finalCategory === category && actualCategoryValue) 
+            ? actualCategoryValue 
+            : finalCategory;
+        }
         if (override?.image) overridePayload.image = override.image;
       }
+      
+      // Fallback for non-parsed or simple adds
+      if (!overridePayload.category && (actualCategoryValue || category)) {
+        overridePayload.category = actualCategoryValue || category;
+      }
+
       if (imageData) overridePayload.image = imageData;
 
       await todoActions.addItem(overridePayload);
@@ -205,6 +247,7 @@ export function useTodoFormLogic({
 
   const handleInferCategory = React.useCallback(
     (text: string) => {
+      if (categoryLocked) return;
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current as unknown as number);
       }
@@ -215,7 +258,7 @@ export function useTodoFormLogic({
         }, 500);
       }
     },
-    [language, todoActions]
+    [language, todoActions, categoryLocked]
   );
 
   React.useEffect(() => {

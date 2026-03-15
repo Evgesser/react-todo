@@ -59,6 +59,15 @@ export async function deleteTodo(id: string, listId: string) {
   return res.ok;
 }
 
+export async function moveTodosCategory(listId: string, fromCategory: string, toCategory: string) {
+  const res = await fetch(`${BASE}/todos`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ listId, fromCategory, toCategory }),
+  });
+  return res.ok;
+}
+
 // --- lists ---------------------------------------------------------------
 export async function fetchLists(
   userId: string,

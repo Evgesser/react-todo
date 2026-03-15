@@ -275,8 +275,7 @@ export const he: TranslationKeys = {
     create: 'צור',
     personalize: 'התאמה אישית',
     smartParse: 'קלט חכם',
-    smartAdd: 'שמירה חכמה',
-  },
+    smartAdd: 'שמירה חכמה',    home: 'בית',  },
   
   // Contrast
   contrast: {

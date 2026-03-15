@@ -97,6 +97,7 @@ export interface UseTodosReturn {
   toggleComplete: (todo: Todo) => Promise<void>;
   toggleMissing: (todo: Todo) => Promise<void>;
   deleteTodo: (id: string) => Promise<void>;
+  moveTodosCategory: (fromCategory: string, toCategory: string) => Promise<void>;
   toggleSelect: (id: string) => void;
   clearSelection: () => void;
   bulkComplete: () => Promise<void>;

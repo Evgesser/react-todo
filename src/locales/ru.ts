@@ -272,6 +272,7 @@ export const ru = {
     personalize: 'Персонализация',
     smartParse: 'Умный ввод',
     smartAdd: 'Умное сохранение',
+    home: 'Главная',
   },
   
   // Contrast

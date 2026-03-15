@@ -23,6 +23,7 @@ import { savePersonalization } from '@/lib/api';
 import type { StoredCategory } from '@/types';
 import type { TranslationKeys } from '@/locales/ru';
 import type { IntlShape } from 'react-intl';
+import type { UseTodosReturn } from '@/types/hooks';
 
 interface PersonalizationDialogProps {
   open: boolean;
@@ -33,6 +34,9 @@ interface PersonalizationDialogProps {
   availableTemplates: Template[];
   setAvailableTemplates: (templates: Template[]) => void;
   products: Array<{ name: string; category?: string }>;
+  setProducts: (products: Array<{ name: string; category?: string }>) => void;
+  todoActions: UseTodosReturn;
+  currentListId: string | null;
   setSnackbarMsg: (msg: string) => void;
   setSnackbarOpen: (open: boolean) => void;
   t: TranslationKeys;
@@ -48,6 +52,9 @@ export default function PersonalizationDialog({
   availableTemplates,
   setAvailableTemplates,
   products,
+  setProducts,
+  todoActions,
+  currentListId,
   setSnackbarMsg,
   setSnackbarOpen,
   t,
@@ -58,10 +65,79 @@ export default function PersonalizationDialog({
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [deletingCategoryValue, setDeletingCategoryValue] = React.useState<string | null>(null);
+
   const [editingCategories, setEditingCategories] = React.useState<StoredCategory[]>([]);
   const [editingTemplates, setEditingTemplates] = React.useState<Template[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [autoFocusCategory, setAutoFocusCategory] = React.useState<string | null>(null);
+
+  const deleteCount = React.useMemo(() => {
+    if (!deletingCategoryValue) return 0;
+    const todoCount = todoActions.todos.filter((t) => t.category === deletingCategoryValue).length;
+    const productCount = products.filter((p) => p.category === deletingCategoryValue).length;
+    return todoCount + productCount;
+  }, [deletingCategoryValue, todoActions.todos, products]);
+
+  const openDeleteCategoryDialog = (categoryValue: string) => {
+    setDeletingCategoryValue(categoryValue);
+    setDeleteDialogOpen(true);
+  };
+
+  const closeDeleteCategoryDialog = () => {
+    setDeletingCategoryValue(null);
+    setDeleteDialogOpen(false);
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!deletingCategoryValue) return;
+
+    // Delete todos in this category
+    if (currentListId) {
+      const idsToDelete = todoActions.todos
+        .filter((t) => t.category === deletingCategoryValue)
+        .map((t) => t._id);
+      await Promise.all(idsToDelete.map((id) => todoActions.deleteTodo(id)));
+      await todoActions.fetchTodos(currentListId);
+    }
+
+    // Delete products in this category
+    const nextProducts = products.filter((p) => p.category !== deletingCategoryValue);
+    setProducts(nextProducts);
+
+    // Remove category from local selection
+    const nextEditingCategories = editingCategories.filter((c) => c.value !== deletingCategoryValue);
+    setEditingCategories(nextEditingCategories);
+
+    const nextCategories: Category[] = nextEditingCategories.map((category) => {
+      const found = defaultCategories.find((item) => item.value === category.value);
+      const iconComp = category.icon && iconMap[category.icon] ? iconMap[category.icon] : null;
+      return {
+        value: category.value,
+        label: category.label,
+        icon: iconComp || found?.icon || null,
+        budget: typeof category.budget === 'number' ? category.budget : undefined,
+        currency: typeof category.currency === 'string' ? category.currency : undefined,
+        strictBudget: typeof category.strictBudget === 'boolean' ? category.strictBudget : undefined,
+        listId: typeof category.listId === 'string' ? category.listId : undefined,
+      };
+    });
+    setAvailableCategories(nextCategories);
+
+    // Persist changes immediately
+    if (userId) {
+      try {
+        await savePersonalization(userId, nextEditingCategories, editingTemplates, undefined, nextProducts);
+      } catch {
+        // ignore; saving is optional (user can still press Save)
+      }
+    }
+
+    setSnackbarMsg(formatMessage('messages.personalizationSaved'));
+    setSnackbarOpen(true);
+    closeDeleteCategoryDialog();
+  };
 
   // clear focus flag shortly after it's set so the next render doesn't repeatedly open
   React.useEffect(() => {
@@ -127,7 +203,7 @@ export default function PersonalizationDialog({
     }
     setSaving(true);
     try {
-      const saved = await savePersonalization(userId, editingCategories, editingTemplates);
+      const saved = await savePersonalization(userId, editingCategories, editingTemplates, undefined, products);
       if (Array.isArray(saved.categories)) {
         const merged: Category[] = saved.categories.map((category) => {
           const found = defaultCategories.find((item) => item.value === category.value);
@@ -161,85 +237,98 @@ export default function PersonalizationDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" fullScreen={fullScreen} PaperProps={{ className: 'glass' }}>
-      <DialogTitle>{t.dialogs.personalization.title}</DialogTitle>
-      <DialogContent>
-        <Box sx={{ opacity: saving ? 0.5 : 1, pointerEvents: saving ? 'none' : undefined }}>
-          <Typography variant="subtitle1" sx={{ mt: 1, mb: 1 }}>
-            {t.dialogs.personalization.categories}
+    <>
+      <Dialog open={deleteDialogOpen} onClose={closeDeleteCategoryDialog}>
+        <DialogTitle>{t.dialogs.deleteCategory.title}</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {formatMessage('dialogs.deleteCategory.confirm', { count: deleteCount })}
           </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteCategoryDialog}>{t.buttons.cancel}</Button>
+          <Button color="error" onClick={confirmDeleteCategory}>{t.buttons.delete}</Button>
+        </DialogActions>
+      </Dialog>
 
-        {editingCategories.map((category, categoryIndex) => (
-          <Collapse key={categoryIndex} in timeout={300}>
-            <CategoryRow
-              category={category}
-              t={t}
-              autoFocusIcon={autoFocusCategory === category.value}
-              onChange={(next) =>
-                setEditingCategories((prev) => {
-                  const arr = [...prev];
-                  arr[categoryIndex] = next;
-                  return arr;
-                })
-              }
-              onRemove={() =>
-                setEditingCategories((prev) => prev.filter((_, i) => i !== categoryIndex))
-              }
-            />
-          </Collapse>
-        ))}
-        <Button
-          size="small"
-          sx={{ mt: 1 }}
-          onClick={() =>
-            setEditingCategories((prev) => [...prev, { value: '', label: '', icon: '' }])
-          }
-        >
-          {t.dialogs.personalization.addCategory}
-        </Button>
+      <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" fullScreen={fullScreen} PaperProps={{ className: 'glass' }}>
+        <DialogTitle>{t.dialogs.personalization.title}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ opacity: saving ? 0.5 : 1, pointerEvents: saving ? 'none' : undefined }}>
+            <Typography variant="subtitle1" sx={{ mt: 1, mb: 1 }}>
+              {t.dialogs.personalization.categories}
+            </Typography>
 
-        <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
-          {t.dialogs.personalization.templates}
-        </Typography>
+            {editingCategories.map((category, categoryIndex) => (
+              <Collapse key={categoryIndex} in timeout={300}>
+                <CategoryRow
+                  category={category}
+                  t={t}
+                  autoFocusIcon={autoFocusCategory === category.value}
+                  onChange={(next) =>
+                    setEditingCategories((prev) => {
+                      const arr = [...prev];
+                      arr[categoryIndex] = next;
+                      return arr;
+                    })
+                  }
+                  onRemove={() => openDeleteCategoryDialog(category.value)}
+                />
+              </Collapse>
+            ))}
+            <Button
+              size="small"
+              sx={{ mt: 1 }}
+              onClick={() => setEditingCategories((prev) => [...prev, { value: '', label: '', icon: '' }])}
+            >
+              {t.dialogs.personalization.addCategory}
+            </Button>
 
-        {editingTemplates.map((template, templateIndex) => (
-          <Collapse key={templateIndex} in timeout={300}>
-            <TemplateEditor
-              template={template}
-              t={t}
-              categoryOptions={templateCategoryOptions}
-              onCategoryAdd={handleTemplateCategoryAdd}
-              onChange={(next) =>
-                setEditingTemplates((prev) => {
-                  const arr = [...prev];
-                  arr[templateIndex] = next;
-                  return arr;
-                })
-              }
-              onRemove={() =>
-                setEditingTemplates((prev) => prev.filter((_, i) => i !== templateIndex))
-              }
-            />
-          </Collapse>
-        ))}
+            <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+              {t.dialogs.personalization.templates}
+            </Typography>
 
-        <Button onClick={() => setEditingTemplates((prev) => [...prev, { name: '', items: [] }])}>
-          {t.dialogs.personalization.addTemplate}
-        </Button>
-        </Box>
-      </DialogContent>
+            {editingTemplates.map((template, templateIndex) => (
+              <Collapse key={templateIndex} in timeout={300}>
+                <TemplateEditor
+                  template={template}
+                  t={t}
+                  categoryOptions={templateCategoryOptions}
+                  onCategoryAdd={handleTemplateCategoryAdd}
+                  onChange={(next) =>
+                    setEditingTemplates((prev) => {
+                      const arr = [...prev];
+                      arr[templateIndex] = next;
+                      return arr;
+                    })
+                  }
+                  onRemove={() =>
+                    setEditingTemplates((prev) => prev.filter((_, i) => i !== templateIndex))
+                  }
+                />
+              </Collapse>
+            ))}
 
-      <DialogActions sx={{ justifyContent: theme.direction === 'rtl' ? 'flex-start' : 'flex-end' }}>
-        <Button onClick={onClose} disabled={saving} variant="outlined">{t.buttons.cancel}</Button>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={saving}
-          startIcon={saving ? <CircularProgress size={20} /> : undefined}
-        >
-          {saving ? t.messages.loading : t.dialogs.personalization.save}
-        </Button>
-      </DialogActions>
-    </Dialog>
+            <Button onClick={() => setEditingTemplates((prev) => [...prev, { name: '', items: [] }])}>
+              {t.dialogs.personalization.addTemplate}
+            </Button>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: theme.direction === 'rtl' ? 'flex-start' : 'flex-end' }}>
+          <Button onClick={onClose} disabled={saving} variant="outlined">
+            {t.buttons.cancel}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={20} /> : undefined}
+          >
+            {saving ? t.messages.loading : t.dialogs.personalization.save}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

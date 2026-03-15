@@ -78,6 +78,10 @@ export default async function handler(
     // Delete user's lists
     await lists.deleteMany({ userId: new ObjectId(userId) });
 
+    // Delete user's categories and products
+    await db.collection('personalization').deleteOne({ userId: new ObjectId(userId) });
+    await db.collection('products').deleteMany({ userId: userId });
+
     res.status(200).json({ message: 'Account deleted successfully' });
   } catch (error) {
     console.error('Account deletion error:', error);

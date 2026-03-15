@@ -116,8 +116,26 @@ export default async function handler(
 
     const result = await collection.insertOne(item);
     res.status(201).json({ _id: result.insertedId, ...item });
+  } else if (req.method === 'PATCH') {
+    const { listId, fromCategory, toCategory } = req.body as {
+      listId?: string;
+      fromCategory?: string;
+      toCategory?: string;
+    };
+
+    if (!listId || !fromCategory || !toCategory) {
+      res.status(400).json({ error: 'listId, fromCategory and toCategory are required' });
+      return;
+    }
+
+    await collection.updateMany(
+      { listId: new ObjectId(listId), category: fromCategory },
+      { $set: { category: toCategory } }
+    );
+
+    res.status(200).json({ success: true });
   } else {
-    res.setHeader('Allow', ['GET', 'POST']);
+    res.setHeader('Allow', ['GET', 'POST', 'PATCH']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

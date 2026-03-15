@@ -23,6 +23,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import { v4 as uuidv4 } from 'uuid';
 
 // shared types, constants and helpers
 // constants not referenced directly in this file
@@ -37,7 +38,7 @@ import {
 import { getCachedExchangeRate, setCachedExchangeRate } from '@/lib/exchangeRates';
 
 import { useViewportHeight } from '@/hooks/useViewportHeight';
-import { formatCurrency, iconMap, currencySymbols, iconChoices } from '@/constants';
+import { formatCurrency, iconMap, currencySymbols, iconChoices, categories as defaultCategories } from '@/constants';
 
 
 // Custom hooks
@@ -116,13 +117,20 @@ export default function Home() {
     formatMessage: _formatMessage,
   });
   const [formOpen, setFormOpen] = React.useState(false);
+  const setFormOpenWithUnlock: React.Dispatch<React.SetStateAction<boolean>> = (v) => {
+    setFormOpen((prev) => {
+      const next = typeof v === 'function' ? (v as (prev: boolean) => boolean)(prev) : v;
+      if (!next) setCategoryLocked(false);
+      return next;
+    });
+  };
   const [historyOpen, setHistoryOpen] = React.useState(false);
 
   // refs для header и toolbar
   const headerRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   // используем хук для вычисления размеров
-  const { viewportHeight, listHeight, progressTop } = useViewportHeight(headerRef, toolbarRef, 48, 50);
+  const { viewportHeight, progressTop } = useViewportHeight(headerRef, toolbarRef, 0, 0);
 
   // personalization state (categories, templates, products, etc.)
   const {
@@ -132,6 +140,7 @@ export default function Home() {
     setAvailableTemplates,
     nameCategoryMap,
     products,
+    setProducts,
     personalDialogOpen,
     setPersonalDialogOpen,
     updateNameCategory,
@@ -147,6 +156,7 @@ export default function Home() {
   const [newCategoryStrictBudget, setNewCategoryStrictBudget] = React.useState(false);
   const [newCategoryIconKey, setNewCategoryIconKey] = React.useState('');
   const [initialCategory, setInitialCategory] = React.useState('');
+  const [categoryLocked, setCategoryLocked] = React.useState(false);
   const [categoryPickerOpen, setCategoryPickerOpen] = React.useState(false);
   const [editingCategoryValue, setEditingCategoryValue] = React.useState<string | null>(null);
   const [deleteCategoryDialogOpen, setDeleteCategoryDialogOpen] = React.useState(false);
@@ -572,24 +582,25 @@ export default function Home() {
       return;
     }
 
-    // When editing an existing category, keep its original value (key) so todos linked to it stay connected.
-    const categoryValue = editingCategoryValue
-      ? editingCategoryValue
-      : name.toLowerCase().replace(/\s+/g, '-');
+    // When editing, we create a new category (new ID) if the name changed, 
+    // to allow user to migrate items manually and avoid confusion.
+    // If name is the same, we update the existing one.
     const budgetValue = isExpenses && typeof newCategoryBudget === 'number' && Number.isFinite(newCategoryBudget)
       ? newCategoryBudget
       : undefined;
     const currentListId = listActions.currentListId;
 
-    // Expenses lists should treat categories as scoped to a list.
-    // Otherwise updating a category in one list would accidentally update it for all lists.
-    const existingIndex = availableCategories.findIndex((c) => {
-      if (c.value !== categoryValue) return false;
-      if (listType === 'expenses') {
-        return c.listId === currentListId;
-      }
-      return true;
-    });
+    const existingCatIndex = editingCategoryValue 
+      ? availableCategories.findIndex(c => c.value === editingCategoryValue)
+      : -1;
+    const existingCat = existingCatIndex !== -1 ? availableCategories[existingCatIndex] : null;
+
+    const isRename = existingCat && existingCat.label !== name;
+    
+    // If it's a rename, we force a new ID (UUID) to create a "fresh" category.
+    const categoryValue = (editingCategoryValue && !isRename)
+      ? editingCategoryValue
+      : uuidv4();
 
     const nextCategories = [...availableCategories];
     const selectedIcon = newCategoryIconKey && iconMap[newCategoryIconKey] ? iconMap[newCategoryIconKey] : null;
@@ -603,22 +614,19 @@ export default function Home() {
     const currencyValue = isExpenses ? newCategoryCurrency : undefined;
     const strictBudgetValue = isExpenses ? newCategoryStrictBudget : false;
 
-    // Internally we store rate as: how many list currency units = 1 category currency unit.
-    // This matches the UI prompt "1 <list currency> = ? <category currency>".
-    // The user should enter a value like 3.2 if 1 USD = 3.2 ILS.
+    if (isRename && editingCategoryValue && currentListId) {
+      // 1. Move all todos to the new UUID category
+      await todoActions.moveTodosCategory(editingCategoryValue, categoryValue);
+      
+      // 2. Remove the old category from the list if it's not a default category.
+      // We don't want to delete built-in categories (groceries, fruits, etc.) from the global store.
+      const isDefault = defaultCategories.some(dc => dc.value === editingCategoryValue);
 
-    if (existingIndex !== -1) {
-      // update budget/currency/icon for existing category
-      nextCategories[existingIndex] = {
-        ...nextCategories[existingIndex],
-        label: name,
-        icon: selectedIcon,
-        budget: budgetValue,
-        currency: currencyValue,
-        exchangeRateToListCurrency: exchangeRate,
-        strictBudget: strictBudgetValue,
-      };
-    } else {
+      if (existingCatIndex !== -1 && !isDefault) {
+        nextCategories.splice(existingCatIndex, 1);
+      }
+      
+      // 3. Add the brand new category with the new label/ID
       nextCategories.push({
         value: categoryValue,
         label: name,
@@ -627,7 +635,30 @@ export default function Home() {
         currency: currencyValue,
         exchangeRateToListCurrency: exchangeRate,
         strictBudget: strictBudgetValue,
-        listId: listActions.currentListId || undefined,
+        listId: currentListId || undefined,
+      });
+    } else if (existingCatIndex !== -1) {
+      // Just update existing category settings (no rename)
+      nextCategories[existingCatIndex] = {
+        ...nextCategories[existingCatIndex],
+        label: name,
+        icon: selectedIcon,
+        budget: budgetValue,
+        currency: currencyValue,
+        exchangeRateToListCurrency: exchangeRate,
+        strictBudget: strictBudgetValue,
+      };
+    } else {
+      // Pure new category creation
+      nextCategories.push({
+        value: categoryValue,
+        label: name,
+        icon: selectedIcon,
+        budget: budgetValue,
+        currency: currencyValue,
+        exchangeRateToListCurrency: exchangeRate,
+        strictBudget: strictBudgetValue,
+        listId: currentListId || undefined,
       });
     }
 
@@ -845,8 +876,8 @@ export default function Home() {
       // screen during SSR/hydration.
       // subtract vertical margins (4*8px each) plus safe area and buffer
       height: viewportHeight
-      ? `calc(${viewportHeight}px - env(safe-area-inset-bottom) - 50px - 48px)`
-      : 'calc(100vh - 48px)',
+      ? `calc(${viewportHeight}px - env(safe-area-inset-bottom) - 8px)`
+      : 'calc(100vh - 8px)',
         overflow: listType ? 'hidden' : 'auto',
         display: 'flex',
         flexDirection: 'column',
@@ -861,7 +892,7 @@ export default function Home() {
       {!userId ? (
         <AuthPanel t={t} formatMessage={_formatMessage} onSnackbar={(msg) => { setSnackbarMsg(msg); setSnackbarOpen(true); }} />
       ) : !listType ? (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', pt: 1 }}>
           <ListTypeSelector
             t={t}
             onSelect={(type) => {
@@ -941,103 +972,107 @@ export default function Home() {
             t={t}
           />
 
-          {/* pinned progress under search */}
-          {(() => {
-            const completedCount = todoActions.todos.filter((t) => t.completed).length;
-            const totalTodos = todoActions.todos.length;
-            const progressValue = totalTodos === 0 ? 0 : (completedCount / totalTodos) * 100;
-
-            return (
-              <Box
-                sx={{
-                  position: 'sticky',
-                  top: progressTop,
-                  zIndex: 700,
-                  px: 0,
-                  py: 0,
-                  bgcolor: 'transparent',
-                  borderBottom: `1px solid theme.palette.divider`,
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
-                  <Box sx={{ flex: 1, overflow: 'hidden' }}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={progressValue}
-                      sx={{
-                        height: 10,
-                        borderRadius: 9999,
-                        backgroundColor: (theme) =>
-                          theme.palette.mode === 'dark'
-                            ? 'rgba(255,255,255,0.04)'
-                            : 'rgba(15,23,42,0.06)',
-                        '& .MuiLinearProgress-bar': {
-                          background: 'linear-gradient(90deg, #F59E0B 0%, #F97316 100%)',
-                          transition: 'width 150ms ease',
-                        },
-                      }}
-                    />
-                  </Box>
-                  <Typography
-                    variant="caption"
-                    sx={(theme) => ({
-                      color: theme.palette.mode === 'light' ? theme.palette.secondary.contrastText : theme.palette.secondary.main,
-                      marginInlineStart: 1,
-                      minWidth: 56,
-                      textAlign: 'right',
-                      direction: 'ltr', // Force LTR for numbers
-                    })}
-                  >
-                    {completedCount} / {totalTodos}
-                  </Typography>
-                </Box>
-              </Box>
-            );
-          })()}
-
-          {!listActions.viewingHistory && (
-            <TodoForm
-              todoActions={todoActions}
-              availableCategories={availableCategoriesForList}
-              setAvailableCategories={setAvailableCategories}
-              updateNameCategory={updateNameCategory}
-              nameCategoryMap={nameCategoryMap}
-              products={products}
-              listDefaultColor={listActions.listDefaultColor}
-              t={t}
-              formOpen={formOpen}
-              setFormOpen={setFormOpen}
-              dialogMode // render inside dialog
-              listType={listType}
-              listId={listActions.currentListId}
-              initialCategory={initialCategory}
-            />
-          )}
-
-          {/* compute list box height on mount/resize */}
-
-
-          {/* always show todos list regardless of history state */}
-          {/* scrollable list takes remaining space; page container never scrolls */}
-          {/* reserve extra space under the list so the fixed add-button doesnt obscure items
-           and ensure the containers bottom sits ~20px below the buttons bottom edge */}
+          {/* Main scrollable area */}
           <Box
             sx={{
-              height: listHeight ? `${listHeight}px` : 'auto',
+              flex: 1,
               overflowY: 'auto',
-              // fab sits 24px above the viewport bottom and is 56px tall; add another 20px gap
-              paddingBottom: `calc(env(safe-area-inset-bottom) + 100px)`,
+              position: 'relative', // for sticky children
+              '-webkit-overflow-scrolling': 'touch',
+              display: 'flex',
+              flexDirection: 'column',
+              paddingBottom: `calc(env(safe-area-inset-bottom) + 80px)`,
             }}
           >
+            {/* progress bar stays sticky at top of container */}
+            {(() => {
+              const completedCount = todoActions.todos.filter((t) => t.completed).length;
+              const totalTodos = todoActions.todos.length;
+              const progressValue = totalTodos === 0 ? 0 : (completedCount / totalTodos) * 100;
+
+              return (
+                <Box
+                  sx={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 700,
+                    px: 0,
+                    py: 1,
+                    bgcolor: (theme) => (theme.palette.mode === 'dark' ? '#0f172a' : '#f8fafc'),
+                    borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
+                    <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                      <LinearProgress
+                        variant="determinate"
+                        value={progressValue}
+                        sx={{
+                          height: 10,
+                          borderRadius: 9999,
+                          backgroundColor: (theme) =>
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(255,255,255,0.04)'
+                              : 'rgba(15,23,42,0.06)',
+                          '& .MuiLinearProgress-bar': {
+                            background: 'linear-gradient(90deg, #F59E0B 0%, #F97316 100%)',
+                            transition: 'width 150ms ease',
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      sx={(theme) => ({
+                        color:
+                          theme.palette.mode === 'light'
+                            ? theme.palette.secondary.contrastText
+                            : theme.palette.secondary.main,
+                        marginInlineStart: 1,
+                        minWidth: 56,
+                        textAlign: 'right',
+                        direction: 'ltr',
+                      })}
+                    >
+                      {completedCount} / {totalTodos}
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })()}
+
+            {!listActions.viewingHistory && (
+              <TodoForm
+                todoActions={todoActions}
+                availableCategories={availableCategoriesForList}
+                setAvailableCategories={setAvailableCategories}
+                updateNameCategory={updateNameCategory}
+                nameCategoryMap={nameCategoryMap}
+                products={products}
+                listDefaultColor={listActions.listDefaultColor}
+                t={t}
+                formOpen={formOpen}
+                setFormOpen={setFormOpenWithUnlock}
+                dialogMode
+                listType={listType}
+                listId={listActions.currentListId}
+                initialCategory={initialCategory}
+              />
+            )}
+
             <TodoList
               todoActions={todoActions}
               listActions={listActions}
               availableCategories={availableCategoriesForList}
               t={t}
               listType={listType}
-              onEdit={() => setFormOpen(true)}
+              onEdit={() => {
+                setCategoryLocked(false);
+                setFormOpen(true);
+              }}
               onAddToCategory={(category) => {
                 setInitialCategory(category);
+                setCategoryLocked(true);
                 setFormOpen(true);
               }}
               onEditCategory={(categoryValue) => openEditCategoryDialog(categoryValue)}
@@ -1097,6 +1132,7 @@ export default function Home() {
                 <ListItemButton
                   onClick={() => {
                     setInitialCategory('');
+                    setCategoryLocked(false);
                     setCategoryPickerOpen(false);
                     setFormOpen(true);
                   }}
@@ -1110,6 +1146,7 @@ export default function Home() {
                     key={cat.value}
                     onClick={() => {
                       setInitialCategory(cat.value);
+                      setCategoryLocked(false);
                       setCategoryPickerOpen(false);
                       setFormOpen(true);
                     }}
@@ -1187,6 +1224,9 @@ export default function Home() {
             availableTemplates={availableTemplates}
             setAvailableTemplates={setAvailableTemplates}
             products={products}
+            setProducts={setProducts}
+            todoActions={todoActions}
+            currentListId={listActions.currentListId}
             setSnackbarMsg={setSnackbarMsg}
             setSnackbarOpen={setSnackbarOpen}
             t={t}

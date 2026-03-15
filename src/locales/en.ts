@@ -273,6 +273,7 @@ export const en: TranslationKeys = {
     personalize: 'Personalize',
     smartParse: 'Smart parse',
     smartAdd: 'Smart add',
+    home: 'Home',
   },
   
   // Contrast

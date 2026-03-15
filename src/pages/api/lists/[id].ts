@@ -77,6 +77,8 @@ export default async function handler(
     }
     case 'DELETE': {
       await lists.deleteOne({ _id: objId });
+      // Also delete all todos belonging to this list
+      await db.collection('todos').deleteMany({ listId: objId });
       res.status(204).end();
       break;
     }

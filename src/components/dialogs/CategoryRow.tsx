@@ -35,12 +35,10 @@ export default function CategoryRow({
       }}
     >
       <ClearableTextField
+        disabled
         label={t.dialogs.personalization.categoryValue}
         value={category.value}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          handleField('value', e.target.value)
-        }
-        sx={{ marginInlineEnd: 1, width: { xs: '100%', sm: 120 } }}
+        sx={{ marginInlineEnd: 1, width: { xs: '100%', sm: 120 }, opacity: 0.7 }}
       />
 
       <ClearableTextField

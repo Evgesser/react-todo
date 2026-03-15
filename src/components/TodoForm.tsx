@@ -43,6 +43,7 @@ export default function TodoForm({
   listType = null,
   listId = null,
   initialCategory,
+  categoryLocked = false,
 }: TodoFormProps) {
   // local state needed by the form (icon picker + quantity dialog)
   // language context no longer required for parsing
@@ -52,6 +53,8 @@ export default function TodoForm({
       : listType === 'todo'
       ? t.todos.namePlaceholderTodo
       : t.todos.namePlaceholderShopping || t.todos.namePlaceholder;
+
+  const smartEnabled = listType === 'shopping';
 
   const {
     language,
@@ -96,6 +99,8 @@ export default function TodoForm({
     listType,
     listId,
     initialCategory,
+    smartEnabled,
+    categoryLocked,
   });
 
   // pick only the pieces we need from the todoActions object
@@ -245,6 +250,8 @@ export default function TodoForm({
           unit={unit}
           setPendingParsed={setPendingParsed}
           setConfirmCategoryOpen={setConfirmCategoryOpen}
+          smartEnabled={smartEnabled}
+          categoryLocked={categoryLocked}
         />
         <TodoFormDetailsSection
           listType={listType}
@@ -290,6 +297,7 @@ export default function TodoForm({
           tempIconKey={tempIconKey}
           setTempIconKey={setTempIconKey}
           categoryWarning={categoryWarning}
+          categoryLocked={categoryLocked}
         />
 
         <TodoFormFooter
