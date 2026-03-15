@@ -55,11 +55,11 @@ function TodoList({
         return true;
       })
       .forEach((c) => {
-        const budget = typeof (c as any).budget === 'number' ? (c as any).budget : undefined;
+        const budget = typeof c.budget === 'number' ? c.budget : undefined;
         const currency = typeof c.currency === 'string' ? c.currency : undefined;
         const rate =
-          typeof (c as any).exchangeRateToListCurrency === 'number' && (c as any).exchangeRateToListCurrency > 0
-            ? (c as any).exchangeRateToListCurrency
+          typeof c.exchangeRateToListCurrency === 'number' && c.exchangeRateToListCurrency > 0
+            ? c.exchangeRateToListCurrency
             : 1;
         info[c.value] = { budget, currency, rate };
       });
@@ -107,8 +107,8 @@ function TodoList({
     const currentListId = listActions.currentListId;
     availableCategories.forEach((c) => {
       if (listType === 'expenses' && c.listId !== currentListId) return;
-      if (typeof (c as any).budget === 'number') {
-        map[c.value] = (c as any).budget as number;
+      if (typeof c.budget === 'number') {
+        map[c.value] = c.budget;
       }
     });
     return map;
@@ -389,6 +389,13 @@ function TodoList({
     t,
     theme,
     onEdit,
+    onAddToCategory,
+    onEditCategory,
+    onDeleteCategory,
+    categoryBudgets,
+    categorySpending,
+    categoryInfo,
+    listCurrency,
   ]);
   if (todoActions.todosLoading) {
     // render a few skeleton cards while loading

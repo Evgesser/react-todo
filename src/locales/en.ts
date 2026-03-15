@@ -36,6 +36,9 @@ export const en: TranslationKeys = {
     logout: 'Logout',
     language: 'Language',
     changeType: 'Change list type',
+    notifications: 'Notifications',
+    noNotifications: 'No reminders',
+    markAllRead: 'Mark all read',
   },
 
   // List types / modes

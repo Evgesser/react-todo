@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { Box, Typography, IconButton, Menu, MenuItem, Avatar, Divider } from '@mui/material';
+import { Box, Typography, IconButton, Menu, MenuItem, Avatar, Divider, Badge } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import { useTheme, alpha } from '@mui/material/styles';
 import { ColorModeContext } from '@/pages/_app';
 import type { HeaderProps } from '@/types/componentProps';
@@ -21,8 +22,43 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
   const listType = useAppStore((s) => s.listType);
   const setListType = useAppStore((s) => s.setListType);
   const logout = useAppStore((s) => s.logout);
+  const reminders = useAppStore((s) => s.reminders);
+  const setReminders = useAppStore((s) => s.setReminders);
+
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [notifAnchor, setNotifAnchor] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  const notifOpen = Boolean(notifAnchor);
+
+  React.useEffect(() => {
+    if (!userId) {
+      setReminders([]);
+      return;
+    }
+
+    let mounted = true;
+    const POLL_INTERVAL_MS = 1000 * 60 * 60 * 2; // 2 hours
+
+    const loadReminders = async () => {
+      try {
+        const res = await fetch(`/api/reminders/check?userId=${encodeURIComponent(userId)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        setReminders(data.reminders);
+      } catch {
+        // ignore
+      }
+    };
+
+    loadReminders();
+    const intervalId = window.setInterval(loadReminders, POLL_INTERVAL_MS);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [userId, setReminders]);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -30,6 +66,14 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleNotifOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setNotifAnchor(event.currentTarget);
+  };
+
+  const handleNotifClose = () => {
+    setNotifAnchor(null);
   };
 
   const handleLogout = () => {
@@ -99,6 +143,76 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
           >
             {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
+
+          {userId && username && (
+            <>
+              <IconButton
+                onClick={handleNotifOpen}
+                size="small"
+                aria-label={t.header.notifications}
+                title={t.header.notifications}
+                sx={{
+                  color: effectiveHeaderTextColor,
+                  bgcolor:
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(255,255,255,0.06)'
+                      : 'rgba(0,0,0,0.04)',
+                  borderRadius: '50%',
+                  p: 0.5,
+                  '&:hover': {
+                    bgcolor:
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(255,255,255,0.1)'
+                        : 'rgba(0,0,0,0.06)',
+                  },
+                }}
+              >
+                <Badge badgeContent={reminders.length} color="error">
+                  <NotificationsNoneIcon />
+                </Badge>
+              </IconButton>
+
+              <Menu
+                anchorEl={notifAnchor}
+                open={notifOpen}
+                onClose={handleNotifClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              >
+                <MenuItem disabled sx={{ py: 1 }}>
+                  <Typography variant="body2">{t.header.notifications}</Typography>
+                </MenuItem>
+                {reminders.length === 0 ? (
+                  <MenuItem disabled>
+                    <Typography variant="body2">{t.header.noNotifications}</Typography>
+                  </MenuItem>
+                ) : (
+                  <>
+                    <MenuItem
+                      onClick={() => {
+                        setReminders([]);
+                        handleNotifClose();
+                      }}
+                    >
+                      <Typography variant="body2">{t.header.markAllRead}</Typography>
+                    </MenuItem>
+                    {reminders.map((r) => (
+                      <MenuItem key={r.todoId} onClick={handleNotifClose}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {r.name}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {r.listName} • {new Date(r.reminderAt).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </>
+                )}
+              </Menu>
+            </>
+          )}
 
           {userId && username && (
             <>

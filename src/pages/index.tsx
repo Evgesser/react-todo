@@ -866,7 +866,7 @@ export default function Home() {
       height: viewportHeight
       ? `calc(${viewportHeight}px - env(safe-area-inset-bottom) - 50px - 48px)`
       : 'calc(100vh - 48px)',
-        overflow: 'hidden',
+        overflow: listType ? 'hidden' : 'auto',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -1187,7 +1187,9 @@ export default function Home() {
                 await listActions.loadLists();
                 await listActions.selectList(created._id);
                 todoActions.setColor(created.defaultColor || '#ffffff');
-                setFormOpen(true);
+                if (listType === 'shopping') {
+                  setFormOpen(true);
+                }
                 await todoActions.fetchTodos(created._id);
                 return true;
               }

@@ -832,12 +832,13 @@ export default function TodoForm({
               ) : null,
             }}
           />
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField
-              label={t.todos.quantity}
-              type="number"
-              value={quantity}
-              onClick={() => {
+          {listType === 'shopping' && (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                label={t.todos.quantity}
+                type="number"
+                value={quantity}
+                onClick={() => {
                   setTempQuantity(quantity || 1);
                   setQuantityDialogOpen(true);
                 }}
@@ -846,23 +847,24 @@ export default function TodoForm({
                   setQuantityDialogOpen(true);
                   (e.target as HTMLElement).blur();
                 }}
-              InputLabelProps={{ shrink: true }}
-              InputProps={{ readOnly: true }}
-              inputProps={{ min: 1 }}
-              sx={{ flex: 1 }}
-            />
-          <Autocomplete
-            freeSolo
-            options={getUnitOptions(language)}
-            disablePortal={true}
-            inputValue={unit || ''}
-            onInputChange={(_, v) => setUnit(v)}
-            sx={{ width: 110 }}
-            renderInput={(params) => (
-              <TextField {...params} label={t.todos.unit || 'Unit'} />
-            )}
-          />
-          </Box>
+                InputLabelProps={{ shrink: true }}
+                InputProps={{ readOnly: true }}
+                inputProps={{ min: 1 }}
+                sx={{ flex: 1 }}
+              />
+              <Autocomplete
+                freeSolo
+                options={getUnitOptions(language)}
+                disablePortal={true}
+                inputValue={unit || ''}
+                onInputChange={(_, v) => setUnit(v)}
+                sx={{ width: 110 }}
+                renderInput={(params) => (
+                  <TextField {...params} label={t.todos.unit || 'Unit'} />
+                )}
+              />
+            </Box>
+          )}
           <TextField
             label={t.todos.comment}
             placeholder={t.todos.commentPlaceholder}
@@ -1150,16 +1152,18 @@ export default function TodoForm({
           </Stack>
         </Stack>
       </Paper>
-      <QuantityDialog
-        open={quantityDialogOpen}
-        value={tempQuantity}
-        onChange={(v) => {
-          setTempQuantity(v);
-          todoActions.setQuantity(v);
-        }}
-        onClose={() => setQuantityDialogOpen(false)}
-        t={t}
-      />
+      {listType === 'shopping' && (
+        <QuantityDialog
+          open={quantityDialogOpen}
+          value={tempQuantity}
+          onChange={(v) => {
+            setTempQuantity(v);
+            todoActions.setQuantity(v);
+          }}
+          onClose={() => setQuantityDialogOpen(false)}
+          t={t}
+        />
+      )}
       <Dialog
         open={confirmCategoryOpen}
         onClose={() => setConfirmCategoryOpen(false)}

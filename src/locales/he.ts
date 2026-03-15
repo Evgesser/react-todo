@@ -36,6 +36,9 @@ export const he: TranslationKeys = {
     logout: 'התנתק',
     language: 'שפה',
     changeType: 'שנה סוג רשימה',
+    notifications: 'התראות',
+    noNotifications: 'אין תזכורות',
+    markAllRead: 'סמן הכל כנקרא',
   },
 
   // List types / modes

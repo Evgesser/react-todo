@@ -104,7 +104,9 @@ export default async function handler(
       if (typeof spentAt === 'string') update.spentAt = new Date(spentAt);
       if (typeof dueDate === 'string') update.dueDate = new Date(dueDate);
       if (typeof priority === 'string') update.priority = priority;
-      if (typeof reminderAt === 'string') update.reminderAt = new Date(reminderAt);
+      if (typeof reminderAt === 'string') {
+        update.reminderAt = new Date(reminderAt);
+      }
 
       if (Object.keys(update).length === 0) {
         res.status(400).json({ error: 'Nothing to update' });

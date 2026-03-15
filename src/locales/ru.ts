@@ -34,6 +34,9 @@ export const ru = {
     logout: 'Выход',
     language: 'Язык',
     changeType: 'Сменить тип списка',
+    notifications: 'Напоминания',
+    noNotifications: 'Нет напоминаний',
+    markAllRead: 'Отметить все как прочитанное',
   },
 
   // List types / modes

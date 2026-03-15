@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { login as apiLogin, fetchUserProfile } from '@/lib/api';
 import { Language } from '@/locales';
 import { Category, templates as defaultTemplates, categories as defaultCategories } from '@/constants';
-import type { Template, StoredProduct, ListType, List as ListDoc, Todo } from '@/types';
+import type { Template, StoredProduct, ListType, List as ListDoc, Todo, Reminder } from '@/types';
 
 type AuthState = {
   userId: string | null;
@@ -65,7 +65,13 @@ type TodosState = {
   setTodosLoading: (v: boolean) => void;
 };
 
-type AppStore = AuthState & LanguageState & ModeState & PersonalizationState & ListsState & TodosState;
+type NotificationsState = {
+  reminders: Reminder[];
+  setReminders: (reminders: Reminder[]) => void;
+  clearReminders: () => void;
+};
+
+type AppStore = AuthState & LanguageState & ModeState & PersonalizationState & ListsState & TodosState & NotificationsState;
 
 export const useAppStore = create<AppStore>((set, get) => ({
   // Auth initial
@@ -161,7 +167,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   logout: () => {
-    set({ userId: null, username: null, avatar: null, error: null, listType: null });
+    set({ userId: null, username: null, avatar: null, error: null, listType: null, reminders: [] });
     if (typeof window !== 'undefined') {
       try { localStorage.removeItem('auth'); } catch {}
       try { localStorage.removeItem('listType'); } catch {}
@@ -183,6 +189,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
     }
   },
+
+  // Notifications
+  reminders: [] as Reminder[],
+  setReminders: (reminders: Reminder[]) => set({ reminders }),
+  clearReminders: () => set({ reminders: [] }),
 
   // Language actions
   setLanguage: (lang) => {
