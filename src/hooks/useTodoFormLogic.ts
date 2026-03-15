@@ -75,8 +75,8 @@ export function useTodoFormLogic({
   const { name, category, comment, setName, setQuantity, setComment, setUnit, setCategory } =
     todoActions as UseTodosReturn;
 
-  const { isListening, supported: speechSupported, start: startListening, stop: stopListening } =
-    useSpeechRecognition(language, (transcript) => {
+  const handleSpeechResult = React.useCallback(
+    (transcript: string) => {
       const converted = convertNumberWordsToDigits(transcript, language);
       const capitalized = capitalize(converted);
       setName(capitalized);
@@ -87,7 +87,12 @@ export function useTodoFormLogic({
       } catch {
         // ignore
       }
-    });
+    },
+    [language, setName, setParsed, setUnit, capitalize]
+  );
+
+  const { isListening, supported: speechSupported, start: startListening, stop: stopListening } =
+    useSpeechRecognition(language, handleSpeechResult);
 
   const ensureCategoryExists = React.useCallback(
     async (val: string, iconKey?: string) => {

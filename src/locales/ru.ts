@@ -79,6 +79,9 @@ export const ru = {
     linkCopyFailed: 'Не удалось скопировать',
     linkCopyPrompt: 'Скопируйте ссылку вручную',
     noLists: 'Нет списков',
+    sharedWithMe: 'Общие со мной',
+    noSharedLists: 'Нет общих списков',
+    owner: 'Владелец',
   },
   
   // Todos

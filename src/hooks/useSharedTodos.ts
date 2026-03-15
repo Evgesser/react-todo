@@ -33,7 +33,8 @@ interface UseSharedTodosReturn {
 export function useSharedTodos(
   token: string,
   onSnackbar: (msg: string) => void,
-  formatMessage?: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string
+  formatMessage?: (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) => string,
+  viewerId?: string
 ): UseSharedTodosReturn {
   const [list, setList] = React.useState<{ name: string; defaultColor?: string } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -47,7 +48,7 @@ export function useSharedTodos(
 
   const fetch = React.useCallback(async () => {
     try {
-      const data = await fetchSharedList(token);
+      const data = await fetchSharedList(token, viewerId);
       setList(data.list || null);
       setTodos(data.todos || []);
       setError(null);
@@ -55,7 +56,7 @@ export function useSharedTodos(
       onSnackbar(fm('messages.loadListsError'));
       setError('failed');
     }
-  }, [token, onSnackbar, fm]);
+  }, [token, onSnackbar, fm, viewerId]);
 
   React.useEffect(() => {
     if (!token) return;

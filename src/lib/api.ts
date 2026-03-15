@@ -76,12 +76,30 @@ export async function fetchLists(
 
 // --- shared list helpers ------------------------------------------------
 export async function fetchSharedList(
-  token: string
+  token: string,
+  viewerId?: string
 ): Promise<{ list: List; todos: Todo[] }> {
-  const res = await fetch(`${BASE}/shared/${encodeURIComponent(token)}`);
+  let url = `${BASE}/shared/${encodeURIComponent(token)}`;
+  if (viewerId) {
+    url += `?viewerId=${encodeURIComponent(viewerId)}`;
+  }
+  const res = await fetch(url);
   if (!res.ok) {
     throw new Error('Failed to load shared list');
   }
+  return res.json();
+}
+
+export async function fetchSharedWithMe(userId: string): Promise<Array<{
+  _id: string;
+  name: string;
+  shareToken: string;
+  ownerName: string;
+  viewedAt: string;
+  createdAt: string;
+}>> {
+  const res = await fetch(`${BASE}/shared?userId=${encodeURIComponent(userId)}`);
+  if (!res.ok) throw new Error('Failed to load shared lists history');
   return res.json();
 }
 

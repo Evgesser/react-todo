@@ -22,12 +22,14 @@ import { useViewportHeight } from '@/hooks/useViewportHeight';
 import { useSharedTodos } from '@/hooks/useSharedTodos';
 import TodoList from '@/components/TodoList';
 import type { UseTodosReturn, UseListsReturn } from '@/types/hooks';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SharedPage() {
   const router = useRouter();
   const { token } = router.query;
   const { t, formatMessage } = useLanguage();
   const theme = useTheme();
+  const { userId: viewerId } = useAuth();
 
     const _formatMessage = React.useCallback(
       (id: string, values?: Parameters<IntlShape['formatMessage']>[1]) =>
@@ -45,7 +47,7 @@ export default function SharedPage() {
   const { viewportHeight, listHeight } = useViewportHeight(headerRef, toolbarRef, 64, 50);
 
   const tokenStr = typeof token === 'string' ? token : '';
-  const todoActions = useSharedTodos(tokenStr, setSnackbarMsg, _formatMessage);
+  const todoActions = useSharedTodos(tokenStr, setSnackbarMsg, _formatMessage, viewerId || undefined);
 
   if (!tokenStr) {
     return (

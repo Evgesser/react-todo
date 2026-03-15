@@ -28,6 +28,7 @@ declare global {
 
   interface SpeechRecognition extends EventTarget {
     lang: string;
+    continuous: boolean;
     interimResults: boolean;
     maxAlternatives: number;
     onresult: ((ev: SpeechRecognitionEvent) => void) | null;

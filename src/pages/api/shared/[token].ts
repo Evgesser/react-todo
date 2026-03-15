@@ -16,6 +16,7 @@ export default async function handler(
   const db = client.db();
   const lists = db.collection('lists');
   const todos = db.collection('todos');
+  const sharedWithMe = db.collection('shared_with_me');
 
   // find list by shareToken
   const listDoc = await lists.findOne({ shareToken: token });
@@ -25,6 +26,20 @@ export default async function handler(
   }
 
   if (req.method === 'GET') {
+    // Record view for shared-with-me history if logged in
+    const { viewerId } = req.query;
+    if (viewerId && typeof viewerId === 'string') {
+      const ownerIdStr = typeof listDoc.userId === 'object' ? listDoc.userId.toString() : String(listDoc.userId);
+      // Don't record view for the owner
+      if (viewerId !== ownerIdStr) {
+        await sharedWithMe.updateOne(
+          { userId: viewerId, shareToken: token },
+          { $set: { viewedAt: new Date() } },
+          { upsert: true }
+        );
+      }
+    }
+
     // return list and todos belonging to it
     const listIdObj = listDoc._id; // this is an ObjectId
     const todoItems = await todos

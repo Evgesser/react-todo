@@ -13,6 +13,8 @@ import useAppStore from '@/stores/useAppStore';
 import LanguageSwitcher from '../LanguageSwitcher';
 import Link from 'next/link';
 import { formatDateDDMMYYYY } from '@/utils/formatDate';
+import PeopleIcon from '@mui/icons-material/People';
+import SharedListsDialog from '../dialogs/SharedListsDialog';
 
 const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, t, title }) => {
   const theme = useTheme();
@@ -28,6 +30,7 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [notifAnchor, setNotifAnchor] = React.useState<null | HTMLElement>(null);
+  const [sharedListsOpen, setSharedListsOpen] = React.useState(false);
   const open = Boolean(anchorEl);
   const notifOpen = Boolean(notifAnchor);
 
@@ -172,6 +175,38 @@ const Header: React.FC<HeaderProps> = ({ headerColor, effectiveHeaderTextColor, 
                   <NotificationsNoneIcon />
                 </Badge>
               </IconButton>
+
+              <IconButton
+                onClick={() => setSharedListsOpen(true)}
+                size="small"
+                aria-label={t.lists.sharedWithMe}
+                title={t.lists.sharedWithMe}
+                sx={{
+                  color: effectiveHeaderTextColor,
+                  bgcolor:
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(255,255,255,0.06)'
+                      : 'rgba(0,0,0,0.04)',
+                  borderRadius: '50%',
+                  p: 0.5,
+                  ml: 1,
+                  '&:hover': {
+                    bgcolor:
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(255,255,255,0.1)'
+                        : 'rgba(0,0,0,0.06)',
+                  },
+                }}
+              >
+                <PeopleIcon />
+              </IconButton>
+
+              <SharedListsDialog
+                open={sharedListsOpen}
+                onClose={() => setSharedListsOpen(false)}
+                userId={userId}
+                t={t}
+              />
 
               <Menu
                 anchorEl={notifAnchor}

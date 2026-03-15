@@ -81,6 +81,9 @@ export const en: TranslationKeys = {
     linkCopyFailed: 'Copy failed',
     linkCopyPrompt: 'Copy link manually',
     noLists: 'No Lists',
+    sharedWithMe: 'Shared with me',
+    noSharedLists: 'No shared lists found',
+    owner: 'Owner',
   },
   
   // Todos

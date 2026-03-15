@@ -81,6 +81,9 @@ export const he: TranslationKeys = {
     linkCopyFailed: 'העתקה נכשלה',
     linkCopyPrompt: 'העתק את הקישור באופן ידני',
     noLists: 'אין רשימות',
+    sharedWithMe: 'משותף איתי',
+    noSharedLists: 'אין רשימות משותפות',
+    owner: 'בעלים',
   },
   
   // Todos
