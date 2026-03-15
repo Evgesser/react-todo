@@ -45,12 +45,8 @@ import {
 import { useTheme, alpha } from '@mui/material/styles';
 import { formatCurrency } from '@/constants';
 import type { Category } from '@/constants';
-import type { TranslationKeys } from '@/locales/ru';
-import type { Todo } from '@/types';
-import type { UseTodosReturn, UseListsReturn } from '@/types/hooks';
-
-
 import type { TodoListItemProps } from '@/types/componentProps';
+import type { UseListsReturn } from '@/types/hooks';
 
 export default function TodoListItem({
   todo,

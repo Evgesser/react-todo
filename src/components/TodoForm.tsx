@@ -5,42 +5,28 @@ import {
   Stack,
   Typography,
   IconButton,
-  TextField,
-  InputAdornment,
-  Button,
-  Autocomplete,
-  Alert,
   Collapse,
-  Tooltip,
   LinearProgress,
   Dialog,
   DialogTitle,
   DialogContent,
-  Chip,
-  MenuItem,
   useMediaQuery,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTheme } from '@mui/material/styles';
-import ClearIcon from '@mui/icons-material/Clear';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import MicIcon from '@mui/icons-material/Mic';
-import MicOffIcon from '@mui/icons-material/MicOff';
-import { Category, iconMap, iconChoices, categoryKeywords } from '@/constants';
-import useAppStore from '@/stores/useAppStore';
+import { iconMap, iconChoices } from '@/constants';
 import { useNameOptions } from '@/hooks/useNameOptions';
 import { useCategoryOptions } from '@/hooks/useCategoryOptions';
+import { useTodoFormLogic } from '@/hooks/useTodoFormLogic';
 
-import CategoryIconPicker from './CategoryIconPicker';
-import QuantityDialog from './dialogs/QuantityDialog';
+import TodoFormNameSection from './TodoFormNameSection';
+import TodoFormDetailsSection from './TodoFormDetailsSection';
+import TodoFormCategorySection from './TodoFormCategorySection';
+import TodoFormFooter from './TodoFormFooter';
+import ConfirmCategoryDialog from './ConfirmCategoryDialog';
 import type { TodoFormProps } from '@/types/componentProps';
 import type { UseTodosReturn } from '@/types/hooks';
-
-
-// parsing logic has been moved to a shared utility so other
-// components or tests can use it without dragging TodoForm along.
-import { parseSmartInput, ParsedInput, getUnitOptions, inferCategorySmart } from '@/utils/parseSmartInput';
 
 export default function TodoForm({
   todoActions,
@@ -60,8 +46,6 @@ export default function TodoForm({
 }: TodoFormProps) {
   // local state needed by the form (icon picker + quantity dialog)
   // language context no longer required for parsing
-  const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-
   const namePlaceholder =
     listType === 'expenses'
       ? t.todos.namePlaceholderExpenses
@@ -69,227 +53,55 @@ export default function TodoForm({
       ? t.todos.namePlaceholderTodo
       : t.todos.namePlaceholderShopping || t.todos.namePlaceholder;
 
-  // convert spoken number words to digits for common languages (ru/en)
-  const convertNumberWordsToDigits = (input: string, langCode?: string) => {
-    if (!input) return input;
-    const lang = (langCode || '').toLowerCase();
-    
-    const joinTokens = (tokens: string[]) => tokens.join(' ');
-
-    if (lang.startsWith('ru')) {
-      const units: Record<string, number> = {
-        ноль:0, один:1, одна:1, одно:1, двух:2, два:2, две:2, три:3, четыре:4, пять:5, шесть:6, семь:7, восемь:8, девять:9,
-        десять:10, одиннадцать:11, двенадцать:12, тринадцать:13, четырнадцать:14, пятнадцать:15, шестнадцать:16, семнадцать:17, восемнадцать:18, девятнадцать:19
-      };
-      const tens: Record<string, number> = { двадцать:20, тридцать:30, сорок:40, пятьдесят:50, шестьдесят:60, семьдесят:70, восемьдесят:80, девяносто:90 };
-      const hundreds: Record<string, number> = { сто:100, двести:200, триста:300, четыреста:400, пятьсот:500, шестьсот:600, семьсот:700, восемьсот:800, девятьсот:900 };
-      const multipliers: Record<string, number> = { тысяча:1000, тысячи:1000, тысяч:1000 };
-
-      // Tokenize preserving digits and Cyrillic letters; trim punctuation from token edges
-      const rawTokens = input.trim().split(/\s+/).filter(Boolean);
-      const tokens = rawTokens.map((t) =>
-        t.replace(/^[^0-9A-Za-z\u0400-\u04FF]+|[^0-9A-Za-z\u0400-\u04FF]+$/g, '').toLowerCase()
-      );
-
-      // map common fractional/collapsed forms first (handle 'полтора', 'полторы', 'полтораста')
-      for (let k = 0; k < tokens.length; k++) {
-        if (tokens[k] === 'полтора' || tokens[k] === 'полторы') tokens[k] = '1.5';
-        if (tokens[k] === 'полтораста' || tokens[k] === 'полторыста') tokens[k] = '150';
-      }
-
-      const out: string[] = [];
-      let i = 0;
-      while (i < tokens.length) {
-        const tryParse = (start: number) => {
-          let total = 0;
-          let current = 0;
-          let j = start;
-          let found = false;
-          while (j < tokens.length) {
-            const w = tokens[j];
-            const numMatch = w.match(/^(\d+(?:[.,]\d+)?)$/);
-            if (numMatch) { current += parseFloat(numMatch[1].replace(',', '.')); found = true; j++; continue; }
-            if (units[w] !== undefined) { current += units[w]; found = true; j++; continue; }
-            if (tens[w] !== undefined) { current += tens[w]; found = true; j++; continue; }
-            if (hundreds[w] !== undefined) { current += hundreds[w]; found = true; j++; continue; }
-            if (multipliers[w] !== undefined) { if (current === 0) current = 1; current = current * multipliers[w]; total += current; current = 0; found = true; j++; continue; }
-            break;
-          }
-          if (!found) return null;
-          return { value: total + current, end: j };
-        };
-
-        const parsed = tryParse(i);
-        if (parsed) {
-          out.push(String(parsed.value));
-          i = parsed.end;
-        } else {
-          out.push(tokens[i]);
-          i += 1;
-        }
-      }
-      return joinTokens(out);
-    }
-
-    if (lang.startsWith('en')) {
-      const units: Record<string, number> = { zero:0, one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12, thirteen:13, fourteen:14, fifteen:15, sixteen:16, seventeen:17, eighteen:18, nineteen:19 };
-      const tens: Record<string, number> = { twenty:20, thirty:30, forty:40, fifty:50, sixty:60, seventy:70, eighty:80, ninety:90 };
-      const multipliers: Record<string, number> = { hundred:100, thousand:1000, million:1000000 };
-
-      const rawTokens = input.trim().split(/\s+/).filter(Boolean);
-      const tokens = rawTokens.map((t) => t.replace(/^[^0-9A-Za-z\u0400-\u04FF]+|[^0-9A-Za-z\u0400-\u04FF]+$/g, '').toLowerCase());
-      const out: string[] = [];
-      let i = 0;
-      while (i < tokens.length) {
-        const tryParse = (start: number) => {
-          let total = 0;
-          let current = 0;
-          let j = start;
-          let found = false;
-          while (j < tokens.length) {
-            const w = tokens[j];
-            const numMatch = w.match(/^(\d+(?:[.,]\d+)?)$/);
-            if (numMatch) { current += parseFloat(numMatch[1].replace(',', '.')); found = true; j++; continue; }
-            if (units[w] !== undefined) { current += units[w]; found = true; j++; continue; }
-            if (tens[w] !== undefined) { current += tens[w]; found = true; j++; continue; }
-            if (w === 'hundred') { if (current === 0) current = 1; current = current * 100; found = true; j++; continue; }
-            if (w in multipliers && multipliers[w] > 100) { if (current === 0) current = 1; current = current * multipliers[w]; total += current; current = 0; found = true; j++; continue; }
-            break;
-          }
-          if (!found) return null;
-          return { value: total + current, end: j };
-        };
-
-        const parsed = tryParse(i);
-        if (parsed) {
-          out.push(String(parsed.value));
-          i = parsed.end;
-        } else {
-          out.push(tokens[i]);
-          i += 1;
-        }
-      }
-      return joinTokens(out);
-    }
-
-    return input;
-  };
-  const [tempIconKey, setTempIconKey] = React.useState('');
-  const [parsed, setParsed] = React.useState<ParsedInput | null>(null);
-  const [quantityDialogOpen, setQuantityDialogOpen] = React.useState(false);
-  const [tempQuantity, setTempQuantity] = React.useState<number>(
-    todoActions.quantity || 1
-  );
-
-  // Category confirmation dialog
-  const [confirmCategoryOpen, setConfirmCategoryOpen] = React.useState(false);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [pendingParsed, setPendingParsed] = React.useState<{
-    name: string;
-    category: string;
-    quantity: number;
-    unit: string;
-    comment: string;
-  } | null>(null);
-
-  // image attachment data (base64) compressed
-  const [imageData, setImageData] = React.useState<string | null>(null);
-  const [imagePreviewOpen, setImagePreviewOpen] = React.useState(false);
-
-  const compressImage = (file: File, maxWidth = 800): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-        const w = img.width * scale;
-        const h = img.height * scale;
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, w, h);
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                  resolve(reader.result as string);
-                };
-                reader.readAsDataURL(blob);
-              } else {
-                resolve('');
-              }
-            },
-            'image/jpeg',
-            0.7
-          );
-        } else {
-          resolve('');
-        }
-        URL.revokeObjectURL(url);
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        resolve('');
-      };
-      img.src = url;
-    });
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files && e.target.files[0];
-    if (file) {
-      const data = await compressImage(file);
-      setImageData(data);
-    }
-  };
-
-
-  // Speech recognition for quick voice input (Web Speech API)
-  const recognitionRef = React.useRef<SpeechRecognition | null>(null);
-  const [isListening, setIsListening] = React.useState(false);
-  const [speechSupported, setSpeechSupported] = React.useState(false);
-
-  const language = useAppStore((s) => s.language);
+  const {
+    language,
+    tempIconKey,
+    setTempIconKey,
+    parsed,
+    setParsed,
+    quantityDialogOpen,
+    setQuantityDialogOpen,
+    tempQuantity,
+    setTempQuantity,
+    confirmCategoryOpen,
+    setConfirmCategoryOpen,
+    isSubmitting,
+    setIsSubmitting,
+    pendingParsed,
+    setPendingParsed,
+    imageData,
+    setImageData,
+    imagePreviewOpen,
+    setImagePreviewOpen,
+    speechSupported,
+    isListening,
+    startListening,
+    stopListening,
+    ensureCategoryExists,
+    handleAdd,
+    handleImageChange,
+    handleInferCategory,
+  } = useTodoFormLogic({
+    todoActions,
+    availableCategories,
+    setAvailableCategories,
+    updateNameCategory,
+    nameCategoryMap,
+    products,
+    listDefaultColor,
+    t,
+    formOpen,
+    setFormOpen,
+    dialogMode,
+    listType,
+    listId,
+    initialCategory,
+  });
 
   // pick only the pieces we need from the todoActions object
   const theme = useTheme();
   const fullScreenDialog = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Debounce API calls for category inference
-  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-  // ref to focus category input when smart suggestion is applied
-  const categoryInputRef = React.useRef<HTMLInputElement | null>(null);
-
-  const handleInferCategory = React.useCallback((text: string) => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    if (text.trim().length > 2) {
-      debounceTimerRef.current = setTimeout(async () => {
-        const cat = await inferCategorySmart(text, language);
-        if (cat) todoActions.setCategory(cat);
-      }, 500); // 500ms delay
-    }
-  }, [language, todoActions.setCategory]);
-
-  // prevent background scrolling when dialog is open
-  React.useEffect(() => {
-    if (dialogMode && formOpen) {
-      const prevBody = document.body.style.overflow;
-      const prevHtml = document.documentElement.style.overflow;
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = prevBody;
-        document.documentElement.style.overflow = prevHtml;
-      };
-    }
-    return undefined;
-  }, [dialogMode, formOpen]);
 
   const {
     name,
@@ -306,7 +118,6 @@ export default function TodoForm({
     editingId,
     todos,
     clearedForName,
-    categoryWarning,
     todosLoading,
     setName,
     setDescription,
@@ -321,62 +132,10 @@ export default function TodoForm({
     setColor,
     setCategory,
     setCategoryManual,
+    categoryWarning,
     setEditingId,
-    addItem,
   } = todoActions as UseTodosReturn;
 
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      setSpeechSupported(false);
-      return;
-    }
-    try {
-      try {
-        // stop previous instance if any (when changing language)
-        recognitionRef.current?.stop?.();
-      } catch {}
-      const r = new SR();
-      const langMap: Record<string, string> = {
-        ru: 'ru-RU',
-        he: 'he-IL',
-        en: (navigator.language as string) || 'en-US',
-      };
-      const langCode = (language && (langMap[language] || (navigator.language as string) || 'en-US')) || ((navigator.language as string) || 'en-US');
-      r.lang = langCode;
-      r.interimResults = false;
-      r.maxAlternatives = 1;
-      r.onresult = (e: SpeechRecognitionEvent) => {
-        const last = e.results[e.results.length - 1];
-        const transcript = (last?.[0]?.transcript ?? '').trim();
-        if (transcript) {
-            const converted = convertNumberWordsToDigits(transcript, language);
-            const capitalized = capitalize(converted);
-            setName(capitalized);
-            const p = parseSmartInput(converted, language);
-            setParsed(p);
-            try {
-              setUnit(p?.unit || '')
-            } catch {}
-          }
-      };
-      r.onstart = () => setIsListening(true);
-      r.onend = () => setIsListening(false);
-      r.onerror = () => setIsListening(false);
-      recognitionRef.current = r;
-      setSpeechSupported(true);
-      } catch {
-      setSpeechSupported(false);
-    }
-    // cleanup
-    return () => {
-      try {
-        recognitionRef.current?.stop?.();
-      } catch {}
-      recognitionRef.current = null;
-    };
-  }, [setName, setUnit, language]);
 
   // keep tempIconKey in sync when user selects existing category
   React.useEffect(() => {
@@ -388,7 +147,7 @@ export default function TodoForm({
     } else {
       setTempIconKey('');
     }
-  }, [category, availableCategories]);
+  }, [category, availableCategories, setTempIconKey]);
 
   // computed helpers
   const nameOptions = useNameOptions(todos, products);
@@ -403,16 +162,6 @@ export default function TodoForm({
     t,
     language,
   });
-
-  const displayedCategory = React.useMemo(() => {
-    if (category === '' && clearedForName === (name || '').trim().toLowerCase()) {
-      return '';
-    }
-    const localized = (t.categoryLabels as Record<string, string>)?.[category];
-    if (localized) return localized;
-    const found = availableCategories.find((c) => c.value === category);
-    return found ? found.label : category;
-  }, [availableCategories, category, name, clearedForName, t]);
 
   // info for preview area: prefer parser's category but map to
   // a human-readable label and pick an icon when available
@@ -436,126 +185,6 @@ export default function TodoForm({
     if (choice) return { label: choice.label, Icon: choice.icon };
     return { label: cat, Icon: null };
   }, [parsed, category, availableCategories, t]);
-
-  const ensureCategoryExists = React.useCallback(
-    async (val: string, iconKey?: string) => {
-      const v = val.trim();
-      if (!v) return;
-      setAvailableCategories((prev) => {
-        if (prev.find((c) => c.value === v)) return prev;
-        let finalKey = iconKey;
-        if (!finalKey) {
-          finalKey = Object.keys(iconMap).find(
-            (k) => k.toLowerCase() === v.toLowerCase()
-          );
-        }
-        const newCat: Category = {
-          value: v,
-          label: (t.categoryLabels as Record<string, string>)?.[v] || iconChoices.find((x) => x.key === v)?.label || v,
-          icon: finalKey ? iconMap[finalKey] : null,
-          listId: listId || undefined,
-        };
-        return [...prev, newCat];
-      });
-    },
-    [setAvailableCategories, t]
-  );
-
-  // add item using whatever values are currently in state
-  type Override = Partial<{ name: string; quantity: number; comment: string; category: string; unit: string; image: string }>;
-
-  const handleAdd = React.useCallback(async (override?: Override) => {
-    // compute parse fresh or use override
-    let p: Override | ParsedInput | null = override ?? parsed ?? parseSmartInput(name || '', language);
-
-    // If category is still missing AND no explicit override for category was provided, try to detect it
-    // But if override.category is empty string, we MUST keep it as empty string (user explicitly chose 'no category')
-    if (p && (override?.category === undefined) && (!p.category || p.category === 'none')) {
-      const detected = await inferCategorySmart(p.name || name || '', language);
-      if (detected) p.category = detected;
-    }
-
-    if (!p && (name || '').trim().includes(' ')) {
-      const parts = (name || '').trim().split(/\s+/);
-      const first = parts.shift() || '';
-      p = { name: first, quantity: 1, comment: parts.join(' ') };
-    }
-    if (p) {
-      // apply overrides to state synchronously
-      setName(capitalize(p.name || ''));
-      setQuantity(p.quantity ?? 1);
-      setComment(p.comment || '');
-      setUnit(p.unit || '');
-      if (p.category) {
-        setCategory(p.category);
-      }
-    }
-    // always capitalize name on save (state for UI)
-    if (name) {
-      setName(capitalize(name));
-    }
-    await ensureCategoryExists(category, tempIconKey || undefined);
-    // add using override so stale state doesn't matter
-    const overridePayload: Partial<{ name: string; quantity: number; comment: string; category: string; unit: string; image: string }> = {};
-    if (p) {
-      if (p.name) overridePayload.name = capitalize(p.name);
-      if (p.quantity != null) overridePayload.quantity = p.quantity;
-      if (p.comment) overridePayload.comment = p.comment;
-      if (p.unit) overridePayload.unit = p.unit;
-      if (p.category) overridePayload.category = p.category;
-      if (p && 'image' in p && (p as Override).image) overridePayload.image = (p as Override).image;
-    }
-    if (imageData) overridePayload.image = imageData;
-    await addItem(overridePayload);
-    updateNameCategory(
-      overridePayload.name || name || '',
-      overridePayload.category || category || '',
-      overridePayload.comment || comment || ''
-    );
-    setTempIconKey('');
-    setParsed(null);
-    setImageData(null);
-
-    // Close the form dialog after a successful add/update
-    if (dialogMode) {
-      setFormOpen(false);
-    }
-  }, [ensureCategoryExists, addItem, setName, setQuantity, setComment, setUnit, setCategory, name, category, comment, tempIconKey, updateNameCategory, parsed, imageData, dialogMode, setFormOpen]);
-
-  // Cleanup residual state when form is closed to avoid stale listeners/backdrops
-  React.useEffect(() => {
-    if (!formOpen) {
-      // cancel any pending debounce
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current as unknown as number);
-        debounceTimerRef.current = null;
-      }
-      // stop speech recognition if running
-      try {
-        recognitionRef.current?.stop?.();
-      } catch {}
-      setIsListening(false);
-      // clear UI-local state
-      setParsed(null);
-      setImageData(null);
-      setTempIconKey('');
-      // reset form fields when not editing to avoid stale values on reopen
-      if (!editingId) {
-        try {
-          setName('');
-          setDescription('');
-          setQuantity(1);
-          setComment('');
-          setUnit('');
-          setColor(listDefaultColor);
-          setCategory('');
-        } catch {}
-      }
-    } else if (!editingId && formOpen && initialCategory) {
-      // pre-select category when form is opened for a new item via category header action
-      setCategory(initialCategory);
-    }
-  }, [formOpen, editingId, initialCategory, setName, setDescription, setQuantity, setComment, setUnit, setColor, setCategory, listDefaultColor]);
 
   // build inner form container once so dialog/inline both use same markup
   const formInner = (
@@ -590,802 +219,111 @@ export default function TodoForm({
           pointerEvents: todosLoading ? 'none' : undefined,
         }}
       >
-        {/* name field now provides autocomplete based on existing todo names */}
-        <Autocomplete
-            freeSolo
-            options={nameOptions}
-            getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.name)}
-            inputValue={name || ''}
-            onInputChange={(_, v) => {
-              setName(capitalize(v));
-              // Always run parseSmartInput immediately as it's a fast local regex operation
-              const p = parseSmartInput(v, language);
-              setParsed(p);
-              setUnit(p?.unit || '');
-              
-              // Only debounce the heavy API call (category inference)
-              handleInferCategory(v);
-            }}
-            onChange={(_, v) => {
-              let newName = '';
-              if (typeof v === 'string') {
-                newName = capitalize(v);
-                setName(newName);
-                // Smart category detection on select/final change
-                inferCategorySmart(newName, language).then(cat => {
-                    if (cat) todoActions.setCategory(cat);
-                });
-              } else if (v && typeof v === 'object') {
-                newName = capitalize(v.name);
-                setName(newName);
-                if (v.category) todoActions.setCategory(v.category);
-              }
-              const p = parseSmartInput(newName, language);
-              setParsed(p);
-              setUnit(p?.unit || '');
-            }}
-            renderOption={(props, option) => {
-              const data = typeof option === 'string' ? { name: option } : option;
-              return (
-                <li {...props}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {data.icon && iconMap[data.icon] ? (
-                      <Box sx={{ display: 'flex' }}>
-                        {React.createElement(iconMap[data.icon], { fontSize: 'small' })}
-                      </Box>
-                    ) : null}
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                      <span>{data.name}</span>
-                      {data.category && (
-                        <Typography variant="caption" color="text.secondary">
-                          {(t.categoryLabels as Record<string, string>)?.[data.category] || data.category}
-                        </Typography>
-                      )}
-                      {data.comment && (
-                        <Typography variant="caption" color="text.secondary">
-                          {data.comment}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                </li>
-              );
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label={t.todos.name}
-                placeholder={namePlaceholder}
-                fullWidth
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAdd();
-                    e.preventDefault();
-                  }
-                  if (e.key === ' ' || e.key === 'Spacebar') {
-                    // space pressed - update parsed preview
-                      const p = parseSmartInput(name || '', language);
-                      setParsed(p);
-                      setUnit(p?.unit || '');
-                  }
-                }}
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {params.InputProps.endAdornment}
-                      {speechSupported ? (
-                        <InputAdornment position="end">
-                          <Tooltip
-                            title={
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                                <span>{isListening ? t.todos.stopListening : t.todos.voiceInput}</span>
-                                <Typography variant="caption" sx={{ opacity: 0.85 }}>
-                                  {t.todos.voiceExamples}
-                                </Typography>
-                              </Box>
-                            }
-                          >
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                try {
-                                  if (isListening) {
-                                    recognitionRef.current?.stop();
-                                  } else {
-                                    recognitionRef.current?.start();
-                                  }
-                                } catch {}
-                              }}
-                              edge="end"
-                              className={isListening ? 'voice-active' : ''}
-                              color={isListening ? 'primary' : undefined}
-                              aria-label={isListening ? t.todos.stopListening : t.todos.startListening}
-                            >
-                              {isListening ? <MicOffIcon /> : <MicIcon />}
-                            </IconButton>
-                          </Tooltip>
-                        </InputAdornment>
-                      ) : null}
-                    </>
-                  ),
-                }}
-              />
-            )}
-          />
-          {parsed && (
-            <Box
-              sx={(t) => ({
-                mt: 0.5,
-                p: 1,
-                bgcolor: t.palette.mode === 'dark' ? t.palette.grey[800] : t.palette.grey[100],
-                color: 'text.primary',
-                borderRadius: 1,
-              })}
-            >
-              <Typography variant="body2">
-                {t.todos.parsedPreview || 'Parsed:'}
-              </Typography>
-              <Typography variant="body2">
-                <strong>{t.todos.nameLabel || 'Name'}:</strong> {parsed.name}
-              </Typography>
-              <Typography variant="body2">
-                <strong>{t.todos.quantityLabel || 'Qty'}:</strong> {parsed.quantity}
-              </Typography>
-              {parsed.unit && (
-                <Typography variant="body2">
-                  <strong>{t.todos.unit || 'Unit'}:</strong> {parsed.unit}
-                </Typography>
-              )}
-              {parsed.comment && (
-                <Typography variant="body2">
-                  <strong>{t.todos.commentLabel || 'Comment'}:</strong> {parsed.comment}
-                </Typography>
-              )}
-              {previewCategory.label && (
-                <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <strong>{t.todos.category}:</strong>
-                  {previewCategory.Icon ? (
-                    <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                      {React.createElement(previewCategory.Icon, { fontSize: 'small' })}
-                    </Box>
-                  ) : null}
-                  <Box component="span">{previewCategory.label}</Box>
-                </Typography>
-              )}
-              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  startIcon={<AutoAwesomeIcon sx={{ 
-                    ml: theme.direction === 'rtl' ? 1 : 0, 
-                    mr: theme.direction === 'rtl' ? 0 : 1 
-                  }} />}
-                  onClick={async () => {
-                    // Normalize inputs from state or parsed
-                    const currentName = parsed?.name || name || '';
-                    const currentCategory = parsed?.category || category || '';
-                    const currentQuantity = parsed?.quantity || quantity || 1;
-                    const currentUnit = parsed?.unit || unit || '';
-                    const currentComment = parsed?.comment || description || comment || '';
+        <TodoFormNameSection
+          name={name}
+          setName={setName}
+          nameOptions={nameOptions}
+          namePlaceholder={namePlaceholder}
+          language={language}
+          t={t}
+          parsed={parsed}
+          setParsed={setParsed}
+          setUnit={setUnit}
+          handleInferCategory={handleInferCategory}
+          handleAdd={handleAdd}
+          speechSupported={speechSupported}
+          isListening={isListening}
+          startListening={startListening}
+          stopListening={stopListening}
+          todosLoading={todosLoading}
+          category={category}
+          setCategory={setCategory}
+          previewCategory={previewCategory}
+          description={description}
+          comment={comment}
+          quantity={quantity}
+          unit={unit}
+          setPendingParsed={setPendingParsed}
+          setConfirmCategoryOpen={setConfirmCategoryOpen}
+        />
+        <TodoFormDetailsSection
+          listType={listType}
+          description={description}
+          setDescription={setDescription}
+          quantity={quantity}
+          setQuantity={setQuantity}
+          comment={comment}
+          setComment={setComment}
+          unit={unit}
+          setUnit={setUnit}
+          amount={amount}
+          setAmount={setAmount}
+          spentAt={spentAt}
+          setSpentAt={setSpentAt}
+          dueDate={dueDate}
+          setDueDate={setDueDate}
+          priority={priority}
+          setPriority={setPriority}
+          reminderAt={reminderAt}
+          setReminderAt={setReminderAt}
+          language={language}
+          t={t}
+          imageData={imageData}
+          setImageData={setImageData}
+          imagePreviewOpen={imagePreviewOpen}
+          setImagePreviewOpen={setImagePreviewOpen}
+          handleImageChange={handleImageChange}
+          quantityDialogOpen={quantityDialogOpen}
+          setQuantityDialogOpen={setQuantityDialogOpen}
+          tempQuantity={tempQuantity}
+          setTempQuantity={setTempQuantity}
+        />
 
-                    // Try to get a better category from our classifier if current one is default/missing
-                    const finalCategory = currentCategory;
-                    
-                    // IF category is missing, we opening dialog and ONLY THEN try to infer
-                    const isInitialCategoryMissing = !finalCategory || finalCategory === 'none' || finalCategory === '';
+        <TodoFormCategorySection
+          category={category}
+          setCategoryManual={setCategoryManual}
+          availableCategories={availableCategories}
+          categoryOptions={categoryOptions}
+          t={t}
+          language={language}
+          ensureCategoryExists={ensureCategoryExists}
+          tempIconKey={tempIconKey}
+          setTempIconKey={setTempIconKey}
+          categoryWarning={categoryWarning}
+        />
 
-                    if (isInitialCategoryMissing) {
-                      console.log('Category missing, checking smart inference before opening dialog...');
-                      const detected = await inferCategorySmart(currentName, language);
-                      console.log('Detected category from API:', detected);
-                      
-                      const data = {
-                        name: currentName,
-                        category: (detected && detected !== 'none') ? detected : '',
-                        quantity: currentQuantity,
-                        unit: currentUnit,
-                        comment: currentComment,
-                      };
-
-                      setPendingParsed(data);
-                      setConfirmCategoryOpen(true);
-                    } else {
-                      // Category already set by user or autocomplete, just add
-                      const data = {
-                        name: currentName,
-                        category: finalCategory,
-                        quantity: currentQuantity,
-                        unit: currentUnit,
-                        comment: currentComment,
-                      };
-                      console.log('Category already present, adding item:', data.category);
-                      await handleAdd(data);
-                    }
-                  }}
-                >
-                  {t.buttons?.smartAdd || 'Умная подстановка'}
-                </Button>
-              </Box>
-            </Box>
-          )}
-          <TextField
-            label={t.todos.description}
-            placeholder={t.todos.descriptionPlaceholder}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            fullWidth
-            InputProps={{
-              endAdornment: description ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    onClick={() => setDescription('')}
-                    edge="end"
-                    aria-label={t.buttons.cancel}
-                    title={t.buttons.cancel}
-                  >
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }}
-          />
-          {listType === 'shopping' && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <TextField
-                label={t.todos.quantity}
-                type="number"
-                value={quantity}
-                onClick={() => {
-                  setTempQuantity(quantity || 1);
-                  setQuantityDialogOpen(true);
-                }}
-                onFocus={(e) => {
-                  setTempQuantity(quantity || 1);
-                  setQuantityDialogOpen(true);
-                  (e.target as HTMLElement).blur();
-                }}
-                InputLabelProps={{ shrink: true }}
-                InputProps={{ readOnly: true }}
-                inputProps={{ min: 1 }}
-                sx={{ flex: 1 }}
-              />
-              <Autocomplete
-                freeSolo
-                options={getUnitOptions(language)}
-                disablePortal={true}
-                inputValue={unit || ''}
-                onInputChange={(_, v) => setUnit(v)}
-                sx={{ width: 110 }}
-                renderInput={(params) => (
-                  <TextField {...params} label={t.todos.unit || 'Unit'} />
-                )}
-              />
-            </Box>
-          )}
-          <TextField
-            label={t.todos.comment}
-            placeholder={t.todos.commentPlaceholder}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            fullWidth
-            InputProps={{
-              endAdornment: comment ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    onClick={() => setComment('')}
-                    edge="end"
-                    aria-label="Очистить комментарий"
-                    title="Очистить комментарий"
-                  >
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }}
-          />
-
-          {listType === 'expenses' && (
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-              <TextField
-                label={t.todos.amount}
-                placeholder={t.todos.amountPlaceholder}
-                type="number"
-                value={amount ?? ''}
-                onChange={(e) => setAmount(e.target.value === '' ? undefined : Number(e.target.value))}
-                fullWidth
-                InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-              />
-              <TextField
-                label={t.todos.spentAt}
-                type="date"
-                value={spentAt}
-                onChange={(e) => setSpentAt(e.target.value)}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-            </Box>
-          )}
-
-          {listType === 'todo' && (
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-              <TextField
-                label={t.todos.dueDate}
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                select
-                label={t.todos.priority}
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as 'low' | 'medium' | 'high' | '')}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              >
-                <MenuItem value="">{t.todos.priority}</MenuItem>
-                <MenuItem value="low">{t.todos.priorityLow}</MenuItem>
-                <MenuItem value="medium">{t.todos.priorityMedium}</MenuItem>
-                <MenuItem value="high">{t.todos.priorityHigh}</MenuItem>
-              </TextField>
-              <TextField
-                label={t.todos.reminder}
-                type="datetime-local"
-                value={reminderAt}
-                onChange={(e) => setReminderAt(e.target.value)}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-            </Box>
-          )}
-
-          <Box sx={{ mt: 0.5 }}>
-            <Button variant="outlined" component="label" size="small">
-              {t.todos.attachImage || 'Прикрепить изображение'}
-              <input
-                hidden
-                accept="image/*"
-                type="file"
-                onChange={handleImageChange}
-              />
-            </Button>
-            {imageData && (
-              <Box
-                sx={{ mt: 0.5, position: 'relative', display: 'inline-block', cursor: 'pointer' }}
-                onClick={() => {
-                  setImagePreviewOpen(true);
-                }}
-              >
-                <img
-                  src={imageData}
-                  alt="preview"
-                  style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 4 }}
-                  onClick={() => {
-                    setImagePreviewOpen(true);
-                  }}
-                />
-                <IconButton
-                  size="small"
-                  sx={{ position: 'absolute', top: 2, insetInlineEnd: 2 }}
-                  onClick={(event) => { event.stopPropagation(); setImageData(null); }}
-                  aria-label="Удалить изображение"
-                  title="Удалить изображение"
-                >
-                  <ClearIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            )}
-          </Box>
-
-          <Dialog
-            open={imagePreviewOpen}
-            onClose={() => setImagePreviewOpen(false)}
-            maxWidth="md"
-            sx={{ zIndex: (theme) => theme.zIndex.modal + 200 }}
-          >
-            <DialogContent sx={{ p: 0, background: 'black' }}>
-              <img src={imageData || ''} alt="full" style={{ width: '100%', height: 'auto' }} />
-            </DialogContent>
-          </Dialog>
-
-          {/*
-          <TextField
-            label={t.todos.color}
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            sx={{ width: 80 }}
-          />
-          */}
-          <Autocomplete
-            freeSolo
-            options={categoryOptions}
-            getOptionLabel={(opt) =>
-              typeof opt === 'string' ? opt : opt.label || opt.value
-            }
-            filterOptions={(opts, state) => {
-              const q = (state.inputValue || '').trim().toLowerCase();
-              if (!q) return opts;
-              
-              const langKeywords = categoryKeywords[language] || categoryKeywords.en;
-
-              return opts.filter((opt) => {
-                const label = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
-                const value = typeof opt === 'string' ? opt : (opt.value || '');
-                
-                // 1. Check direct match in label/value (startsWith or partial)
-                if (label.toLowerCase().includes(q) || value.toLowerCase().includes(q)) {
-                  return true;
-                }
-
-                // 2. Check if query matches any keywords (including partial matches like "сне" matches "снеки")
-                if (value && langKeywords[value]) {
-                  return langKeywords[value].some(kw => {
-                    const lkw = kw.toLowerCase();
-                    return lkw.includes(q) || q.includes(lkw);
-                  });
-                }
-
-                return false;
-              });
-            }}
-            disablePortal={true}
-            value={
-              category === ''
-                ? null
-                : availableCategories.find((c) => c.value === category) ||
-                  (category
-                    ? {
-                        value: category,
-                        label:
-                          (t.categoryLabels as Record<string, string>)?.[category] ||
-                          iconChoices.find((x) => x.key === category)?.label ||
-                          category,
-                        icon: iconChoices.find((x) => x.key === category)?.icon || null,
-                      }
-                    : null)
-            }
-            inputValue={category === '' ? '' : displayedCategory}
-            onInputChange={(_, v, reason) => {
-              if (reason === 'input') {
-                setCategoryManual(v);
-              }
-            }}
-            onChange={(_, v) => {
-              let val = '';
-              if (typeof v === 'string') {
-                val = v;
-              } else if (v && typeof v === 'object') {
-                val = v.value || '';
-              }
-              setCategoryManual(val);
-              ensureCategoryExists(val);
-            }}
-            renderOption={(props, option) => (
-              <li {...props} key={option.value}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  {option.icon ? <option.icon fontSize="small" sx={{ marginInlineEnd: 0.5 }} /> : null}
-                  {option.label || option.value}
-                </Box>
-              </li>
-            )}
-            renderInput={(params) => (
-              <TextField {...params} inputRef={categoryInputRef} label={t.todos.category} fullWidth />
-            )}
-          />
-          {category && (
-            <Box sx={{ mt: 0.5 }}>
-              <Chip
-                label={displayedCategory}
-                icon={iconChoices.find((x) => x.key === category)?.icon ? React.createElement(iconChoices.find((x) => x.key === category)!.icon, { fontSize: 'small' }) : undefined}
-                onDelete={() => setCategoryManual('')}
-                color="primary"
-                variant="outlined"
-              />
-            </Box>
-          )}
-          {categoryWarning && (
-            <Box sx={{ mt: 0.5 }}>
-              <Alert
-                severity="warning"
-                onClose={() => setCategoryManual(category)}
-              >
-                {todoActions.categoryWarning}
-              </Alert>
-            </Box>
-          )}
-          {/* if category text doesn't match existing, allow picking icon */}
-          {category && !availableCategories.find((c) => c.value === category) && (
-              <CategoryIconPicker
-                selected={tempIconKey}
-                onChange={setTempIconKey}
-              />
-            )}
-
-          
-
-          <Stack direction="row" flexWrap="wrap" sx={{ width: '100%' }}>
-            <Button
-                variant="text"
-                className="glass"
-                onClick={() => handleAdd()}
-                sx={{ 
-                  flex: 1, 
-                  mx: editingId ? '2px' : 0,
-                  color: 'primary.main',
-                  '&:hover': {
-                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                  }
-                }}
-              >
-                {editingId ? t.todos.save : t.todos.addTask || t.todos.add}
-              </Button>
-            {editingId && (
-              <Button
-                variant="text"
-                className="glass"
-                onClick={() => {
-                  setEditingId(null);
-                  setName('');
-                  setDescription('');
-                  setQuantity(1);
-                  setComment('');
-                  setColor(listDefaultColor);
-                }}
-                sx={{ 
-                  flex: 1, 
-                  mx: '2px',
-                  color: 'text.secondary',
-                  '&:hover': {
-                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                  }
-                }}
-              >
-                {t.todos.cancel}
-              </Button>
-            )}
-          </Stack>
-        </Stack>
-      </Paper>
-      {listType === 'shopping' && (
-        <QuantityDialog
-          open={quantityDialogOpen}
-          value={tempQuantity}
-          onChange={(v) => {
-            setTempQuantity(v);
-            todoActions.setQuantity(v);
-          }}
-          onClose={() => setQuantityDialogOpen(false)}
+        <TodoFormFooter
+          editingId={editingId}
+          handleAdd={handleAdd}
+          setEditingId={setEditingId}
+          setName={setName}
+          setDescription={setDescription}
+          setQuantity={setQuantity}
+          setComment={setComment}
+          setColor={setColor}
+          listDefaultColor={listDefaultColor}
+          setFormOpen={setFormOpen}
           t={t}
         />
-      )}
-      <Dialog
+
+      </Stack>
+      </Paper>
+      <ConfirmCategoryDialog
         open={confirmCategoryOpen}
         onClose={() => setConfirmCategoryOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ className: 'glass', sx: { borderRadius: 3 } }}
-      >
-        <DialogTitle sx={{ textAlign: 'center', pb: 0 }}>
-          <Typography variant="h6" fontWeight="bold">
-            {t.todos.category || 'Category'}
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ textAlign: 'center', p: 3 }}>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            {t.messages.possibleCategoryMismatch || 'Select category for:'} 
-            <Box component="span" sx={{ fontWeight: 'bold', mx: 1, color: 'primary.main' }}>
-              &quot;{(pendingParsed?.name || '').toLowerCase()}&quot;
-            </Box>
-          </Typography>
-          <Autocomplete
-            freeSolo
-            options={categoryOptions}
-            getOptionLabel={(opt) =>
-              typeof opt === 'string' ? opt : opt.label || opt.value
-            }
-            filterOptions={(opts, state) => {
-              const q = (state.inputValue || '').trim().toLowerCase();
-              if (!q) return opts;
-              
-              const langKeywords = categoryKeywords[language] || categoryKeywords.en;
-
-              return opts.filter((opt) => {
-                const label = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
-                const value = typeof opt === 'string' ? opt : (opt.value || '');
-                
-                // 1. Check direct match in label/value (startsWith or partial)
-                if (label.toLowerCase().includes(q) || value.toLowerCase().includes(q)) {
-                  return true;
-                }
-
-                // 2. Check if query matches any keywords (including partial matches like "сне" matches "снеки")
-                if (value && langKeywords[value]) {
-                  return langKeywords[value].some(kw => {
-                    const lkw = kw.toLowerCase();
-                    return lkw.includes(q) || q.includes(lkw);
-                  });
-                }
-
-                return false;
-              });
-            }}
-            value={
-              !pendingParsed?.category
-                ? null
-                : availableCategories.find((c) => c.value === pendingParsed.category) ||
-                  (pendingParsed.category
-                    ? {
-                        value: pendingParsed.category,
-                        label:
-                          (t.categoryLabels as Record<string, string>)?.[pendingParsed.category] ||
-                          iconChoices.find((x) => x.key === pendingParsed.category)?.label ||
-                          pendingParsed.category,
-                        icon: iconChoices.find((x) => x.key === pendingParsed.category)?.icon || null,
-                      }
-                    : null)
-            }
-            inputValue={
-              pendingParsed?.category === '' 
-                ? '' 
-                : (typeof pendingParsed?.category === 'string' 
-                   ? ((t.categoryLabels as Record<string, string>)?.[pendingParsed.category] || 
-                      availableCategories.find(c => c.value === pendingParsed.category)?.label || 
-                      pendingParsed.category)
-                   : '')
-            }
-            onInputChange={(_, v, reason) => {
-              if (pendingParsed) {
-                // We update for both 'input' (typing) and 'reset' (selection/blur)
-                // but we filter based on availableCategories to map labels back to values
-                const found = availableCategories.find(c => c.label === v || c.value === v);
-                const newVal = found ? found.value : v;
-                setPendingParsed({ ...pendingParsed, category: newVal });
-              }
-            }}
-            onChange={(_, v) => {
-              let val = '';
-              if (typeof v === 'string') {
-                val = v;
-              } else if (v && typeof v === 'object') {
-                val = v.value || '';
-              }
-              if (pendingParsed) {
-                setPendingParsed({ ...pendingParsed, category: val });
-              }
-            }}
-            renderOption={(props, option) => (
-              <li {...props} key={option.value}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  {option.icon ? <option.icon fontSize="small" sx={{ marginInlineEnd: 0.5 }} /> : null}
-                  {option.label || option.value}
-                </Box>
-              </li>
-            )}
-            renderInput={(params) => (
-              <TextField 
-                {...params} 
-                label={t.todos.category} 
-                fullWidth 
-                autoFocus 
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && pendingParsed && !isSubmitting) {
-                    const found = availableCategories.find(c => c.label === pendingParsed.category);
-                    const finalCategory = found ? found.value : pendingParsed.category;
-                    
-                    setIsSubmitting(true);
-                    handleAdd({ ...pendingParsed, category: finalCategory }).finally(() => {
-                      setIsSubmitting(false);
-                      setConfirmCategoryOpen(false);
-                    });
-                  }
-                }}
-              />
-            )}
-          />
-          {pendingParsed?.category && (
-            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 0.5 }}>
-              <Chip
-                label={
-                  (t.categoryLabels as Record<string, string>)?.[pendingParsed.category] || 
-                  availableCategories.find(c => c.value === pendingParsed.category)?.label || 
-                  pendingParsed.category
-                }
-                icon={iconChoices.find((x) => x.key === pendingParsed.category)?.icon ? React.createElement(iconChoices.find((x) => x.key === pendingParsed.category)!.icon, { fontSize: 'small' }) : undefined}
-                onDelete={() => setPendingParsed({ ...pendingParsed, category: '' })}
-                color="primary"
-                variant="outlined"
-                size="small"
-                disabled={isSubmitting}
-              />
-            </Box>
-          )}
-
-          {/* Icon picker for NEW categories in dialog */}
-          {pendingParsed?.category && !availableCategories.find((c) => c.value === pendingParsed.category) && (
-            <Box sx={{ mt: 1 }}>
-              <CategoryIconPicker
-                selected={tempIconKey}
-                onChange={setTempIconKey}
-              />
-            </Box>
-          )}
-
-          <Box sx={{ mt: 3 }}>
-            {isSubmitting ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 1 }}>
-                <LinearProgress sx={{ width: '100%', mb: 1, borderRadius: 1 }} />
-                <Typography variant="caption" color="text.secondary">
-                  {t.auth?.loading || 'Processing...'}
-                </Typography>
-              </Box>
-            ) : (
-              <Stack spacing={1.5}>
-                <Button 
-                  fullWidth
-                  variant="contained" 
-                  onClick={async () => {
-                    if (pendingParsed && !isSubmitting) {
-                      setIsSubmitting(true);
-                      try {
-                        const found = availableCategories.find(c => c.label === pendingParsed.category);
-                        const finalCategory = found ? found.value : pendingParsed.category;
-                        
-                        if (finalCategory) {
-                          await ensureCategoryExists(finalCategory, tempIconKey || undefined);
-                        }
-                        await handleAdd({ ...pendingParsed, category: finalCategory });
-                        setConfirmCategoryOpen(false);
-                      } finally {
-                        setIsSubmitting(false);
-                      }
-                    }
-                  }}
-                  sx={{ borderRadius: 2, py: 1 }}
-                >
-                  {t.buttons.add}
-                </Button>
-                <Button 
-                  fullWidth
-                  variant="outlined" 
-                  color="warning"
-                  onClick={async () => {
-                    if (pendingParsed && !isSubmitting) {
-                      setIsSubmitting(true);
-                      try {
-                        // Immediately clear visual state in dialog to avoid confusion
-                        setPendingParsed({ ...pendingParsed, category: '' });
-                        
-                        // Explicitly save with NO category
-                        await handleAdd({ ...pendingParsed, category: '' });
-                        setConfirmCategoryOpen(false);
-                      } finally {
-                        setIsSubmitting(false);
-                      }
-                    }
-                  }}
-                  sx={{ borderRadius: 2, py: 1 }}
-                >
-                  {language === 'ru' ? 'Без категории' : (t.categoryLabels as Record<string, string>)?.[ '' ] || 'Without Category'}
-                </Button>
-                <Button 
-                  fullWidth
-                  variant="text" 
-                  onClick={() => setConfirmCategoryOpen(false)}
-                  sx={{ borderRadius: 2, color: 'text.secondary' }}
-                >
-                  {t.buttons.cancel}
-                </Button>
-              </Stack>
-            )}
-          </Box>
-        </DialogContent>
-      </Dialog>
+        pendingParsed={pendingParsed}
+        setPendingParsed={setPendingParsed}
+        isSubmitting={isSubmitting}
+        setIsSubmitting={setIsSubmitting}
+        availableCategories={availableCategories}
+        categoryOptions={categoryOptions}
+        t={t}
+        language={language}
+        ensureCategoryExists={ensureCategoryExists}
+        handleAdd={handleAdd}
+        tempIconKey={tempIconKey}
+        setTempIconKey={setTempIconKey}
+      />
     </>
   );
 

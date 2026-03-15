@@ -37,12 +37,13 @@ export default async function handler(
 
     res.status(200).json(existingLists);
   } else if (req.method === 'POST') {
-    const { userId, name, defaultColor, type, strictBudget } = req.body as {
+    const { userId, name, defaultColor, type, strictBudget, budget } = req.body as {
       userId?: unknown;
       name?: unknown;
       defaultColor?: unknown;
       type?: unknown;
       strictBudget?: unknown;
+      budget?: unknown;
     };
     if (!userId || typeof userId !== 'string') {
       res.status(400).json({ error: 'userId is required' });
@@ -73,7 +74,7 @@ export default async function handler(
       createdAt: new Date(),
       defaultColor: typeof defaultColor === 'string' ? defaultColor : '#ffffff',
       type: selectedType,
-      budget: typeof (req.body as any).budget === 'number' ? (req.body as any).budget : undefined,
+      budget: typeof budget === 'number' ? budget : undefined,
       strictBudget: typeof strictBudget === 'boolean' ? strictBudget : undefined,
     };
     // allow client to supply an initial shareToken (rare)

@@ -1,10 +1,8 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { categoryKeywords, iconChoices } from '@/constants';
-
-
-const path = require('path');
-const fs = require('fs');
+import { categoryKeywords } from '@/constants';
+import path from 'path';
+import fs from 'fs';
 
 interface BayesClassifier {
   addDocument: (text: string, label: string) => void;
@@ -22,34 +20,53 @@ interface UniversalStemmer {
 }
 
 let natural: NaturalLib | null = null;
-try {
-  const BayesClassifier = require('natural/lib/natural/classifiers/bayes_classifier');
-  const { RegexpTokenizer } = require('natural/lib/natural/tokenizers/regexp_tokenizer');
-  const PorterStemmer = require('natural/lib/natural/stemmers/porter_stemmer');
-  natural = { BayesClassifier, RegexpTokenizer, PorterStemmer };
-} catch (e) {
-  console.error('Failed to load natural submodules', e);
-}
+let tokenizer: { tokenize: (text: string) => string[] } | null = null;
 
+async function ensureNaturalLoaded(): Promise<void> {
+  if (natural && tokenizer) return;
+  try {
+    const [bayesMod, tokenizerMod, stemmerMod] = await Promise.all([
+      import('natural/lib/natural/classifiers/bayes_classifier'),
+      import('natural/lib/natural/tokenizers/regexp_tokenizer'),
+      import('natural/lib/natural/stemmers/porter_stemmer'),
+    ]);
+
+    const BayesClassifier = (
+      (bayesMod as { default?: NaturalLib['BayesClassifier'] }).default ??
+      ((bayesMod as unknown) as NaturalLib['BayesClassifier'])
+    ) as NaturalLib['BayesClassifier'];
+    const { RegexpTokenizer } = tokenizerMod as { RegexpTokenizer: NaturalLib['RegexpTokenizer'] };
+    const PorterStemmer = (
+      (stemmerMod as { default?: NaturalLib['PorterStemmer'] }).default ??
+      ((stemmerMod as unknown) as NaturalLib['PorterStemmer'])
+    ) as NaturalLib['PorterStemmer'];
+
+    natural = { BayesClassifier, RegexpTokenizer, PorterStemmer };
+    tokenizer = new natural.RegexpTokenizer({ pattern: /[^\p{L}0-9]+/u });
+
+    // Ensure the stemmer uses the same tokenization logic.
+    natural.PorterStemmer.tokenizeAndStem = universalStemmer.tokenizeAndStem;
+  } catch (e) {
+    console.error('Failed to load natural submodules', e);
+    natural = null;
+    tokenizer = null;
+  }
+}
 
 // Use a tokenizer that handles Cyrillic and Hebrew characters properly
 // \p{L} matches any character from any language
 
-const tokenizer = natural ? new natural.RegexpTokenizer({ pattern: /[^\p{L}0-9]+/u }) : null;
-
 const universalStemmer: UniversalStemmer = {
   stem: (token: string) => token.toLowerCase(),
-  tokenizeAndStem: (text: string) => tokenizer ? tokenizer.tokenize(text.toLowerCase()) : []
+  tokenizeAndStem: (text: string) => (tokenizer ? tokenizer.tokenize(text.toLowerCase()) : []),
 };
-
-if (natural) {
-  natural.PorterStemmer.tokenizeAndStem = universalStemmer.tokenizeAndStem;
-}
 
 let classifier: BayesClassifier | null = null;
 
-function trainClassifier(): BayesClassifier | null {
+async function trainClassifier(): Promise<BayesClassifier | null> {
+  await ensureNaturalLoaded();
   if (!natural || !tokenizer) return null;
+  const tokenizerInstance = tokenizer;
   const newClassifier = new natural.BayesClassifier(universalStemmer);
   const trainingPath = path.resolve(process.cwd(), 'training_data_augmented.json');
   let jsonData: Record<string, Set<string>> = {};
@@ -61,7 +78,7 @@ function trainClassifier(): BayesClassifier | null {
         jsonData[label] = new Set();
         examples.forEach((ex) => {
           if (ex && ex.trim()) {
-            const tokens = tokenizer.tokenize(ex.toLowerCase());
+            const tokens = tokenizerInstance.tokenize(ex.toLowerCase());
             newClassifier.addDocument(tokens.join(' '), label);
             jsonData[label].add(ex.toLowerCase());
           }
@@ -77,7 +94,7 @@ function trainClassifier(): BayesClassifier | null {
       keywords.forEach((keyword: string) => {
         const kw = keyword.toLowerCase();
         if (!jsonData[label] || !jsonData[label].has(kw)) {
-          const tokens = tokenizer.tokenize(kw);
+          const tokens = tokenizerInstance.tokenize(kw);
           if (tokens.length > 0) newClassifier.addDocument(tokens.join(' '), label);
         }
       });
@@ -87,7 +104,7 @@ function trainClassifier(): BayesClassifier | null {
   return newClassifier;
 }
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -98,13 +115,9 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: 'Text is required' });
   }
 
-  if (!natural) {
-    return res.status(500).json({ error: 'Natural language processing module not loaded' });
-  }
-
   // Lazy initialization/training
   if (!classifier) {
-    classifier = trainClassifier();
+    classifier = await trainClassifier();
   }
 
   if (!classifier) {

@@ -6,12 +6,12 @@ export interface CategoryIconPickerProps {
 
 export interface AuthPanelProps {
   t: TranslationKeys;
-  formatMessage: (id: string, values?: any) => string;
+  formatMessage: (id: string, values?: FormatMessageValues) => string;
   onSnackbar: (msg: string) => void;
 }
 
 export interface ListToolbarProps {
-  lists: any[];
+  lists: List[];
   currentListId: string | null;
   onSelectList: (id: string) => void;
   listsLoading?: boolean;
@@ -37,7 +37,7 @@ export interface ListToolbarProps {
   onAddCategoryWithBudget?: (budget?: number) => void;
   listType?: ListType | null;
   t: TranslationKeys;
-  formatMessage: (id: string, values?: any) => string;
+  formatMessage: (id: string, values?: FormatMessageValues) => string;
 }
 
 export interface SearchBulkProps {
@@ -63,9 +63,12 @@ export interface HeaderProps {
 // Централизованные типы Props для компонентов
 import type { Category } from '../constants';
 import type { UseTodosReturn, UseListsReturn } from './hooks';
-import type { ListType } from './list';
-import type { StoredProduct } from './index';
+import type { List, ListType } from './list';
+import type { StoredProduct, Todo } from './index';
 import type { TranslationKeys } from '../locales/ru';
+import type { IntlShape } from 'react-intl';
+
+type FormatMessageValues = Parameters<IntlShape['formatMessage']>[1];
 
 export interface AppSnackbarProps {
   open: boolean;
@@ -104,7 +107,7 @@ export interface TodoListProps {
 }
 
 export interface TodoListItemProps {
-  todo: any; // Заменить на Todo, если тип доступен
+  todo: Todo;
   globalIndex: number;
   todoActions: UseTodosReturn;
   listActions: UseListsReturn;

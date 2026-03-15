@@ -12,19 +12,13 @@ import {
   ArrowDownward as ArrowDownwardIcon,
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Lock as LockIcon,
 } from '@mui/icons-material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { Tooltip } from '@mui/material';
 import TodoListItem from './TodoListItem';
-import type { Category } from '@/constants';
 import { iconChoices, formatCurrency } from '@/constants';
-import type { TranslationKeys } from '@/locales/ru';
 import type { Todo } from '@/types/todo';
-
-import type { UseTodosReturn, UseListsReturn } from '@/types/hooks';
-
 
 import type { TodoListProps } from '@/types/componentProps';
 
@@ -185,7 +179,7 @@ function TodoList({
     const categoriesFromTodos = Array.from(new Set(sorted.map((t) => t.category || '')));
 
     const budgetCategoryOrder = availableCategories
-      .filter((c) => typeof (c as any).budget === 'number')
+      .filter((c) => typeof c.budget === 'number')
       .map((c) => c.value);
 
     const displayCategories = [

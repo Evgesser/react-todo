@@ -65,14 +65,19 @@ export function usePersonalization(
     try {
       const raw = localStorage.getItem('availCats');
       if (raw) {
-        const arr = JSON.parse(raw) as Array<{
+        type StoredCatFromStorage = {
           value: string;
           label: string;
           icon?: string;
           listId?: string;
-        }>;
+          currency?: string;
+          exchangeRateToListCurrency?: number;
+          budget?: number;
+          strictBudget?: boolean;
+        };
+        const arr = JSON.parse(raw) as StoredCatFromStorage[];
         if (Array.isArray(arr)) {
-          const cats: Category[] = arr.map((c: any) => ({
+          const cats: Category[] = arr.map((c) => ({
             value: c.value,
             label: c.label,
             icon: c.icon && iconMap[c.icon] ? iconMap[c.icon] : null,
@@ -127,8 +132,8 @@ export function usePersonalization(
         value: c.value,
         label: c.label,
         icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
-        currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
-        listId: typeof (c as any).listId === 'string' ? (c as any).listId : undefined,
+        currency: typeof c.currency === 'string' ? c.currency : undefined,
+        listId: typeof c.listId === 'string' ? c.listId : undefined,
       }));
       localStorage.setItem('availCats', JSON.stringify(toStore));
     } catch {
@@ -336,16 +341,12 @@ export function usePersonalization(
         label: c.label,
         icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
         budget:
-          typeof (c as any).budget === 'number' && Number.isFinite((c as any).budget)
-            ? (c as any).budget
-            : undefined,
-        currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
+          typeof c.budget === 'number' && Number.isFinite(c.budget) ? c.budget : undefined,
+        currency: typeof c.currency === 'string' ? c.currency : undefined,
         exchangeRateToListCurrency:
-          typeof (c as any).exchangeRateToListCurrency === 'number'
-            ? (c as any).exchangeRateToListCurrency
-            : undefined,
-        strictBudget: typeof (c as any).strictBudget === 'boolean' ? (c as any).strictBudget : undefined,
-        listId: typeof (c as any).listId === 'string' ? (c as any).listId : undefined,
+          typeof c.exchangeRateToListCurrency === 'number' ? c.exchangeRateToListCurrency : undefined,
+        strictBudget: typeof c.strictBudget === 'boolean' ? c.strictBudget : undefined,
+        listId: typeof c.listId === 'string' ? c.listId : undefined,
       })),
       availableTemplates,
       nameCategoryMap,
@@ -381,14 +382,10 @@ export function usePersonalization(
               label: c.label,
               icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
               budget:
-                typeof (c as any).budget === 'number' && Number.isFinite((c as any).budget)
-                  ? (c as any).budget
-                  : undefined,
-              currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
+                typeof c.budget === 'number' && Number.isFinite(c.budget) ? c.budget : undefined,
+              currency: typeof c.currency === 'string' ? c.currency : undefined,
               exchangeRateToListCurrency:
-                typeof (c as any).exchangeRateToListCurrency === 'number'
-                  ? (c as any).exchangeRateToListCurrency
-                  : undefined,
+                typeof c.exchangeRateToListCurrency === 'number' ? c.exchangeRateToListCurrency : undefined,
             })),
             availableTemplates,
             next,

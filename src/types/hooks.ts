@@ -3,6 +3,9 @@ import type { List as ListDoc, ListType } from './list';
 import type { Category } from '../constants';
 import type { TranslationKeys } from '../locales/ru';
 import type { Todo } from './todo';
+import type { IntlShape } from 'react-intl';
+
+type FormatMessageValues = Parameters<IntlShape['formatMessage']>[1];
 
 export interface UseTodosParams {
   currentListId: string | null;
@@ -16,7 +19,7 @@ export interface UseTodosParams {
   listCurrency?: string;
   onSnackbar: (message: string) => void;
   t: TranslationKeys;
-  formatMessage?: (id: string, values?: any) => string;
+  formatMessage?: (id: string, values?: FormatMessageValues) => string;
   nameCategoryMap?: Record<string, string>;
   products?: Array<{ name: string; category?: string }>;
 }
@@ -148,7 +151,7 @@ export interface UseListsParams {
   listType?: ListType | null;
   onSnackbar: (message: string) => void;
   t?: TranslationKeys;
-  formatMessage: (id: string, values?: any) => string;
+  formatMessage: (id: string, values?: FormatMessageValues) => string;
 }
 
 export interface UseListsReturn {

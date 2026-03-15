@@ -112,8 +112,8 @@ export default function PersonalizationDialog({
         value: category.value,
         label: category.label,
         icon: Object.keys(iconMap).find((k) => iconMap[k] === category.icon) || '',
-        budget: typeof (category as any).budget === 'number' ? (category as any).budget : undefined,
-        currency: typeof (category as any).currency === 'string' ? (category as any).currency : undefined,
+        budget: typeof category.budget === 'number' ? category.budget : undefined,
+        currency: typeof category.currency === 'string' ? category.currency : undefined,
       }))
     );
     setEditingTemplates(availableTemplates.map((template) => ({ ...template, items: [...template.items] })));

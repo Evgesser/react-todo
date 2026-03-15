@@ -21,7 +21,7 @@ export default function CategoryRow({
   onRemove,
   autoFocusIcon,
 }: CategoryRowProps) {
-  const handleField = (key: keyof StoredCategory, value: any) => {
+  const handleField = (key: keyof StoredCategory, value: string | number | boolean | undefined) => {
     onChange({ ...category, [key]: value });
   };
 

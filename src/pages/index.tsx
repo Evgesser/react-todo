@@ -173,8 +173,8 @@ export default function Home() {
         return true;
       })
       .forEach((c) => {
-        if (typeof (c as any).budget === 'number') {
-          map[c.value] = (c as any).budget as number;
+        if (typeof c.budget === 'number') {
+          map[c.value] = c.budget;
         }
       });
 
@@ -193,7 +193,7 @@ export default function Home() {
         return true;
       })
       .forEach((c) => {
-        const rate = (c as any).exchangeRateToListCurrency;
+        const rate = c.exchangeRateToListCurrency;
         if (typeof rate === 'number' && rate > 0) {
           map[c.value] = rate;
         }
@@ -284,14 +284,11 @@ export default function Home() {
         setExchangeRateError(null);
         setCurrencyRateValues(
           Object.fromEntries(
-            categoriesToUpdate.map((c) => [
-              c.value,
-              typeof (availableCategories.find((ac) => ac.value === c.value) as any)
-                .exchangeRateToListCurrency === 'number'
-                ? ((availableCategories.find((ac) => ac.value === c.value) as any)
-                    .exchangeRateToListCurrency as number)
-                : 1,
-            ])
+            categoriesToUpdate.map((c) => {
+              const existing = availableCategories.find((ac) => ac.value === c.value);
+              const existingRate = existing?.exchangeRateToListCurrency;
+              return [c.value, typeof existingRate === 'number' ? existingRate : 1];
+            })
           )
         );
         setCurrencyRateDialogOpen(true);
@@ -327,14 +324,12 @@ export default function Home() {
           value: c.value,
           label: c.label,
           icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
-          budget: typeof (c as any).budget === 'number' ? (c as any).budget : undefined,
-          currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
+          budget: typeof c.budget === 'number' ? c.budget : undefined,
+          currency: typeof c.currency === 'string' ? c.currency : undefined,
           exchangeRateToListCurrency:
-            typeof (c as any).exchangeRateToListCurrency === 'number'
-              ? (c as any).exchangeRateToListCurrency
-              : undefined,
-          strictBudget: typeof (c as any).strictBudget === 'boolean' ? (c as any).strictBudget : undefined,
-          listId: typeof (c as any).listId === 'string' ? (c as any).listId : undefined,
+            typeof c.exchangeRateToListCurrency === 'number' ? c.exchangeRateToListCurrency : undefined,
+          strictBudget: typeof c.strictBudget === 'boolean' ? c.strictBudget : undefined,
+          listId: typeof c.listId === 'string' ? c.listId : undefined,
         }));
         await savePersonalization(userId, storedCategories);
       } catch {
@@ -411,8 +406,8 @@ export default function Home() {
 
     const existingRate =
       categoryCurrency !== listCurrency &&
-      typeof (cat as any).exchangeRateToListCurrency === 'number'
-        ? (cat as any).exchangeRateToListCurrency
+      typeof cat.exchangeRateToListCurrency === 'number'
+        ? cat.exchangeRateToListCurrency
         : 1;
 
     setNewCategoryExchangeRate(existingRate);
@@ -444,10 +439,10 @@ export default function Home() {
           value: c.value,
           label: c.label,
           icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
-          budget: typeof (c as any).budget === 'number' ? (c as any).budget : undefined,
-          currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
-          strictBudget: typeof (c as any).strictBudget === 'boolean' ? (c as any).strictBudget : undefined,
-          listId: typeof (c as any).listId === 'string' ? (c as any).listId : undefined,
+          budget: typeof c.budget === 'number' ? c.budget : undefined,
+          currency: typeof c.currency === 'string' ? c.currency : undefined,
+          strictBudget: typeof c.strictBudget === 'boolean' ? c.strictBudget : undefined,
+          listId: typeof c.listId === 'string' ? c.listId : undefined,
         }));
         await savePersonalization(userId, storedCategories);
       } catch {
@@ -617,7 +612,7 @@ export default function Home() {
     const selectedIcon = newCategoryIconKey && iconMap[newCategoryIconKey] ? iconMap[newCategoryIconKey] : null;
 
     const listCurrency = listActions.currentList?.currency;
-    let exchangeRate =
+    const exchangeRate =
       listCurrency && newCategoryCurrency && newCategoryCurrency !== listCurrency
         ? (typeof newCategoryExchangeRate === 'number' ? newCategoryExchangeRate : undefined)
         : undefined;
@@ -658,10 +653,10 @@ export default function Home() {
           value: c.value,
           label: c.label,
           icon: Object.keys(iconMap).find((k) => iconMap[k] === c.icon) || '',
-          budget: typeof (c as any).budget === 'number' ? (c as any).budget : undefined,
-          currency: typeof (c as any).currency === 'string' ? (c as any).currency : undefined,
-          strictBudget: typeof (c as any).strictBudget === 'boolean' ? (c as any).strictBudget : undefined,
-          listId: typeof (c as any).listId === 'string' ? (c as any).listId : undefined,
+          budget: typeof c.budget === 'number' ? c.budget : undefined,
+          currency: typeof c.currency === 'string' ? c.currency : undefined,
+          strictBudget: typeof c.strictBudget === 'boolean' ? c.strictBudget : undefined,
+          listId: typeof c.listId === 'string' ? c.listId : undefined,
         }));
         await savePersonalization(userId, storedCategories);
       } catch {
@@ -764,7 +759,7 @@ export default function Home() {
         availableCategories
           .filter((c) => c.listId === list._id)
           .forEach((c) => {
-            const rate = (c as any).exchangeRateToListCurrency;
+            const rate = c.exchangeRateToListCurrency;
             if (typeof rate === 'number' && rate > 0) {
               categoryRateMap[c.value] = rate;
             }
@@ -788,9 +783,9 @@ export default function Home() {
         });
 
         const categories = availableCategories
-          .filter((c) => c.listId === list._id && typeof (c as any).budget === 'number')
+          .filter((c) => c.listId === list._id && typeof c.budget === 'number')
           .map((c) => {
-            const budget = (c as any).budget as number;
+            const budget = c.budget as number;
             const cat = c.value || '';
             const spentCat = categorySpend[cat] || 0;
             return {
@@ -799,7 +794,7 @@ export default function Home() {
               budget,
               spent: spentCat,
               over: spentCat > budget,
-              currency: (c as any).currency || list.currency || 'RUB',
+              currency: c.currency || list.currency || 'RUB',
             };
           });
 
